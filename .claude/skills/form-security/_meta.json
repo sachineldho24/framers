@@ -1,0 +1,22 @@
+{
+  "name": "form-security",
+  "description": "Security patterns for web forms including autocomplete attributes for password managers, CSRF protection, XSS prevention, and input sanitization. Use when implementing authentication forms, payment forms, or any form handling sensitive data.",
+  "tags": [
+    "forms",
+    "security",
+    "web",
+    "code-generation"
+  ],
+  "sub_skills": [],
+  "source": "claude-user",
+  "type": "template",
+  "depends_on": [],
+  "enhances": [
+    "form-react",
+    "form-vue",
+    "form-vanilla"
+  ],
+  "last_reviewed_at": "2026-06-07",
+  "review_score": 66,
+  "relevance_tier": "B"
+}

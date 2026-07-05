@@ -1,0 +1,22 @@
+{
+  "name": "form-accessibility",
+  "description": "WCAG 2.2 AA compliance for forms, ARIA patterns, focus management, keyboard navigation, and screen reader support. Use when implementing accessible forms in any framework.",
+  "tags": [
+    "forms",
+    "web",
+    "html",
+    "code-generation"
+  ],
+  "sub_skills": [],
+  "source": "claude-user",
+  "type": "template",
+  "depends_on": [],
+  "enhances": [
+    "form-react",
+    "form-vue",
+    "form-vanilla"
+  ],
+  "last_reviewed_at": "2026-06-05",
+  "review_score": 66,
+  "relevance_tier": "B"
+}

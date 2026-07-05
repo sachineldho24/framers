@@ -1,0 +1,68 @@
+{
+  "name": "building-router",
+  "description": "Routes to 9 specialized building game skills based on game type, scale, and core features including physics, multiplayer sync, and terrain manipulation.",
+  "tags": [
+    "building-game",
+    "3d",
+    "routing"
+  ],
+  "sub_skills": [
+    {
+      "name": "performance",
+      "file": "references/performance.md",
+      "triggers": [
+        "optimization",
+        "LOD",
+        "culling",
+        "instancing",
+        "batching"
+      ]
+    },
+    {
+      "name": "physics",
+      "file": "references/physics.md",
+      "triggers": [
+        "collision",
+        "structural integrity",
+        "gravity",
+        "rigidbody"
+      ]
+    },
+    {
+      "name": "multiplayer",
+      "file": "references/multiplayer.md",
+      "triggers": [
+        "sync",
+        "netcode",
+        "replication",
+        "server authority"
+      ]
+    },
+    {
+      "name": "terrain",
+      "file": "references/terrain.md",
+      "triggers": [
+        "voxel",
+        "terrain",
+        "procedural",
+        "chunk"
+      ]
+    }
+  ],
+  "source": "claude-user",
+  "type": "router",
+  "depends_on": [
+    "performance-at-scale",
+    "structural-physics",
+    "multiplayer-building",
+    "terrain-integration",
+    "decay-upkeep",
+    "builder-ux",
+    "platform-building",
+    "case-studies-reference"
+  ],
+  "enhances": [],
+  "last_reviewed_at": "2026-05-27",
+  "review_score": 69,
+  "relevance_tier": "C"
+}

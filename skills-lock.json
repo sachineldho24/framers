@@ -1,0 +1,491 @@
+{
+  "version": 1,
+  "skills": {
+    "algorithmic-art": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/algorithmic-art/SKILL.md",
+      "computedHash": "79a4afe708ef315c58c3dea9ec1addee85b3d0eaa700411bf179f42ab7e2f3b2"
+    },
+    "audio-analysis": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/audio-analysis/SKILL.md",
+      "computedHash": "a74ea0aeb824f90384a763bf5f7e13373d48e64620a77b509dbafc7fad5495cf"
+    },
+    "audio-playback": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/audio-playback/SKILL.md",
+      "computedHash": "8760c87979782bc4d09eb1feb662d946a79bcb10545b264ec4023b04023dbe29"
+    },
+    "audio-reactive": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/audio-reactive/SKILL.md",
+      "computedHash": "3e87fbced34082f2ecf8070df81903f7282814597c136fa5945ef31096c36e3a"
+    },
+    "audio-router": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/audio-router/SKILL.md",
+      "computedHash": "d66e0c9d07cd23a2faa02b8552cd07fb59129c8879559badd471ec7d6b04fac4"
+    },
+    "aws-skills": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/aws-skills/SKILL.md",
+      "computedHash": "75dfcab1b360007fab9b09d01016572e30ff3ff75c99f889e67be06967e7c712"
+    },
+    "backend-dev-guidelines": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/backend-dev-guidelines/SKILL.md",
+      "computedHash": "c07d92cce073ae183e592c1354a823e280cb163ee8176c55a164e7ef781a8c95"
+    },
+    "brainstorming": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/brainstorming/SKILL.md",
+      "computedHash": "2a145a44afba0354c5eebf393e0331540076c170db64036e6691b7d2f7459d4b"
+    },
+    "brand-guidelines": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/brand-guidelines/SKILL.md",
+      "computedHash": "5536b5e670448d97c1d9c23cea485f0de41dd5392fba0b054c9783b41358f23d"
+    },
+    "builder-ux": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/builder-ux/SKILL.md",
+      "computedHash": "2437d6414bed1469d8770e5021e68a1be89c4ad9c1d003b37d31e848a7bae240"
+    },
+    "building-mechanics": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/3d-building-advanced/SKILL.md",
+      "computedHash": "71b74a265a7f5b75b5a6fe986053675a878ee1460bef2a5ea0f4885466ba6a67"
+    },
+    "building-router": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/building-router/SKILL.md",
+      "computedHash": "26272bad9128fa1ea0c7af6d64a67b076aaecba73a334f36b4f77f86167addfe"
+    },
+    "canvas-design": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/canvas-design/SKILL.md",
+      "computedHash": "0b1f6a6750b1457df373892e5de47bddc808d0953ab1ff1986c764f027eb496f"
+    },
+    "case-studies-reference": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/case-studies-reference/SKILL.md",
+      "computedHash": "67b5306f24f6842fecc41c414f91468c7ed6c5d8367bfb765a49be09fb79c4a8"
+    },
+    "component-library": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/component-library/SKILL.md",
+      "computedHash": "f412c26341995fc93f6782d3da62d85b58838b066741265c2359d66b6defd13c"
+    },
+    "d3js-visualization": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/d3js-visualization/SKILL.md",
+      "computedHash": "e917ab41055fdd7c3633f8d2c632ae78c1aae89f689db2882a69506fdd26a106"
+    },
+    "dashboard": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/dashboard/SKILL.md",
+      "computedHash": "a665ae85a96062a0ee58bacd33f3b2813cc16c9a252b37aac1fbdb9a1416d443"
+    },
+    "decay-upkeep": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/decay-upkeep/SKILL.md",
+      "computedHash": "47b377697f205b208c45c9d3a4f650979f8ae3370502373d0f6d87e5564ab638"
+    },
+    "design-taste-frontend": {
+      "source": "leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/taste-skill/SKILL.md",
+      "computedHash": "899b84384f74f540ea5284d9b2e9234e050998b42eacc805410b518d4226c0b3"
+    },
+    "doc-coauthoring": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/doc-coauthoring/SKILL.md",
+      "computedHash": "76ee2f146fb6cb275d7c6e99969fe6691d63cbe9256c9729d9dc69d064c681f4"
+    },
+    "docx": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/docx/SKILL.md",
+      "computedHash": "b8df2053287aab7ee0a5c2f3aea1b614e3a4fb4a19a4bab02dd880f2f913ed2b"
+    },
+    "emil-design-eng": {
+      "source": "emilkowalski/skill",
+      "sourceType": "github",
+      "skillPath": "skills/emil-design-eng/SKILL.md",
+      "computedHash": "ac3fc5b4e206488ffc408a2806f829bb2e5eaf518fded09be34790685c2b3a0d"
+    },
+    "form-accessibility": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/form-accessibility/SKILL.md",
+      "computedHash": "fa814e0fe1928d339507e14ce8b3d8ed55418cf6b55cfe8d3476d22c435902e2"
+    },
+    "form-react": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/form-react/SKILL.md",
+      "computedHash": "bd1b7d6813a6e0ec5c81587a8620b06a20554fa9900e1b6fbe88b4fefd00226e"
+    },
+    "form-security": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/form-security/SKILL.md",
+      "computedHash": "97e6ae75078a3e1fd601b07f38b20036fe50d8810801ccbd1793fbfb7036ddb8"
+    },
+    "form-ux-patterns": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/form-ux-patterns/SKILL.md",
+      "computedHash": "c271b23ef1e01f7bd66b8720d4f4453d6ac16677c4fb0dbada6eb0d3e94a1218"
+    },
+    "form-validation": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/form-validation/SKILL.md",
+      "computedHash": "fa8b3312930aeb8bfd1d2247fbbb315515156bfad7e33b47838a8b069066b155"
+    },
+    "form-vanilla": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/form-vanilla/SKILL.md",
+      "computedHash": "8dd54f11499945ea5f4c93ff93b5bba36090d0933ccbf1a57c9cd75374e6d415"
+    },
+    "form-vue": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/form-vue/SKILL.md",
+      "computedHash": "85fdecba9797309f3efd9566408526eb4294ccffbdec8aefecd3415201d77641"
+    },
+    "forms-router": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/forms-router/SKILL.md",
+      "computedHash": "d3ed9ed51863a036e511ef5d55ff6a1f5129ad298403813c9361080bcbe81016"
+    },
+    "frontend-design": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "17fc2034c0952c738a498ce83db3ef76d7c46e4e052ca2755ae6baee27fc3e9b"
+    },
+    "frontend-dev-guidelines": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-dev-guidelines/SKILL.md",
+      "computedHash": "f80f955baeac55f398d0a16ad078e31b319096a61c3ad481a72c1630ca2fea30"
+    },
+    "gsap-fundamentals": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-fundamentals/SKILL.md",
+      "computedHash": "6f6de476bf8a7a7a7fc2410c2be968f54a55355bf48ed0b8853a03d3c62b5fa4"
+    },
+    "gsap-react": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-react/SKILL.md",
+      "computedHash": "7c009fc5eb643de408da4a27d6f68179988e8db2ccc7ee41b914597f2e1da1e1"
+    },
+    "gsap-router": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-router/SKILL.md",
+      "computedHash": "15ebb53666ef3591ccfec2e057c3d11331fdfbb17b357bdcd01dbd7be9bb803f"
+    },
+    "gsap-scrolltrigger": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-scrolltrigger/SKILL.md",
+      "computedHash": "b8f85d46337d4502c86705d03f9da8c6c1d4eecf22d6b11134dafae6062dd7de"
+    },
+    "gsap-sequencing": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/gsap-sequencing/SKILL.md",
+      "computedHash": "01e82f3f1f71cc5bf90860c1c538a54309a7b97e54d80dbae74bf688f5f64a7c"
+    },
+    "immersive-visuals-router": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/immersive-visuals-router/SKILL.md",
+      "computedHash": "667bad254f30c0462177ff14491ac584eb8a72c01f679c5f81084c7903a4991b"
+    },
+    "internal-comms": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/internal-comms/SKILL.md",
+      "computedHash": "16f1f585e35c0c23a8dc59f3ebc767b425ebe09ab3a3be49f524882c0bab1f5f"
+    },
+    "mcp-builder": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/mcp-builder/SKILL.md",
+      "computedHash": "3efde8e1c35deba9b167f26d2240aab7e8ff5213ad2ba27dfa5905dafc02e38d"
+    },
+    "multiplayer-building": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/multiplayer-building/SKILL.md",
+      "computedHash": "63b2b32bbaf5213a613d0530d7c9272b292bb11e364e10eb9a7449ced776067d"
+    },
+    "particles-gpu": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/particles-gpu/SKILL.md",
+      "computedHash": "53096aadef3f63d760304edf74882b30ca431aba3065f16e0d102b1360988dee"
+    },
+    "particles-lifecycle": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/particles-lifecycle/SKILL.md",
+      "computedHash": "dac765493ea633b8396e11729552eba6d60e3dd5381ff64f6beee4efe197b027"
+    },
+    "particles-physics": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/particles-physics/SKILL.md",
+      "computedHash": "ba662a1f86d08d281d826e6cc8a116f9866277af644c91376361412bb5d1a428"
+    },
+    "particles-router": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/particles-router/SKILL.md",
+      "computedHash": "3a7673c56fc0aa5c3b0b2c68a76aec681f9e543bfc8f8c69ee196333db67b058"
+    },
+    "pdf": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/pdf/SKILL.md",
+      "computedHash": "7dc326ccfd7f26808516ea638574b130a0a5d23f741a5d714f2513d498d11e4e"
+    },
+    "performance-at-scale": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/performance-at-scale/SKILL.md",
+      "computedHash": "1d78c8bd0c45fcad4db591672ddda8e4dc2338e53bc94a4cc9f91cf363a49480"
+    },
+    "platform-building": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/platform-building/SKILL.md",
+      "computedHash": "87ab74e4c12031844b30a48cd484ead68bacfaa3f788a3ec66cf547665bb33c7"
+    },
+    "postfx-bloom": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/postfx-bloom/SKILL.md",
+      "computedHash": "87e8eba9686153c3f0bafe20bcb560c9d48e98dd109e6a151dca17f47740c160"
+    },
+    "postfx-composer": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/postfx-composer/SKILL.md",
+      "computedHash": "9aa6998468913784818aaa8bcb11b405b02e7682ec7fbb62ce71c8313cf51155"
+    },
+    "postfx-effects": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/postfx-effects/SKILL.md",
+      "computedHash": "47458ec09e9267f4722767231e2df31c6a1345725300895669264f990f6e6918"
+    },
+    "postfx-router": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/postfx-router/SKILL.md",
+      "computedHash": "642a181e55d573a4a234f55216737b985bebebc3d10c3198c7fe872f2667628a"
+    },
+    "pptx": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/pptx/SKILL.md",
+      "computedHash": "7a6b93136e3fec310406f3069e4f4e71bcde522bfe1170253196aeaf0a5577d6"
+    },
+    "product-self-knowledge": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/product-self-knowledge/SKILL.md",
+      "computedHash": "1825512e9856971a36fc880d00a5e8da484905a83d6c8a35f3e9abeaa7da2ae0"
+    },
+    "r3f-fundamentals": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-fundamentals/SKILL.md",
+      "computedHash": "59a095bc5a0d5c58cb132fa225aed8e5b46d7a6d91942ddb4aa6ff45ea2db8c6"
+    },
+    "r3f-geometry": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-geometry/SKILL.md",
+      "computedHash": "ae5719b1aad8495dcb816758b5d947ce348ac4450ff63eaa713b0396c31198e6"
+    },
+    "r3f-materials": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-materials/SKILL.md",
+      "computedHash": "2704da9ddac9cd2397a28a6d49796e3c9cdef26efc69c750cb16e55f817efa2c"
+    },
+    "r3f-performance": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-performance/SKILL.md",
+      "computedHash": "d2f416a5144c31e795f9da6660e5065e28229a47fd313cd409fe8b271bb19430"
+    },
+    "r3f-router": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/r3f-router/SKILL.md",
+      "computedHash": "80c733c27be3e110bf2186103adcc1c867584a7e938cb724edc72a44c3371995"
+    },
+    "review-animations": {
+      "source": "emilkowalski/skill",
+      "sourceType": "github",
+      "skillPath": "skills/review-animations/SKILL.md",
+      "computedHash": "57c681344448379fbec8c11b45e355b70799998427240662318d017f292571bd"
+    },
+    "router-template": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/router-template/SKILL.md",
+      "computedHash": "c7a36f98868a81a640bd164eca470d6d74b4cbc6f96af4eea56b6d8154a6604b"
+    },
+    "scientific-documentation": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/scientific-documentation/SKILL.md",
+      "computedHash": "86d1920fb7c6f441a2b03e2df7ca2f602dc79e85596f7aff01ca03eb7490a3cc"
+    },
+    "shader-effects": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/shader-effects/SKILL.md",
+      "computedHash": "e41ccb252e79b341139b84d81186f431486273aea3e292fdee1613828860e51a"
+    },
+    "shader-fundamentals": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/shader-fundamentals/SKILL.md",
+      "computedHash": "cf8ee8c3c5c3aa5ba83775a975a9ddcaa4b6749848f77720cc694c91fed97b4b"
+    },
+    "shader-noise": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/shader-noise/SKILL.md",
+      "computedHash": "3dab1253c91e6f5debc00ab178e84ab13ee699fd752dfe681c395dcf4be6d54e"
+    },
+    "shader-router": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/shader-router/SKILL.md",
+      "computedHash": "088d3d0efcdc093eed4ec14ba447c2121aadfccd98dba43630b0875f924feeb3"
+    },
+    "shader-sdf": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/shader-sdf/SKILL.md",
+      "computedHash": "bfad9b76922256805757f6da367347bb97503be531f89fb24c9e7928cc34464c"
+    },
+    "skill-creator": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/skill-creator/SKILL.md",
+      "computedHash": "bff9867bd340b2beaa0251d4e37ecfcc6bbcb0a89276bd64924bf8dcb7f3a4b8"
+    },
+    "slack-gif-creator": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/slack-gif-creator/SKILL.md",
+      "computedHash": "4cbc655f3e903128e77019d8454cf13a6466463351bcb2ef23c947cf88a50dd7"
+    },
+    "software-architecture": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/software-architecture/SKILL.md",
+      "computedHash": "cf4a8c027c433685fa828e7a217009d07a094521fb587b9f6d32650200d76189"
+    },
+    "structural-physics": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/structural-physics/SKILL.md",
+      "computedHash": "925fc64d034b33e6c4aae027d3cc0ac8340a3d4a6c9bc75fec72a504eaf6db7f"
+    },
+    "subagent-driven-development": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/subagent-driven-development/SKILL.md",
+      "computedHash": "d24f9841a31678654ba22afd9ea7d0c53a1ebe3a234f92107747af325009de73"
+    },
+    "systematic-debugging": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/systematic-debugging/SKILL.md",
+      "computedHash": "0e4d840aa42f43589bbdf7fa239f174aad091fe9a1cdced3d31727ee1b0c3edf"
+    },
+    "terrain-integration": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/terrain-integration/SKILL.md",
+      "computedHash": "d9a85f517dc8238dad9e977b7083997de9b8f9ff7e99f5e6b7fe6675267fc070"
+    },
+    "test-driven-development": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/test-driven-development/SKILL.md",
+      "computedHash": "5df5b074d29db336706009ac418b5029b24fb261178e30264b9228a1f2319d58"
+    },
+    "theme-factory": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/theme-factory/SKILL.md",
+      "computedHash": "004e15ff0137a26987d6db1869da53238e0cf376c7601353b859ca27fe2c8ffa"
+    },
+    "ui-ux-pro-max": {
+      "source": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/ui-ux-pro-max/SKILL.md",
+      "computedHash": "6337038fe1fe6bbe1b9f252ab678ee575859190bab6f0f246f4061824eb40875"
+    },
+    "using-git-worktrees": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/using-git-worktrees/SKILL.md",
+      "computedHash": "79153e1561669129e20469fb1656831cb0c90c1fa6d539f4f719da7cfde23a3a"
+    },
+    "web-artifacts-builder": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/web-artifacts-builder/SKILL.md",
+      "computedHash": "10a07fa3e60aabcb4ee9649b5a210be60ca4f9848592b59b42ec3d479cb102af"
+    },
+    "writing-plans": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/writing-plans/SKILL.md",
+      "computedHash": "814a9ccd3d4bb5568f0784c7ea558c3e697c09dfd8f1e545c66f4951f0b6a76c"
+    },
+    "xlsx": {
+      "source": "bbeierle12/skill-mcp-claude",
+      "sourceType": "github",
+      "skillPath": "skills/xlsx/SKILL.md",
+      "computedHash": "f0ab1960c0344683722a707ed3dbc50922b0c0036c254359ad7b0e94c85ba39d"
+    }
+  }
+}

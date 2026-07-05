@@ -1,0 +1,22 @@
+{
+  "name": "doc-coauthoring",
+  "description": "Structured workflow for collaborative document creation. Guides users through context gathering, refinement and structuring, and final polish stages.",
+  "tags": [
+    "documentation",
+    "content-creation",
+    "workflow"
+  ],
+  "sub_skills": [],
+  "source": "claude-examples",
+  "type": "discipline",
+  "depends_on": [],
+  "enhances": [
+    "scientific-documentation",
+    "internal-comms",
+    "pptx",
+    "docx"
+  ],
+  "last_reviewed_at": "2026-06-03",
+  "review_score": 60,
+  "relevance_tier": "B"
+}

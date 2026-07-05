@@ -1,0 +1,24 @@
+{
+  "name": "brand-guidelines",
+  "description": "Access Anthropic official brand identity and style resources including branding, corporate identity, visual identity, brand colors, typography, and usage guidelines.",
+  "tags": [
+    "ui-design",
+    "reference"
+  ],
+  "sub_skills": [],
+  "source": "claude-examples",
+  "type": "discipline",
+  "depends_on": [],
+  "enhances": [
+    "pptx",
+    "docx",
+    "frontend-design",
+    "component-library",
+    "theme-factory",
+    "web-artifacts-builder",
+    "slack-gif-creator"
+  ],
+  "last_reviewed_at": "2026-05-25",
+  "review_score": 60,
+  "relevance_tier": "A"
+}

@@ -1,0 +1,20 @@
+{
+  "name": "case-studies-reference",
+  "description": "Detailed analysis of building systems from successful games, plus decision frameworks for new projects. | Game | Building Focus | Physics | Scale | Key Innovation |",
+  "tags": [
+    "building-game",
+    "reference"
+  ],
+  "sub_skills": [],
+  "source": "claude-user",
+  "type": "discipline",
+  "depends_on": [],
+  "enhances": [
+    "3d-building-advanced",
+    "structural-physics",
+    "multiplayer-building"
+  ],
+  "last_reviewed_at": "2026-05-29",
+  "review_score": 60,
+  "relevance_tier": "A"
+}

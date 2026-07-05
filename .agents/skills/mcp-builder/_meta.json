@@ -1,0 +1,17 @@
+{
+  "name": "mcp-builder",
+  "description": "Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools, in Python (FastMCP) or Node/TypeScript (MCP SDK).",
+  "tags": [
+    "meta-tooling",
+    "typescript",
+    "scaffolding"
+  ],
+  "sub_skills": [],
+  "source": "claude-examples",
+  "type": "template",
+  "depends_on": [],
+  "enhances": [],
+  "last_reviewed_at": null,
+  "review_score": null,
+  "relevance_tier": null
+}

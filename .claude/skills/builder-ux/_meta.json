@@ -1,0 +1,21 @@
+{
+  "name": "builder-ux",
+  "description": "Builder user experience systems for Three.js building games. Use when implementing prefab/blueprint save/load, undo/redo command patterns, ghost preview placement, multi-select, or copy/paste building mechanics.",
+  "tags": [
+    "building-game",
+    "ui-design",
+    "code-generation"
+  ],
+  "sub_skills": [],
+  "source": "claude-user",
+  "type": "template",
+  "depends_on": [],
+  "enhances": [
+    "3d-building-advanced",
+    "structural-physics",
+    "multiplayer-building"
+  ],
+  "last_reviewed_at": "2026-05-26",
+  "review_score": 72,
+  "relevance_tier": "B"
+}

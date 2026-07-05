@@ -1,0 +1,19 @@
+{
+  "name": "scientific-documentation",
+  "description": "Generate comprehensive scientific research-style documentation for completed coding projects. Use when the user requests project documentation, a technical breakdown, a study paper, or wants to understand everything about a project they built.",
+  "tags": [
+    "documentation",
+    "python",
+    "code-generation"
+  ],
+  "sub_skills": [],
+  "source": "claude-user",
+  "type": "template",
+  "depends_on": [],
+  "enhances": [
+    "doc-coauthoring"
+  ],
+  "last_reviewed_at": null,
+  "review_score": null,
+  "relevance_tier": null
+}

@@ -1,0 +1,27 @@
+{
+  "name": "audio-router",
+  "description": "Router for audio domain including playback, analysis, and audio-reactive visuals. Use when implementing any audio functionality including music, sound effects, visualizers, or audio-driven animations. Routes to 3 specialized skills.",
+  "tags": [
+    "audio",
+    "routing"
+  ],
+  "sub_skills": [],
+  "source": "claude-user",
+  "type": "router",
+  "depends_on": [
+    "audio-playback",
+    "audio-analysis",
+    "audio-reactive"
+  ],
+  "enhances": [
+    "postfx-bloom",
+    "postfx-effects",
+    "particles-gpu",
+    "gsap-sequencing",
+    "r3f-fundamentals",
+    "shader-effects"
+  ],
+  "last_reviewed_at": "2026-05-21",
+  "review_score": 60,
+  "relevance_tier": "C"
+}

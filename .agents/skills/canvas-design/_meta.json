@@ -1,0 +1,23 @@
+{
+  "name": "canvas-design",
+  "description": "Create beautiful visual art in .png and .pdf documents using design philosophy. Use this skill when the user asks to create a poster, piece of art, design, or other static piece.",
+  "tags": [
+    "ui-design",
+    "css",
+    "html",
+    "design"
+  ],
+  "sub_skills": [],
+  "source": "claude-examples",
+  "type": "creative-engine",
+  "depends_on": [],
+  "enhances": [
+    "pptx",
+    "pdf",
+    "brand-guidelines",
+    "slack-gif-creator"
+  ],
+  "last_reviewed_at": "2026-05-28",
+  "review_score": 60,
+  "relevance_tier": "B"
+}

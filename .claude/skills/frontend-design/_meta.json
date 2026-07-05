@@ -1,0 +1,24 @@
+{
+  "name": "frontend-design",
+  "description": "Design-first frontend development workflow. Before coding, understand context and commit to a bold aesthetic direction covering purpose, audience, and visual language.",
+  "tags": [
+    "ui-design",
+    "css",
+    "design"
+  ],
+  "sub_skills": [],
+  "source": "claude-public",
+  "type": "creative-engine",
+  "depends_on": [],
+  "enhances": [
+    "component-library",
+    "form-react",
+    "form-vue",
+    "form-vanilla",
+    "web-artifacts-builder",
+    "d3js-visualization"
+  ],
+  "last_reviewed_at": "2026-06-13",
+  "review_score": 54,
+  "relevance_tier": "C"
+}
