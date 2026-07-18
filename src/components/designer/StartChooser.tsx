@@ -93,6 +93,12 @@ export function StartChooser({
             {busy === "canva" ? "Starting…" : canvaEnabled ? "Start" : "Unavailable"}{" "}
             {canvaEnabled && <Icon name="arrow_forward" className="text-base" />}
           </span>
+          {/* Canva brand attribution — required at the integration entry point. */}
+          {canvaEnabled && (
+            <span className="label-caps mt-3 text-on-surface-variant">
+              Powered by Canva
+            </span>
+          )}
         </button>
       </div>
     </div>

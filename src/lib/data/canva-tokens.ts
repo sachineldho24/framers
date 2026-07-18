@@ -1,12 +1,20 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/server";
 import { refreshTokens, type CanvaTokenResponse } from "@/lib/canva";
+import { encryptToken, decryptToken } from "@/lib/crypto/token-cipher";
 import type { CanvaToken } from "@/lib/supabase/types";
 
 /** Refresh a token this many seconds before its real expiry, to avoid races. */
 const EXPIRY_BUFFER_SECONDS = 120;
 
-/** Read the stored Canva token row for a user (service role — bypasses RLS). */
+/**
+ * Read the stored Canva token row for a user (service role — bypasses RLS).
+ *
+ * The access/refresh tokens are encrypted at rest; this decrypts them in place
+ * so callers see plaintext. If decryption fails (wrong key, tampered data, or a
+ * legacy plaintext row from before encryption was added), we treat the row as
+ * absent → the caller starts a fresh OAuth flow rather than crashing.
+ */
 export async function getCanvaToken(
   userId: string
 ): Promise<CanvaToken | null> {
@@ -18,7 +26,18 @@ export async function getCanvaToken(
     .maybeSingle();
 
   if (error) throw new Error(`Failed to read Canva token: ${error.message}`);
-  return data;
+  if (!data) return null;
+
+  try {
+    return {
+      ...data,
+      access_token: decryptToken(data.access_token),
+      refresh_token: decryptToken(data.refresh_token),
+    };
+  } catch {
+    // Undecryptable (e.g. legacy plaintext or key rotation) → force re-auth.
+    return null;
+  }
 }
 
 /** Persist tokens from an OAuth exchange or refresh. */
@@ -35,8 +54,8 @@ export async function upsertCanvaToken(params: {
   const { error } = await supabase.from("canva_tokens").upsert(
     {
       user_id: params.userId,
-      access_token: params.tokens.access_token,
-      refresh_token: params.tokens.refresh_token,
+      access_token: encryptToken(params.tokens.access_token),
+      refresh_token: encryptToken(params.tokens.refresh_token),
       expires_at: expiresAt,
       canva_user_id: params.canvaUserId ?? null,
     },

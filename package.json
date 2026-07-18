@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:world": "node --experimental-strip-types --test src/components/scroll-world/*.test.ts"
+    "test:world": "node --experimental-strip-types --test src/components/scroll-world/*.test.ts",
+    "test:unit": "node --experimental-strip-types --import ./scripts/test-register.mjs --test \"src/**/*.test.ts\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

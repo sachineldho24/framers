@@ -36,14 +36,20 @@ export function CanvaDesignCard({
         )}
       </div>
 
-      <button
-        onClick={start}
-        disabled={loading}
-        className="flex w-full items-center justify-center gap-3 border-2 border-black bg-black py-5 font-bold uppercase text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 disabled:opacity-60"
-      >
-        {loading ? "Starting…" : "Start Designing"}
-        <Icon name="open_in_new" />
-      </button>
+      <div>
+        <button
+          onClick={start}
+          disabled={loading}
+          className="flex w-full items-center justify-center gap-3 border-2 border-black bg-black py-5 font-bold uppercase text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 disabled:opacity-60"
+        >
+          {loading ? "Starting…" : "Start Designing"}
+          <Icon name="open_in_new" />
+        </button>
+        {/* Canva brand attribution — required at the integration entry point. */}
+        <p className="label-caps mt-3 text-center text-on-surface-variant">
+          Powered by Canva
+        </p>
+      </div>
     </div>
   );
 }

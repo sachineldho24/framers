@@ -57,6 +57,12 @@ export const serverEnv = {
   get canvaRedirectUri() {
     return required("CANVA_REDIRECT_URI", process.env.CANVA_REDIRECT_URI);
   },
+  get canvaTokenEncryptionKey() {
+    return required(
+      "CANVA_TOKEN_ENCRYPTION_KEY",
+      process.env.CANVA_TOKEN_ENCRYPTION_KEY
+    );
+  },
   get razorpayKeySecret() {
     return required("RAZORPAY_KEY_SECRET", process.env.RAZORPAY_KEY_SECRET);
   },
