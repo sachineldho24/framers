@@ -6,7 +6,7 @@ import { Icon } from "./Icon";
 
 /**
  * Detail-page top bar: back button (left), wordmark (centre), cart (right).
- * From the POSTERX product-options mockup.
+ * Uses the same high-contrast chrome as the product-options mockup.
  */
 export function DetailTopBar() {
   const router = useRouter();
@@ -23,7 +23,7 @@ export function DetailTopBar() {
         href="/"
         className="font-display text-[28px] uppercase tracking-tighter text-on-background"
       >
-        POSTERX
+        FRAMERS LAB
       </Link>
       <Link
         href="/orders"

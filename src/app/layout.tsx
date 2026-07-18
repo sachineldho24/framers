@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Montserrat, Hanken_Grotesk, Space_Grotesk } from "next/font/google";
+import {
+  Montserrat,
+  Hanken_Grotesk,
+  Space_Grotesk,
+  Fraunces,
+} from "next/font/google";
 import "./globals.css";
 
 // Headlines — heavy geometric weight (DESIGN.md: display-lg / headline-lg use 800-900)
@@ -7,6 +12,15 @@ const montserrat = Montserrat({
   variable: "--font-montserrat",
   subsets: ["latin"],
   weight: ["700", "800", "900"],
+  display: "swap",
+});
+
+// Editorial display serif — used for the cinematic /world scene headlines
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -40,7 +54,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${montserrat.variable} ${hanken.variable} ${spaceGrotesk.variable} h-full`}
+      className={`${montserrat.variable} ${hanken.variable} ${spaceGrotesk.variable} ${fraunces.variable} h-full`}
     >
       <head>
         {/*

@@ -3,7 +3,7 @@ import type { Frame } from "@/lib/supabase/types";
 import { formatPaise } from "@/lib/format";
 
 /**
- * Product card in the POSTERX mockup style: surface-muted pad, framed sample
+ * Product card in the high-contrast mockup style: surface-muted pad, framed sample
  * image, hover border, optional NEW badge. Whole card links to frame detail.
  */
 export function FrameCard({

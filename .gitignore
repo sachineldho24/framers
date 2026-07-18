@@ -43,3 +43,10 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# scratch / local tooling
+/tmp
+.openai
+
+# large world frame sequence — hosted externally, not committed (264 MB)
+/public/world

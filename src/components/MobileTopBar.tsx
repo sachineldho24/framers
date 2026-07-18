@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Icon } from "./Icon";
 
 /**
- * Fixed top app bar from the POSTERX home mockup.
+ * Fixed top app bar for the Framers Lab storefront.
  * White surface, 2px black bottom border, centred wordmark.
  * The left button is a placeholder menu; the right is a cart/orders link.
  */
@@ -23,7 +23,7 @@ export function MobileTopBar() {
         href="/"
         className="font-display text-[24px] uppercase tracking-[0.15em] text-on-background"
       >
-        FRAMEIT
+        FRAMERS LAB
       </Link>
 
       <div className="flex items-center gap-4">

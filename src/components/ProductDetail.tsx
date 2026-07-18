@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Icon } from "./Icon";
 
 /**
- * Product detail / options screen (POSTERX product-options mockup).
+ * Product detail / options screen.
  *
  * Adaptations vs. the static mockup, given our data model:
  * - SIZE buttons switch between sibling frames (each size is its own product

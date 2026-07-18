@@ -55,8 +55,14 @@ export async function GET(request: NextRequest) {
     return `/?error=${errCode}`;
   }
 
-  // User denied consent or Canva returned an error.
+  // User denied consent or Canva returned an error. Common in Testing mode:
+  // error=access_denied when the Canva account isn't part of the developer team.
   if (oauthError) {
+    console.error("[canva/callback] Canva returned an OAuth error", {
+      error: oauthError,
+      description: url.searchParams.get("error_description"),
+      host: request.nextUrl.host,
+    });
     return redirectTo(await frameErrorPath("canva_denied"));
   }
 

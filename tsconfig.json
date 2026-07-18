@@ -30,5 +30,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "Animations_Sample"]
+  "exclude": ["node_modules", "Animations_Sample", "tmp", "**/*.test.ts"]
 }
