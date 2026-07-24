@@ -2,12 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type {
-  Frame,
-  FrameStyle,
-  Finish,
-  DesignSource,
-} from "@/lib/supabase/types";
+import type { Frame, FrameStyle, Finish } from "@/lib/supabase/types";
 import { formatPaise } from "@/lib/format";
 import { createClient } from "@/lib/supabase/client";
 import { DESIGN_BUCKET } from "@/lib/storage-shared";
@@ -21,19 +16,15 @@ const MM_PER_INCH = 25.4;
 /** Step 5 — Review. Final framed preview, itemised price, → checkout. */
 export function ReviewStep({
   sessionId,
-  designSource,
   frame,
   style,
   finish,
-  canvaDesignId,
   uploadPath,
 }: {
   sessionId: string;
-  designSource: DesignSource;
   frame: Frame;
   style: FrameStyle | null;
   finish: Finish | null;
-  canvaDesignId: string | null;
   uploadPath: string | null;
 }) {
   const router = useRouter();
@@ -68,12 +59,11 @@ export function ReviewStep({
       return;
     }
 
-    // The print file: uploaded original (upload path) or — for Canva — the
-    // exported file path carried in local state.
+    // The print file is the uploaded original.
     const local = loadDesignerState(sessionId);
     const printPath = uploadPath ?? local?.uploadPath ?? null;
 
-    if (designSource === "upload" && !printPath) {
+    if (!printPath) {
       setError("Your artwork is missing. Please re-upload.");
       setBusy(false);
       return;
@@ -118,11 +108,11 @@ export function ReviewStep({
     sessionStorage.setItem(
       CHECKOUT_STORAGE_KEY,
       JSON.stringify({
-        designSource,
+        designSource: "upload",
         frameId: frame.id,
-        printPath: printPath ?? mockupPath, // canva fallback handled server-side
+        printPath,
         previewPath: mockupPath,
-        designId: canvaDesignId,
+        designId: null,
         sessionId,
         frameStyleId: style?.id ?? null,
         finishId: finish?.id ?? null,
@@ -154,13 +144,6 @@ export function ReviewStep({
       <section>
         <h1 className="text-[32px] md:text-[40px]">Review Your Frame</h1>
 
-        {designSource === "canva" && !imageSrc && (
-          <p className="label-caps mt-4 border-2 border-black bg-surface-muted px-4 py-3">
-            Finish designing in Canva, then export from the design screen to
-            attach your artwork.
-          </p>
-        )}
-
         <table className="mt-8 w-full border-2 border-black text-left">
           <tbody className="label-caps">
             <Row k="Size" v={frame.name} />
@@ -168,10 +151,7 @@ export function ReviewStep({
             <Row k="Dimensions" v={`${frame.width_mm} × ${frame.height_mm} mm`} />
             <Row k="Frame style" v={style?.name ?? "—"} />
             <Row k="Finish" v={finish?.name ?? "—"} />
-            <Row
-              k="Source"
-              v={designSource === "canva" ? "Canva design" : "Uploaded photo"}
-            />
+            <Row k="Source" v="Uploaded photo" />
           </tbody>
         </table>
 

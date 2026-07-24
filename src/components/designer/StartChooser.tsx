@@ -6,44 +6,33 @@ import { initDesignerState } from "@/lib/designer-state";
 import { Icon } from "@/components/Icon";
 
 /**
- * Step 1 — Entry. Two bordered cards: Upload Your Photo / Design in Canva.
+ * Step 1 — Entry. Upload Your Photo card.
  * Creates a design_sessions row, then routes into the stepped flow.
  */
-export function StartChooser({
-  frameId,
-  canvaEnabled,
-}: {
-  frameId: string | null;
-  canvaEnabled: boolean;
-}) {
+export function StartChooser({ frameId }: { frameId: string | null }) {
   const router = useRouter();
-  const [busy, setBusy] = useState<"upload" | "canva" | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function start(designSource: "upload" | "canva") {
-    setBusy(designSource);
+  async function start() {
+    setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/design/session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ designSource, frameId }),
+        body: JSON.stringify({ frameId }),
       });
       if (!res.ok) {
         const b = await res.json().catch(() => null);
         throw new Error(b?.error?.message ?? "Could not start your design.");
       }
       const { sessionId } = (await res.json()) as { sessionId: string };
-      initDesignerState(sessionId, designSource, frameId);
-      // Upload path → upload step. Canva path needs a size first → size step.
-      router.push(
-        designSource === "upload"
-          ? `/design/${sessionId}/upload`
-          : `/design/${sessionId}/size`
-      );
+      initDesignerState(sessionId, "upload", frameId);
+      router.push(`/design/${sessionId}/upload`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.");
-      setBusy(null);
+      setBusy(false);
     }
   }
 
@@ -54,12 +43,11 @@ export function StartChooser({
           {error}
         </p>
       )}
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
-        {/* Upload */}
+      <div className="mx-auto max-w-xl">
         <button
-          onClick={() => start("upload")}
-          disabled={busy !== null}
-          className="brutalist-press group flex flex-col items-start border-2 border-black bg-surface-muted p-8 text-left transition-all hover:bg-white disabled:opacity-60"
+          onClick={start}
+          disabled={busy}
+          className="brutalist-press group flex w-full flex-col items-start border-2 border-black bg-surface-muted p-8 text-left transition-all hover:bg-white disabled:opacity-60"
         >
           <div className="mb-6 flex h-16 w-16 items-center justify-center bg-action-red">
             <Icon name="cloud_upload" className="text-4xl text-white" />
@@ -69,36 +57,9 @@ export function StartChooser({
             See it framed instantly. JPG, PNG, or PDF — minimum 150 DPI.
           </p>
           <span className="label-caps mt-auto inline-flex items-center gap-2 text-action-red">
-            {busy === "upload" ? "Starting…" : "Start"}{" "}
+            {busy ? "Starting…" : "Start"}{" "}
             <Icon name="arrow_forward" className="text-base" />
           </span>
-        </button>
-
-        {/* Canva */}
-        <button
-          onClick={() => start("canva")}
-          disabled={busy !== null || !canvaEnabled}
-          className="brutalist-press group flex flex-col items-start border-2 border-black bg-surface-muted p-8 text-left transition-all hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <div className="mb-6 flex h-16 w-16 items-center justify-center bg-black">
-            <Icon name="brush" className="text-4xl text-white" />
-          </div>
-          <h2 className="mb-2 text-[24px] uppercase">Design in Canva</h2>
-          <p className="mb-6 text-[14px] text-on-surface-variant">
-            {canvaEnabled
-              ? "Create from scratch with Canva's templates, sized for your frame."
-              : "Coming soon — Canva design isn't available yet. Use upload for now."}
-          </p>
-          <span className="label-caps mt-auto inline-flex items-center gap-2 text-black">
-            {busy === "canva" ? "Starting…" : canvaEnabled ? "Start" : "Unavailable"}{" "}
-            {canvaEnabled && <Icon name="arrow_forward" className="text-base" />}
-          </span>
-          {/* Canva brand attribution — required at the integration entry point. */}
-          {canvaEnabled && (
-            <span className="label-caps mt-3 text-on-surface-variant">
-              Powered by Canva
-            </span>
-          )}
         </button>
       </div>
     </div>

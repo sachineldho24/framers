@@ -40,7 +40,6 @@ export interface DesignSessionPatch {
   frame_style_id?: string | null;
   finish_id?: string | null;
   upload_path?: string | null;
-  canva_design_id?: string | null;
   mockup_path?: string | null;
   crop_x?: number;
   crop_y?: number;

@@ -6,11 +6,13 @@
 
 export interface DesignerState {
   sessionId: string;
-  designSource: "canva" | "upload";
+  designSource: "upload";
   frameId: string | null; // chosen size SKU
   frameStyleId: string | null;
   finishId: string | null;
   uploadPath: string | null; // storage path of original upload
+  previewPath?: string | null;
+  printPath?: string | null;
   previewObjectUrl?: string | null; // ephemeral, not persisted across reload
   imageWidth: number | null; // natural px of the uploaded image
   imageHeight: number | null;
@@ -55,7 +57,7 @@ export function patchDesignerState(
 
 export function initDesignerState(
   sessionId: string,
-  designSource: "canva" | "upload",
+  designSource: "upload",
   frameId: string | null
 ): DesignerState {
   const existing = loadDesignerState(sessionId);

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Frame, Finish, DesignSource } from "@/lib/supabase/types";
+import type { Frame, Finish } from "@/lib/supabase/types";
 import { formatPaise } from "@/lib/format";
 import { loadDesignerState, patchDesignerState } from "@/lib/designer-state";
 import { useDesignerImage } from "@/lib/useDesignerImage";
@@ -17,12 +17,10 @@ const MM_PER_INCH = 25.4;
  */
 export function SizeStep({
   sessionId,
-  designSource,
   frames,
   finishes,
 }: {
   sessionId: string;
-  designSource: DesignSource;
   frames: Frame[];
   finishes: Finish[];
 }) {
@@ -216,13 +214,7 @@ export function SizeStep({
             imageSrc={imageSrc}
             editable={false}
           />
-          {designSource === "canva" && !imageSrc && (
-            <p className="label-caps mt-4 text-center text-on-surface-variant">
-              You&apos;ll design the artwork in Canva next.
-            </p>
-          )}
-          {finishes.length > 0 && null}
-        </div>
+          {finishes.length > 0 && null}        </div>
       </section>
     </main>
   );

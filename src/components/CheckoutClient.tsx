@@ -303,8 +303,7 @@ export function CheckoutClient() {
                 {summary.frame.name}
               </h3>
               <p className="label-caps text-[10px] text-on-surface-variant">
-                {summary.frame.width_mm}×{summary.frame.height_mm}mm ·{" "}
-                {handoff.designSource === "canva" ? "Canva design" : "Uploaded art"}
+                {summary.frame.width_mm}×{summary.frame.height_mm}mm · Uploaded art
               </p>
               <p className="mt-3 text-[18px] font-bold">
                 {formatPaise(summary.frame.price_paise)}

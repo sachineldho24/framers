@@ -32,7 +32,6 @@ export default async function SizeStepPage({
       <DesignerChrome current="size" sessionId={sessionId} />
       <SizeStep
         sessionId={sessionId}
-        designSource={session.design_source}
         frames={frames}
         finishes={finishes}
       />

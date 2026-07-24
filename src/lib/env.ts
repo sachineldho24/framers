@@ -23,15 +23,6 @@ export const publicEnv = {
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
 };
 
-/** True if the Canva integration credentials are configured. */
-export function isCanvaConfigured(): boolean {
-  return Boolean(
-    process.env.CANVA_CLIENT_ID &&
-      process.env.CANVA_CLIENT_SECRET &&
-      process.env.CANVA_REDIRECT_URI
-  );
-}
-
 /** True if Razorpay server credentials are configured. */
 export function isRazorpayConfigured(): boolean {
   return Boolean(
@@ -46,21 +37,6 @@ export const serverEnv = {
     return required(
       "SUPABASE_SERVICE_ROLE_KEY",
       process.env.SUPABASE_SERVICE_ROLE_KEY
-    );
-  },
-  get canvaClientId() {
-    return required("CANVA_CLIENT_ID", process.env.CANVA_CLIENT_ID);
-  },
-  get canvaClientSecret() {
-    return required("CANVA_CLIENT_SECRET", process.env.CANVA_CLIENT_SECRET);
-  },
-  get canvaRedirectUri() {
-    return required("CANVA_REDIRECT_URI", process.env.CANVA_REDIRECT_URI);
-  },
-  get canvaTokenEncryptionKey() {
-    return required(
-      "CANVA_TOKEN_ENCRYPTION_KEY",
-      process.env.CANVA_TOKEN_ENCRYPTION_KEY
     );
   },
   get razorpayKeySecret() {

@@ -13,7 +13,7 @@ export type OrderStatus =
 
 export type PaymentStatus = "created" | "paid" | "failed" | "refunded";
 
-export type DesignSource = "canva" | "upload";
+export type DesignSource = "upload";
 
 export type FinishOverlay = "none" | "gloss" | "glass";
 
@@ -66,7 +66,6 @@ export type DesignSession = {
   finish_id: string | null;
   design_source: DesignSource;
   upload_path: string | null;
-  canva_design_id: string | null;
   mockup_path: string | null;
   crop_x: number;
   crop_y: number;
@@ -75,22 +74,10 @@ export type DesignSession = {
   updated_at: string;
 };
 
-export type CanvaToken = {
-  id: string;
-  user_id: string;
-  access_token: string;
-  refresh_token: string;
-  expires_at: string;
-  canva_user_id: string | null;
-  created_at: string;
-  updated_at: string;
-};
-
 export type Order = {
   id: string;
   user_id: string;
   frame_id: string;
-  canva_design_id: string | null;
   design_source: DesignSource;
   design_preview_path: string | null;
   design_print_path: string;
@@ -146,16 +133,6 @@ export type Database = {
         Update: Partial<Omit<Frame, "id">>;
         Relationships: [];
       };
-      canva_tokens: {
-        Row: CanvaToken;
-        Insert: Omit<CanvaToken, "id" | "created_at" | "updated_at"> & {
-          id?: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Omit<CanvaToken, "id">>;
-        Relationships: [];
-      };
       orders: {
         Row: Order;
         // Columns with DB defaults or nullable values are optional on insert.
@@ -171,7 +148,6 @@ export type Database = {
           | "tracking_number"
           | "courier"
           | "notes"
-          | "canva_design_id"
           | "design_preview_path"
           | "frame_style_id"
           | "finish_id"
@@ -191,7 +167,6 @@ export type Database = {
           tracking_number?: string | null;
           courier?: string | null;
           notes?: string | null;
-          canva_design_id?: string | null;
           design_preview_path?: string | null;
           frame_style_id?: string | null;
           finish_id?: string | null;
@@ -233,7 +208,6 @@ export type Database = {
           | "frame_style_id"
           | "finish_id"
           | "upload_path"
-          | "canva_design_id"
           | "mockup_path"
           | "crop_x"
           | "crop_y"
@@ -246,7 +220,6 @@ export type Database = {
           frame_style_id?: string | null;
           finish_id?: string | null;
           upload_path?: string | null;
-          canva_design_id?: string | null;
           mockup_path?: string | null;
           crop_x?: number;
           crop_y?: number;

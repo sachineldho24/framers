@@ -2,25 +2,44 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { Icon } from "./Icon";
-
-const ITEMS = [
-  { href: "/", label: "Home", icon: "home" },
-  { href: "/#frames", label: "Shop", icon: "grid_view", match: "/shop" },
-  { href: "/orders", label: "Orders", icon: "receipt_long" },
-  { href: "/login", label: "Profile", icon: "person" },
-] as const;
 
 /**
  * Fixed mobile bottom navigation from the mockup. Inverted (black) bar,
- * neon-accent active item. Hidden on large screens.
+ * neon-accent active item. Hidden on large screens. The "Profile" item routes
+ * to /account when signed in (where Sign Out + Canva disconnect live), else /login.
  */
 export function BottomNav() {
   const pathname = usePathname();
+  const [signedIn, setSignedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => setSignedIn(Boolean(data.user)));
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) =>
+      setSignedIn(Boolean(session?.user))
+    );
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const items = [
+    { href: "/", label: "Home", icon: "home" },
+    { href: "/#frames", label: "Shop", icon: "grid_view" },
+    { href: "/orders", label: "Orders", icon: "receipt_long" },
+    {
+      href: signedIn ? "/account" : "/login",
+      label: signedIn ? "Account" : "Profile",
+      icon: "person",
+    },
+  ] as const;
 
   return (
     <nav className="pb-safe fixed bottom-0 left-0 z-50 flex h-16 w-full items-center justify-around border-t-2 border-border-high-contrast bg-on-background px-4 md:hidden">
-      {ITEMS.map((item) => {
+      {items.map((item) => {
         const active =
           item.href === "/"
             ? pathname === "/"

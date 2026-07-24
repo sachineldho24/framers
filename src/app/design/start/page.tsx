@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { DesignerChrome } from "@/components/designer/DesignerChrome";
 import { StartChooser } from "@/components/designer/StartChooser";
 import { getCurrentUser } from "@/lib/auth-server";
-import { isCanvaConfigured } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -31,15 +30,12 @@ export default async function DesignStartPage({
         <div className="mb-12 text-center">
           <h1 className="mb-4 text-[32px] uppercase">Design Your Frame</h1>
           <p className="mx-auto max-w-xl text-on-surface-variant">
-            Upload your own photo and see it inside the frame, or design from
-            scratch in Canva. Print-ready, made to order.
+            Upload your own photo and see it inside the frame. Print-ready,
+            made to order.
           </p>
         </div>
 
-        <StartChooser
-          frameId={frameId ?? null}
-          canvaEnabled={isCanvaConfigured()}
-        />
+        <StartChooser frameId={frameId ?? null} />
 
         {/* How it works */}
         <section className="mt-section border-t-2 border-black pt-10">

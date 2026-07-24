@@ -5,7 +5,7 @@ import { createSignedUrl } from "@/lib/storage";
 
 /**
  * GET /api/design/session/[sessionId]/image
- * Returns a short-lived signed URL for the session's uploaded source image, so
+ * Returns a short-lived signed URL for the session's working preview image, so
  * the size/frame/review steps can rebuild the preview after a page refresh
  * (the client objectURL is lost on reload).
  */
@@ -27,15 +27,18 @@ export async function GET(
   if (!session || session.user_id !== user.id) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
-  if (!session.upload_path) {
+
+  // Resolve which stored object represents this session's preview image.
+  const path = session.upload_path;
+  if (!path) {
     return NextResponse.json({ url: null });
   }
 
   try {
-    const url = await createSignedUrl(session.upload_path, 600);
+    const url = await createSignedUrl(path, 600);
     return NextResponse.json({ url });
-  } catch (e) {
-    console.error("[design/session/image] sign failed:", e);
-    return NextResponse.json({ error: "sign_failed" }, { status: 500 });
+  } catch {
+    // Not found yet — not an error.
+    return NextResponse.json({ url: null });
   }
 }

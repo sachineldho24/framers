@@ -8,7 +8,6 @@ export interface NewOrderInput {
   amountPaise: number;
   razorpayOrderId: string;
   designSource: DesignSource;
-  canvaDesignId: string | null;
   designPreviewPath: string | null;
   designPrintPath: string;
   customerName: string;
@@ -42,7 +41,6 @@ export async function createPendingOrder(
         payment_status: "created",
         status: "pending",
         design_source: input.designSource,
-        canva_design_id: input.canvaDesignId,
         design_preview_path: input.designPreviewPath,
         design_print_path: input.designPrintPath,
         frame_style_id: input.frameStyleId ?? null,

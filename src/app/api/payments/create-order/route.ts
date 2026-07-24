@@ -15,7 +15,6 @@ function err(code: string, message: string, status: number) {
 interface Body {
   frameId?: string;
   designSource?: DesignSource;
-  designId?: string | null;
   printPath?: string;
   previewPath?: string | null;
   customerName?: string;
@@ -121,7 +120,6 @@ export async function POST(request: Request) {
       amountPaise,
       razorpayOrderId: rzpOrder.id,
       designSource: body.designSource!,
-      canvaDesignId: body.designId ?? null,
       designPreviewPath: body.previewPath ?? null,
       designPrintPath: body.printPath!,
       frameStyleId,

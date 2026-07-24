@@ -50,3 +50,6 @@ next-env.d.ts
 
 # large world frame sequence — hosted externally, not committed (264 MB)
 /public/world
+
+.vercel
+.env*

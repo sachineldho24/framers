@@ -6,7 +6,6 @@ import type {
   Frame,
   FrameStyle,
   Finish,
-  DesignSource,
   FinishOverlay,
 } from "@/lib/supabase/types";
 import { formatPaise } from "@/lib/format";
@@ -17,18 +16,15 @@ import { Icon } from "@/components/Icon";
 
 /**
  * Step 4 — Frame. Personalized grid: every style rendered with the user's own
- * photo. Filter bar (colour) + finish sub-control. Upload path → Review;
- * Canva path → create-design redirect.
+ * photo. Filter bar (colour) + finish sub-control, then → Review.
  */
 export function FrameStep({
   sessionId,
-  designSource,
   frame,
   styles,
   finishes,
 }: {
   sessionId: string;
-  designSource: DesignSource;
   frame: Frame;
   styles: FrameStyle[];
   finishes: Finish[];
@@ -85,35 +81,6 @@ export function FrameStep({
     setBusy(true);
     setError(null);
     await persistSession();
-
-    if (designSource === "canva") {
-      // Hand off to Canva: create the design sized for this frame, then redirect
-      // into the editor. Return navigation lands back on Review.
-      try {
-        const res = await fetch("/api/canva/create-design", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ frameId: frame.id, sessionId }),
-        });
-        if (!res.ok) {
-          const b = await res.json().catch(() => null);
-          throw new Error(b?.error?.message ?? "Could not start Canva.");
-        }
-        const data = (await res.json()) as {
-          editUrl?: string;
-          authUrl?: string;
-        };
-        const dest = data.authUrl ?? data.editUrl;
-        if (!dest) throw new Error("Unexpected response.");
-        window.location.href = dest;
-        return;
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong.");
-        setBusy(false);
-        return;
-      }
-    }
-
     router.push(`/design/${sessionId}/review`);
   }
 
@@ -231,11 +198,7 @@ export function FrameStep({
             disabled={busy}
             className="brutalist-shadow brutalist-press mt-6 flex w-full items-center justify-center gap-2 bg-action-red py-5 font-bold uppercase tracking-widest text-white disabled:opacity-60"
           >
-            {busy
-              ? "Working…"
-              : designSource === "canva"
-                ? "Design in Canva"
-                : "Next: Review"}
+            {busy ? "Working…" : "Next: Review"}
             <Icon name="arrow_forward" className="text-base" />
           </button>
         </div>

@@ -57,19 +57,6 @@ export default function RootLayout({
       className={`${montserrat.variable} ${hanken.variable} ${spaceGrotesk.variable} ${fraunces.variable} h-full`}
     >
       <head>
-        {/*
-         * DEV ONLY: Canva OAuth uses 127.0.0.1, and cookies don't cross between
-         * "localhost" and "127.0.0.1". Redirect client-side (the browser changes
-         * the address bar — a server redirect can't, see proxy.ts). Runs before
-         * paint, so no flash. No-op in production (host is never localhost).
-         */}
-        {process.env.NODE_ENV !== "production" && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `if(location.hostname==='localhost'){location.replace(location.href.replace('//localhost','//127.0.0.1'));}`,
-            }}
-          />
-        )}
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"

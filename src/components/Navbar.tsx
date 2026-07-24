@@ -58,6 +58,11 @@ export function Navbar() {
               My Orders
             </Link>
           )}
+          {!loading && user && (
+            <Link href="/account" className="label-caps hover:text-action-red">
+              Account
+            </Link>
+          )}
           {!loading && user ? (
             <button
               onClick={handleSignOut}

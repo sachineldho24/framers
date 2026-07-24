@@ -10,22 +10,30 @@ export default function PrivacyPage() {
       <main className="mx-auto w-full max-w-3xl flex-1 px-5 py-12">
         <h1 className="text-3xl">Privacy Policy</h1>
         <p className="label-caps mt-2 text-on-surface-variant">
-          Placeholder — finalise before launch (see plan/08 Q-8)
+          Last updated: 19 July 2026
         </p>
         <div className="mt-8 flex flex-col gap-4 text-base text-on-surface-variant">
           <p>
             We collect the information needed to fulfil your order: your email,
-            delivery address, phone number, and the design you create. Payments
+            delivery address, phone number, and the design you upload. Payments
             are processed by Razorpay; we do not store your card or UPI details.
           </p>
           <p>
-            When you design a frame, you authorise our app to create and export
-            designs in your Canva account on your behalf. We store the exported
-            design files so we can print and deliver your order.
+            When you upload artwork, we store the file solely to print and
+            deliver your order. We do not sell your data.
           </p>
           <p>
-            We do not sell your data. Contact us via Instagram for any
-            data-related requests.
+            For any data-related requests — including access, correction, or
+            deletion — contact us at{" "}
+            <a
+              href="https://www.instagram.com/_posterx.in"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-action-red"
+            >
+              @_posterx.in on Instagram
+            </a>
+            .
           </p>
         </div>
       </main>

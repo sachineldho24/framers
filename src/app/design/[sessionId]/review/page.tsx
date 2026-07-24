@@ -39,11 +39,9 @@ export default async function ReviewStepPage({
       <DesignerChrome current="review" sessionId={sessionId} />
       <ReviewStep
         sessionId={sessionId}
-        designSource={session.design_source}
         frame={frame}
         style={style}
         finish={finish}
-        canvaDesignId={session.canva_design_id}
         uploadPath={session.upload_path}
       />
     </>

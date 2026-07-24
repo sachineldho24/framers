@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Icon } from "@/components/Icon";
 
 type Mode = "signin" | "signup";
 
 export function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/";
 
@@ -17,6 +17,7 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -55,8 +56,12 @@ export function LoginForm() {
       }
     }
 
-    router.push(next);
-    router.refresh();
+    // Hard navigation (not router.push): a full document load guarantees the
+    // server reads the auth cookie just written by signInWithPassword. A soft
+    // navigation races cookie propagation (and the proxy's getUser() session
+    // refresh), which left the form stuck on "Please wait…" until a manual
+    // refresh. See Supabase SSR + App Router auth timing.
+    window.location.assign(next);
   }
 
   const inputCls =
@@ -116,17 +121,28 @@ export function LoginForm() {
 
         <label className="flex flex-col gap-1">
           <span className="label-caps">Password</span>
-          <input
-            type="password"
-            required
-            minLength={6}
-            autoComplete={
-              mode === "signin" ? "current-password" : "new-password"
-            }
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputCls}
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              required
+              minLength={6}
+              autoComplete={
+                mode === "signin" ? "current-password" : "new-password"
+              }
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={`${inputCls} pr-12`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant transition-colors hover:text-primary"
+            >
+              <Icon name={showPassword ? "visibility" : "visibility_off"} />
+            </button>
+          </div>
         </label>
 
         {error && (

@@ -4,7 +4,8 @@ import { Icon } from "./Icon";
 /**
  * Fixed top app bar for the Framers Lab storefront.
  * White surface, 2px black bottom border, centred wordmark.
- * The left button is a placeholder menu; the right is a cart/orders link.
+ * The left button is a placeholder menu; the right holds orders (cart) and
+ * account links. /account redirects to /login when signed out.
  */
 export function MobileTopBar() {
   return (
@@ -33,6 +34,13 @@ export function MobileTopBar() {
           className="relative flex items-center justify-center transition-opacity hover:opacity-80"
         >
           <Icon name="shopping_cart" className="text-on-background" />
+        </Link>
+        <Link
+          href="/account"
+          aria-label="Your account"
+          className="relative flex items-center justify-center transition-opacity hover:opacity-80"
+        >
+          <Icon name="person" className="text-on-background" />
         </Link>
       </div>
     </header>

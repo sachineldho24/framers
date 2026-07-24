@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { DetailTopBar } from "@/components/DetailTopBar";
 import { Footer } from "@/components/Footer";
 import { Icon } from "@/components/Icon";
-import { CanvaDesignCard } from "@/components/CanvaDesignCard";
 import { UploadArtwork } from "@/components/UploadArtwork";
 import { getFrameBySlug } from "@/lib/data/frames";
 import { getCurrentUser } from "@/lib/auth-server";
@@ -56,16 +55,12 @@ export default async function DesignMethodPage({
             Add Your Artwork
           </h1>
           <p className="max-w-2xl text-base text-on-surface-variant">
-            Choose how you want to design your {frame.name}. Use a Canva template
-            sized for your frame, or upload your own high-resolution file.
+            Upload your high-resolution file to design your {frame.name}.
           </p>
         </div>
 
-        {/* Dual bento */}
-        <div className="mb-section grid grid-cols-1 gap-8 md:grid-cols-2">
-          <div className="brutalist-shadow card-transition flex h-full flex-col justify-between border-2 border-black bg-surface-muted p-8 hover:bg-white">
-            <CanvaDesignCard frameId={frame.id} frameSlug={frame.slug} />
-          </div>
+        {/* Upload card */}
+        <div className="mb-section max-w-xl">
           <div className="brutalist-shadow card-transition flex h-full flex-col justify-between border-2 border-black bg-surface-muted p-8 hover:bg-white">
             <UploadArtwork frameId={frame.id} frameSlug={frame.slug} />
           </div>

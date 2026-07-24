@@ -36,7 +36,6 @@ export default async function FrameStepPage({
       <DesignerChrome current="frame" sessionId={sessionId} />
       <FrameStep
         sessionId={sessionId}
-        designSource={session.design_source}
         frame={frame}
         styles={styles}
         finishes={finishes}
