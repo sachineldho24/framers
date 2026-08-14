@@ -16,9 +16,15 @@ import type { FinishOverlay } from "@/lib/supabase/types";
  *
  * Layers, back to front:
  *   1. molding (frame border, `moldingColor`)
- *   2. white inner liner (thin)
- *   3. user image (object-fit: cover into the window, draggable + zoomable)
- *   4. finish overlay (matte=none, glossy=specular highlight, premium=glass tint)
+ *   2. user image (object-fit: cover into the window, draggable + zoomable)
+ *   3. finish overlay (matte=none, glossy=specular highlight, premium=glass tint)
+ *
+ * There is deliberately NO white liner between the molding and the artwork.
+ * We don't sell a mat, and physically the molding's rabbet lip sits *on* the
+ * print's edge, so a white band is a margin the customer will never receive —
+ * and the studio's Border tool exists to print a real one for anyone who wants
+ * it. If mat board is ever built, it belongs here as a priced option read off
+ * the order, not as decoration.
  *
  * Editable mode: drag to pan, wheel / pinch to zoom. Emits the composited PNG
  * + crop transform via onComposite / the imperative `capture()` handle.
@@ -46,12 +52,19 @@ export interface FramePreviewProps {
   initialCrop?: Partial<CropTransform>;
   /** Longest canvas edge in device px (internal resolution). */
   maxEdge?: number;
+  /**
+   * Which axis the caller controls. `"width"` (the default, and every existing
+   * call site) fills the container and lets the height follow the frame's
+   * proportions. `"height"` is the opposite, and is the only way to lay these
+   * out in a row: a grid of mixed portrait and landscape frames sized by width
+   * has rows as tall as its tallest portrait, so it must be sized by height.
+   */
+  fit?: "width" | "height";
   className?: string;
   onCropChange?: (crop: CropTransform) => void;
 }
 
 const PLACEHOLDER_BG = "#ebebeb"; // surface-muted
-const LINER = "#ffffff";
 
 export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
   function FramePreview(
@@ -65,6 +78,7 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
       editable = false,
       initialCrop,
       maxEdge = 900,
+      fit = "width",
       className,
       onCropChange,
     },
@@ -84,14 +98,14 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
       6,
       Math.round((moldingWidthMm / widthMm) * cw)
     );
-    const linerPx = Math.max(2, Math.round(molding * 0.12));
 
-    // The visible image window (inside molding + liner).
+    // The visible image window: everything the molding doesn't cover. The
+    // artwork runs right up under the lip, which is what actually happens.
     const win = {
-      x: molding + linerPx,
-      y: molding + linerPx,
-      w: cw - 2 * (molding + linerPx),
-      h: ch - 2 * (molding + linerPx),
+      x: molding,
+      y: molding,
+      w: cw - 2 * molding,
+      h: ch - 2 * molding,
     };
 
     // "cover" scale so the image always fills the window.
@@ -120,20 +134,11 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
       ctx.fillStyle = moldingColor;
       ctx.fillRect(0, 0, cw, ch);
 
-      // 2. liner
-      ctx.fillStyle = LINER;
-      ctx.fillRect(
-        molding,
-        molding,
-        cw - 2 * molding,
-        ch - 2 * molding
-      );
-
-      // window background
+      // 2. window background (only ever seen before the image decodes)
       ctx.fillStyle = PLACEHOLDER_BG;
       ctx.fillRect(win.x, win.y, win.w, win.h);
 
-      // 3. image, clipped to the window
+      // 2. image, clipped to the window
       const img = imgRef.current;
       if (img && img.naturalWidth && imgLoaded) {
         ctx.save();
@@ -166,7 +171,7 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
         ctx.stroke();
       }
 
-      // 4. finish overlay
+      // 3. finish overlay
       if (finish === "gloss") {
         const g = ctx.createLinearGradient(win.x, win.y, win.x + win.w, win.y + win.h);
         g.addColorStop(0, "rgba(255,255,255,0.32)");
@@ -183,7 +188,7 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
         ctx.fillStyle = g;
         ctx.fillRect(win.x, win.y, win.w, win.h);
       }
-    }, [cw, ch, molding, moldingColor, win.x, win.y, win.w, win.h, finish, imgLoaded, coverScale]);
+    }, [cw, ch, moldingColor, win.x, win.y, win.w, win.h, finish, imgLoaded, coverScale]);
 
     // --- load image --------------------------------------------------------
     useEffect(() => {
@@ -312,8 +317,12 @@ export const FramePreview = forwardRef<FramePreviewHandle, FramePreviewProps>(
         height={ch}
         className={className}
         style={{
-          width: "100%",
-          height: "auto",
+          // Inline, so a caller can't accidentally fight it with a class — but
+          // that also means `fit` has to be honoured here rather than left to
+          // the stylesheet.
+          ...(fit === "height"
+            ? { height: "100%", width: "auto", maxWidth: "100%" }
+            : { width: "100%", height: "auto" }),
           display: "block",
           touchAction: editable ? "none" : "auto",
           cursor: editable && imgLoaded ? "grab" : "default",

@@ -70,6 +70,16 @@ export type DesignSession = {
   crop_x: number;
   crop_y: number;
   crop_scale: number;
+  /**
+   * Studio document JSON — added by migration 0008. Typed `unknown` because it
+   * comes from the database untrusted; run it through `migrateDocument()` before
+   * using it. Optional so the app still typechecks (and runs) before 0008.
+   */
+  document?: unknown;
+  document_version?: number;
+  title?: string | null;
+  thumbnail_path?: string | null;
+  print_path?: string | null;
   created_at: string;
   updated_at: string;
 };

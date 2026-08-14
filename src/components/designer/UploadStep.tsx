@@ -4,16 +4,24 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { DESIGN_BUCKET } from "@/lib/storage-shared";
-import { loadDesignerState, patchDesignerState } from "@/lib/designer-state";
+import { patchDesignerState } from "@/lib/designer-state";
 import { Icon } from "@/components/Icon";
 
 const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
 const MAX_BYTES = 30 * 1024 * 1024; // 30 MB
 
 /**
- * Step 2 — Upload. Split-screen: left copy + CTA, right hard dashed drop-zone.
+ * Step 2 — Upload. Split-screen: left copy + CTAs, right hard dashed drop-zone.
  * Preview is ephemeral (objectURL); the file is uploaded to Storage now so the
  * size/frame steps can reference a stable path, but nothing is ordered yet.
+ *
+ * Two ways in, because the photo isn't always what someone starts from. Upload
+ * Image is the primary path and stays first. Open Studio skips ahead to the
+ * editor with a blank page — for a design built out of text, or a photo that
+ * hasn't been found yet — and the editor's own Uploads panel adds the picture
+ * later. The studio no longer needs a frame to open (it starts on A4 and the
+ * Resize menu picks a real one), so this can't dead-end; the frame is still
+ * required before Review, which is where it starts costing money.
  */
 export function UploadStep({ sessionId }: { sessionId: string }) {
   const router = useRouter();
@@ -74,12 +82,8 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
       });
     }
 
-    // Persist working state (client) + the session (server).
-    if (!loadDesignerState(sessionId)) {
-      // Session existed server-side but local state was lost (e.g. refresh on a
-      // fresh tab) — re-init minimally.
-      patchDesignerState(sessionId, {});
-    }
+    // Persist working state (client) + the session (server). The patch upserts,
+    // so a session resumed in a fresh tab (no local record) still keeps this.
     patchDesignerState(sessionId, {
       uploadPath,
       previewObjectUrl: objectUrl,
@@ -118,13 +122,32 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
           ))}
         </div>
 
-        <button
-          onClick={() => inputRef.current?.click()}
-          disabled={busy}
-          className="brutalist-shadow brutalist-press mt-8 w-full max-w-sm bg-action-red py-5 font-bold uppercase tracking-widest text-white disabled:opacity-60"
-        >
-          {busy ? "Uploading…" : "Upload Photo"}
-        </button>
+        <div className="mt-8 flex w-full max-w-sm flex-col gap-3">
+          <button
+            onClick={() => inputRef.current?.click()}
+            disabled={busy}
+            className="brutalist-shadow brutalist-press flex w-full items-center justify-center gap-3 bg-action-red py-5 font-bold uppercase tracking-widest text-white disabled:opacity-60"
+          >
+            <Icon name="upload" className="text-[20px]" />
+            {busy ? "Uploading…" : "Upload Image"}
+          </button>
+
+          {/* Secondary on purpose: most people have a photo, and the frame's
+              proportions are easier to judge with one in place. */}
+          <button
+            onClick={() => router.push(`/design/${sessionId}/edit`)}
+            disabled={busy}
+            className="brutalist-press flex w-full items-center justify-center gap-3 border-2 border-black bg-white py-5 font-bold uppercase tracking-widest text-black transition-colors hover:bg-black hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red disabled:opacity-60"
+          >
+            <Icon name="brush" className="text-[20px]" />
+            Open Studio
+          </button>
+
+          <p className="text-[13px] text-on-surface-variant">
+            Start in the editor with a blank page — add text now and your photo
+            whenever you like. You&apos;ll pick a frame size before checkout.
+          </p>
+        </div>
 
         {error && (
           <p className="label-caps mt-6 max-w-sm border-2 border-error px-3 py-2 text-error">

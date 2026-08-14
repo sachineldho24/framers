@@ -231,3 +231,114 @@ h3 {
 .orbital-hero-card {
   border-radius: 2px !important;
 }
+
+/* --- Design studio ---------------------------------------------------------
+ * The in-app editor is a tool surface, not a storefront page: it follows the
+ * editor conventions users already know (soft corners, quiet shadows, purple
+ * selection) rather than the brutalist store language. Scoped to .studio-root
+ * so nothing here leaks out.
+ *
+ * `[data-r]` beats the global `* { border-radius: 0 !important }` on
+ * specificity — (0,2,0) vs (0,0,0) — with both marked !important, so studio
+ * components opt into a radius declaratively instead of each one needing its
+ * own override rule.
+ */
+.studio-root {
+  --studio-accent: #7c5cff;
+  --studio-accent-soft: #f1edff;
+  --studio-chrome: #ffffff;
+  --studio-canvas-bg: #f2f3f5;
+  --studio-border: #e6e6ea;
+  --studio-ink: #16161a;
+  --studio-ink-muted: #6b6b75;
+  font-family: var(--font-body);
+  color: var(--studio-ink);
+}
+
+.studio-root h1,
+.studio-root h2,
+.studio-root h3 {
+  font-family: var(--font-body);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: -0.01em;
+}
+
+.studio-root [data-r="sm"] {
+  border-radius: 6px !important;
+}
+.studio-root [data-r="md"] {
+  border-radius: 10px !important;
+}
+.studio-root [data-r="lg"] {
+  border-radius: 16px !important;
+}
+.studio-root [data-r="full"] {
+  border-radius: 9999px !important;
+}
+
+.studio-shadow {
+  box-shadow:
+    0 1px 2px rgb(16 16 26 / 0.06),
+    0 8px 24px rgb(16 16 26 / 0.1);
+}
+.studio-shadow-sm {
+  box-shadow:
+    0 1px 2px rgb(16 16 26 / 0.06),
+    0 2px 8px rgb(16 16 26 / 0.08);
+}
+
+/* Visible keyboard focus that survives the reset above. */
+.studio-root :focus-visible {
+  outline: 2px solid var(--studio-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-root *,
+  .studio-root *::before,
+  .studio-root *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Range inputs: the native control can't be styled to match, so it's rebuilt.
+   Both vendor thumb selectors are needed — a browser drops the whole rule if it
+   doesn't recognise the selector, so they cannot be combined. */
+.studio-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 18px;
+  background: transparent;
+  cursor: pointer;
+}
+.studio-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px !important;
+  background: #e6e6ea;
+}
+.studio-range::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px !important;
+  background: #e6e6ea;
+}
+.studio-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border: 2px solid #ffffff;
+  border-radius: 9999px !important;
+  background: var(--studio-accent, #7c5cff);
+  box-shadow: 0 1px 3px rgb(16 16 26 / 0.28);
+}
+.studio-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #ffffff;
+  border-radius: 9999px !important;
+  background: var(--studio-accent, #7c5cff);
+  box-shadow: 0 1px 3px rgb(16 16 26 / 0.28);
+}

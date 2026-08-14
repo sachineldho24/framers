@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type {
   Frame,
@@ -9,7 +9,8 @@ import type {
   FinishOverlay,
 } from "@/lib/supabase/types";
 import { formatPaise } from "@/lib/format";
-import { loadDesignerState, patchDesignerState } from "@/lib/designer-state";
+import { patchDesignerState } from "@/lib/designer-state";
+import { useDesignerState } from "@/lib/useDesignerState";
 import { useDesignerImage } from "@/lib/useDesignerImage";
 import { FramePreview } from "@/components/FramePreview";
 import { Icon } from "@/components/Icon";
@@ -31,22 +32,40 @@ export function FrameStep({
 }) {
   const router = useRouter();
   const { imageSrc } = useDesignerImage(sessionId);
+  const stored = useDesignerState(sessionId);
 
-  const saved =
-    typeof window !== "undefined" ? loadDesignerState(sessionId) : null;
-  const [styleId, setStyleId] = useState<string | null>(
-    saved?.frameStyleId ?? styles[0]?.id ?? null
-  );
-  const [finishId, setFinishId] = useState<string | null>(
-    saved?.finishId ?? finishes[0]?.id ?? null
-  );
+  // null until this step is used, so a resumed session shows the style it was
+  // left on without a restore effect that flashes the default first.
+  const [pickedStyle, setPickedStyle] = useState<string | null>(null);
+  const [pickedFinish, setPickedFinish] = useState<string | null>(null);
   const [colorFilter, setColorFilter] = useState<string>("all");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    patchDesignerState(sessionId, { frameStyleId: styleId, finishId });
-  }, [styleId, finishId, sessionId]);
+  const styleId =
+    pickedStyle ??
+    (stored?.frameStyleId && styles.some((s) => s.id === stored.frameStyleId)
+      ? stored.frameStyleId
+      : (styles[0]?.id ?? null));
+  const finishId =
+    pickedFinish ??
+    (stored?.finishId && finishes.some((f) => f.id === stored.finishId)
+      ? stored.finishId
+      : (finishes[0]?.id ?? null));
+
+  // Written on the click, never from an effect: for the first commit the store's
+  // snapshot is still null (that is what keeps hydration honest), so an effect
+  // would write the default style over the one the session was resumed with.
+  // The defaults still reach the DB — `persistSession` sends whatever is derived
+  // below when the user moves on.
+  function chooseStyle(id: string) {
+    setPickedStyle(id);
+    patchDesignerState(sessionId, { frameStyleId: id });
+  }
+  function chooseFinish(id: string) {
+    setPickedFinish(id);
+    patchDesignerState(sessionId, { finishId: id });
+  }
 
   const colors = useMemo(
     () => ["all", ...Array.from(new Set(styles.map((s) => s.color)))],
@@ -66,22 +85,44 @@ export function FrameStep({
     (style?.price_modifier_paise ?? 0) +
     (finish?.price_modifier_paise ?? 0);
 
-  async function persistSession() {
-    await fetch(`/api/design/session/${sessionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        frameStyleId: styleId,
-        finishId,
-      }),
-    }).catch(() => null);
+  /**
+   * Send the choice to the DB before moving on. Failures are reported, not
+   * swallowed: the style and finish are read back from the session row by
+   * Review *and* by `create-order`, which prices them server-side — a dropped
+   * PATCH would quietly ship a different frame from the one on screen.
+   */
+  async function persistSession(): Promise<string | null> {
+    try {
+      const res = await fetch(`/api/design/session/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          frameStyleId: styleId,
+          finishId,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        return body?.error?.message ?? "Could not save your frame. Please try again.";
+      }
+    } catch {
+      return "Could not save your frame. Please try again.";
+    }
+    return null;
   }
 
   async function onNext() {
     setBusy(true);
     setError(null);
-    await persistSession();
-    router.push(`/design/${sessionId}/review`);
+    const failure = await persistSession();
+    if (failure) {
+      setError(failure);
+      setBusy(false);
+      return;
+    }
+    // The editor comes next, not review: it needs the frame chosen first
+    // because the page's proportions are the frame's proportions.
+    router.push(`/design/${sessionId}/edit`);
   }
 
   return (
@@ -108,22 +149,26 @@ export function FrameStep({
           ))}
         </div>
 
-        {/* Grid */}
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-3">
+        {/* Grid. Tiles are a fixed height and the preview is sized by its
+            height, not its width: sized by width, a row of mixed portrait and
+            landscape frames is as tall as its tallest portrait, and eleven
+            styles three-across turn the page into a two-metre scroll. */}
+        <div className="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4">
           {visibleStyles.map((s) => {
             const selected = s.id === styleId;
             return (
               <button
                 key={s.id}
-                onClick={() => setStyleId(s.id)}
-                className={`group flex flex-col border-2 p-2 text-left transition-all ${
+                onClick={() => chooseStyle(s.id)}
+                aria-pressed={selected}
+                className={`group block border-2 p-2 text-left transition-all ${
                   selected
                     ? "border-black ring-4 ring-neon-accent"
                     : "border-black hover:bg-surface-muted"
                 }`}
               >
-                <div className="frame-wall flex items-center justify-center overflow-hidden p-2">
-                  <div className="w-full transition-transform duration-300 ease-out group-hover:scale-[0.8] group-hover:brutalist-shadow">
+                <div className="frame-wall flex h-[150px] items-center justify-center overflow-hidden p-3 md:h-[190px]">
+                  <div className="h-full transition-transform duration-300 ease-out group-hover:scale-[0.88] group-hover:brutalist-shadow">
                     <FramePreview
                       widthMm={frame.width_mm}
                       heightMm={frame.height_mm}
@@ -132,12 +177,13 @@ export function FrameStep({
                       finish={overlay}
                       imageSrc={imageSrc}
                       editable={false}
+                      fit="height"
                       maxEdge={360}
                     />
                   </div>
                 </div>
-                <span className="label-caps mt-2">{s.name}</span>
-                <span className="label-caps text-[10px] text-on-surface-variant">
+                <span className="label-caps mt-2 block">{s.name}</span>
+                <span className="label-caps block text-[10px] text-on-surface-variant">
                   {s.material}
                   {s.price_modifier_paise > 0 &&
                     ` · +${formatPaise(s.price_modifier_paise)}`}
@@ -169,7 +215,7 @@ export function FrameStep({
             {finishes.map((f) => (
               <button
                 key={f.id}
-                onClick={() => setFinishId(f.id)}
+                onClick={() => chooseFinish(f.id)}
                 className={`border-2 border-black px-3 py-2 font-bold uppercase transition-all hover:bg-black hover:text-white ${
                   f.id === finishId ? "bg-black text-white" : "bg-white"
                 }`}
@@ -198,7 +244,7 @@ export function FrameStep({
             disabled={busy}
             className="brutalist-shadow brutalist-press mt-6 flex w-full items-center justify-center gap-2 bg-action-red py-5 font-bold uppercase tracking-widest text-white disabled:opacity-60"
           >
-            {busy ? "Working…" : "Next: Review"}
+            {busy ? "Working…" : "Next: Edit"}
             <Icon name="arrow_forward" className="text-base" />
           </button>
         </div>

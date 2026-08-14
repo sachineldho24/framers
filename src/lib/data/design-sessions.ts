@@ -44,6 +44,36 @@ export interface DesignSessionPatch {
   crop_x?: number;
   crop_y?: number;
   crop_scale?: number;
+  /** Studio columns — require migration 0008. */
+  document?: unknown;
+  document_version?: number;
+  title?: string | null;
+  thumbnail_path?: string | null;
+  print_path?: string | null;
+}
+
+/** Postgres "column does not exist" — migration 0008 hasn't been run yet. */
+export const UNDEFINED_COLUMN = "42703";
+
+/**
+ * Save the studio document. Distinguishes "the column isn't there" from a real
+ * failure so the caller can fall back to localStorage instead of losing work or
+ * reporting a false success.
+ */
+export async function saveDesignDocument(
+  id: string,
+  patch: DesignSessionPatch
+): Promise<{ saved: boolean; reason?: "migration-pending" }> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("design_sessions")
+    .update(patch)
+    .eq("id", id);
+  if (!error) return { saved: true };
+  if (error.code === UNDEFINED_COLUMN) {
+    return { saved: false, reason: "migration-pending" };
+  }
+  throw new Error(`Failed to save design document: ${error.message}`);
 }
 
 /** Update fields on a session (RLS restricts to the owner). */

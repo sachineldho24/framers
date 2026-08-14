@@ -4,74 +4,124 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Frame, Finish } from "@/lib/supabase/types";
 import { formatPaise } from "@/lib/format";
-import { loadDesignerState, patchDesignerState } from "@/lib/designer-state";
+import { patchDesignerState } from "@/lib/designer-state";
+import { useDesignerState } from "@/lib/useDesignerState";
 import { useDesignerImage } from "@/lib/useDesignerImage";
 import { FramePreview } from "@/components/FramePreview";
-
-const PRINT_DPI = 300;
-const MM_PER_INCH = 25.4;
+import { docSizeForFrame } from "@/lib/studio/document";
+import { documentDpi, photoInFrame, POOR_DPI } from "@/lib/studio/print";
 
 /**
  * Step 3 — Size. Slider over the standard-size frame SKUs + quick-picks, live
  * FramePreview on the right with a DPI quality badge and max-print disclosure.
+ *
+ * The numbers come from `photoInFrame`, the same pure helper the studio's print
+ * readout is built on, and from the *decoded* image rather than whatever the
+ * store remembers — a session resumed in another tab has no stored dimensions,
+ * and a figure that disagrees with the picture beside it is worse than none.
  */
 export function SizeStep({
   sessionId,
   frames,
-  finishes,
 }: {
   sessionId: string;
   frames: Frame[];
-  finishes: Finish[];
+  /** Accepted so the route's props stay symmetric with the other steps. */
+  finishes?: Finish[];
 }) {
   const router = useRouter();
   const { imageSrc } = useDesignerImage(sessionId);
+  const stored = useDesignerState(sessionId);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  const saved =
-    typeof window !== "undefined" ? loadDesignerState(sessionId) : null;
-  const savedIdx = saved?.frameId
-    ? frames.findIndex((f) => f.id === saved.frameId)
+  // null until the slider is touched, so a resumed session keeps its size
+  // without a restore effect racing the first paint.
+  const [picked, setPicked] = useState<number | null>(null);
+  const restoredIdx = stored?.frameId
+    ? frames.findIndex((f) => f.id === stored.frameId)
     : -1;
-  const [idx, setIdx] = useState(savedIdx >= 0 ? savedIdx : 0);
-  const [imageDims] = useState<{ w: number; h: number } | null>(
-    saved?.imageWidth && saved?.imageHeight
-      ? { w: saved.imageWidth, h: saved.imageHeight }
-      : null
+  const idx = picked ?? (restoredIdx >= 0 ? restoredIdx : 0);
+
+  const frame: Frame | undefined = frames[idx];
+
+  // The pixels live in the store, not in component state: the measure below
+  // writes them there and this reads them back, so there is only ever one copy
+  // and it is the one the next step will read too.
+  const px = stored?.imageWidth ?? 0;
+  const py = stored?.imageHeight ?? 0;
+  const dims = useMemo(
+    () => (px > 0 && py > 0 ? { w: px, h: py } : null),
+    [px, py]
   );
 
-  const frame = frames[idx];
+  // Written when the size is actually chosen, never from an effect: on the
+  // first commit `idx` is still the default (the store's snapshot lands a beat
+  // later, by design), so an effect would write frames[0] over the size the
+  // session was resumed with before anything had a chance to read it.
+  function choose(i: number) {
+    setPicked(i);
+    const f = frames[i];
+    if (f) patchDesignerState(sessionId, { frameId: f.id });
+  }
 
-  // Persist size choice as the slider moves (local only).
+  // Measure the image actually on screen. This is the authority: it's the same
+  // decode `FramePreview` draws with, so a rotated JPEG or a lost store can't
+  // leave the DPI figures describing a different photo.
   useEffect(() => {
-    if (frame) patchDesignerState(sessionId, { frameId: frame.id });
-  }, [frame, sessionId]);
+    if (!imageSrc) return;
+    let cancelled = false;
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      if (cancelled || !img.naturalWidth || !img.naturalHeight) return;
+      patchDesignerState(sessionId, {
+        imageWidth: img.naturalWidth,
+        imageHeight: img.naturalHeight,
+      });
+    };
+    img.src = imageSrc;
+    return () => {
+      cancelled = true;
+    };
+  }, [imageSrc, sessionId]);
 
-  // Max printable size at 300 DPI from the uploaded pixels.
-  const maxPrint = useMemo(() => {
-    if (!imageDims) return null;
-    const wIn = imageDims.w / PRINT_DPI;
-    const hIn = imageDims.h / PRINT_DPI;
-    return { wIn, hIn };
-  }, [imageDims]);
+  /** What this photo really prints at in the selected frame. */
+  const fit = useMemo(() => {
+    if (!dims || !frame) return null;
+    const mm = { widthMm: frame.width_mm, heightMm: frame.height_mm };
+    const page = docSizeForFrame(frame.width_mm, frame.height_mm);
+    return photoInFrame({ width: dims.w, height: dims.h }, mm, documentDpi(page, mm));
+  }, [dims, frame]);
 
-  // Effective DPI if this image fills the selected frame.
-  const dpi = useMemo(() => {
-    if (!imageDims || !frame) return null;
-    const wIn = frame.width_mm / MM_PER_INCH;
-    const hIn = frame.height_mm / MM_PER_INCH;
-    return Math.round(Math.min(imageDims.w / wIn, imageDims.h / hIn));
-  }, [imageDims, frame]);
+  /** The largest size in the catalogue this photo still prints acceptably at. */
+  const bestIdx = useMemo(() => {
+    if (!dims) return -1;
+    let best = -1;
+    frames.forEach((f, i) => {
+      const mm = { widthMm: f.width_mm, heightMm: f.height_mm };
+      const at = photoInFrame(
+        { width: dims.w, height: dims.h },
+        mm,
+        documentDpi(docSizeForFrame(f.width_mm, f.height_mm), mm)
+      );
+      if (!at || at.dpi < POOR_DPI) return;
+      const area = f.width_mm * f.height_mm;
+      if (best < 0 || area > frames[best].width_mm * frames[best].height_mm) {
+        best = i;
+      }
+    });
+    return best;
+  }, [dims, frames]);
 
-  const dpiTier =
-    dpi == null
-      ? null
-      : dpi >= PRINT_DPI
-        ? { label: "Excellent", pip: "#16a34a" }
-        : dpi >= 150
-          ? { label: "Acceptable", pip: "#ccff00" }
-          : { label: "Too low", pip: "#ff0000" };
+  const pip =
+    fit == null
+      ? "#ebebeb"
+      : fit.verdict.tone === "good"
+        ? "#16a34a"
+        : fit.verdict.tone === "ok"
+          ? "#ccff00"
+          : "#ff0000";
 
   if (!frame) {
     return (
@@ -109,11 +159,15 @@ export function SizeStep({
       {/* Left — controls */}
       <section className="flex flex-col justify-center px-margin-mobile py-12 md:px-16">
         <h1 className="text-[32px] md:text-[40px]">Find the right size.</h1>
-        {maxPrint && (
-          <p className="mt-3 text-on-surface-variant">
-            Your photo can be printed up to{" "}
+        {fit && (
+          <p className="mt-3 max-w-md text-on-surface-variant">
+            Gallery-sharp up to{" "}
             <strong className="text-black">
-              {maxPrint.wIn.toFixed(1)}″ × {maxPrint.hIn.toFixed(1)}″
+              {fit.sharpIn.width.toFixed(1)}″ × {fit.sharpIn.height.toFixed(1)}″
+            </strong>
+            , and still good on a wall up to{" "}
+            <strong className="text-black">
+              {fit.maxIn.width.toFixed(1)}″ × {fit.maxIn.height.toFixed(1)}″
             </strong>
             .
           </p>
@@ -137,7 +191,7 @@ export function SizeStep({
           max={frames.length - 1}
           step={1}
           value={idx}
-          onChange={(e) => setIdx(Number(e.target.value))}
+          onChange={(e) => choose(Number(e.target.value))}
           className="designer-range mt-8 w-full max-w-md"
           aria-label="Frame size"
         />
@@ -145,7 +199,7 @@ export function SizeStep({
           {frames.map((f, i) => (
             <button
               key={f.id}
-              onClick={() => setIdx(i)}
+              onClick={() => choose(i)}
               className={`label-caps ${
                 i === idx ? "text-black" : "text-outline"
               }`}
@@ -164,7 +218,7 @@ export function SizeStep({
             {frames.map((f, i) => (
               <button
                 key={f.id}
-                onClick={() => setIdx(i)}
+                onClick={() => choose(i)}
                 className={`border-2 border-black px-4 py-2 font-bold uppercase transition-all hover:bg-black hover:text-white ${
                   i === idx ? "bg-black text-white" : "bg-white text-black"
                 }`}
@@ -175,16 +229,54 @@ export function SizeStep({
           </div>
         </div>
 
-        {/* DPI badge */}
-        {dpiTier && (
-          <div className="mt-8 inline-flex w-fit items-center gap-3 bg-black px-4 py-2">
-            <span
-              className="inline-block h-3 w-3 rounded-full"
-              style={{ backgroundColor: dpiTier.pip }}
-            />
-            <span className="label-caps text-white">
-              {dpi} DPI · {dpiTier.label}
-            </span>
+        {/* Quality readout */}
+        {fit && (
+          <div className="mt-8 max-w-md">
+            <div className="inline-flex w-fit items-center gap-3 bg-black px-4 py-2">
+              <span
+                className="inline-block h-3 w-3 rounded-full"
+                style={{ backgroundColor: pip }}
+              />
+              <span className="label-caps text-white">
+                {Math.round(fit.dpi)} DPI · {fit.verdict.label}
+              </span>
+            </div>
+
+            {/* A verdict with no way forward is just a scolding. */}
+            {fit.verdict.tone === "poor" && (
+              <p className="mt-3 text-[14px] text-on-surface-variant">
+                {bestIdx >= 0 ? (
+                  <>
+                    This photo has the pixels for{" "}
+                    <button
+                      onClick={() => choose(bestIdx)}
+                      className="font-bold text-black underline"
+                    >
+                      {frames[bestIdx].name}
+                    </button>{" "}
+                    at this size. Bigger will look soft from close up.
+                  </>
+                ) : (
+                  <>
+                    This photo is small for every size we frame.{" "}
+                    <button
+                      onClick={() => router.push(`/design/${sessionId}/upload`)}
+                      className="font-bold text-black underline"
+                    >
+                      Upload a larger file
+                    </button>{" "}
+                    if you have one.
+                  </>
+                )}
+              </p>
+            )}
+
+            {fit.cropped > 0.15 && (
+              <p className="mt-3 text-[14px] text-on-surface-variant">
+                This shape trims about {Math.round(fit.cropped * 100)}% off your
+                photo — you pick exactly what stays in the editor.
+              </p>
+            )}
           </div>
         )}
 
@@ -214,7 +306,7 @@ export function SizeStep({
             imageSrc={imageSrc}
             editable={false}
           />
-          {finishes.length > 0 && null}        </div>
+        </div>
       </section>
     </main>
   );
