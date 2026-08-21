@@ -51,5 +51,18 @@ next-env.d.ts
 # large world frame sequence — hosted externally, not committed (264 MB)
 /public/world
 
-.vercel
-.env*
+# credentials — live keys, never commit
+rzp-key.csv
+
+# agent instructions & vendored agent skills: local tooling, not part of the app
+/CLAUDE.md
+/AGENTS.md
+/.agents
+/skills-lock.json
+
+# local working material: planning notes, reference animations, scraped source
+# images. Kept on disk, deliberately not part of the repo.
+/docs
+/Animations_Sample
+/posterx_posters
+/download_posters.sh
