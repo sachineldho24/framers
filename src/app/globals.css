@@ -67,78 +67,15 @@
   }
 }
 
-/* ── Hero "Stamp": a photo wipes in, then black moulding slams in from all four
- * edges and locks with a neon flash. Pure CSS so it runs on the compositor and
- * keeps its frame rate while the page is still loading images. Timings are
- * absolute (not %) so each beat is readable and tunable on its own.
- * Cycle: 0 wipe → 200 bars → 420 flash → hold → 2040 wipe out → 2200 next. */
+/* ── Hero "Stamp": supplied room photography wipes in and out on a short cycle.
+ * Pure CSS keeps the transition on the compositor while the next image loads.
+ * Cycle: 0 wipe → hold → 2040 wipe out → 2200 next. */
 @keyframes stamp-photo-in {
   from {
     clip-path: inset(0 0 100% 0);
   }
   to {
     clip-path: inset(0 0 0 0);
-  }
-}
-
-/* Each bar overshoots 2px and settles — the "lock" of a press coming down. */
-@keyframes stamp-bar-t {
-  0% {
-    transform: translateY(-100%);
-  }
-  72% {
-    transform: translateY(2px);
-  }
-  100% {
-    transform: translateY(0);
-  }
-}
-
-@keyframes stamp-bar-r {
-  0% {
-    transform: translateX(100%);
-  }
-  72% {
-    transform: translateX(-2px);
-  }
-  100% {
-    transform: translateX(0);
-  }
-}
-
-@keyframes stamp-bar-b {
-  0% {
-    transform: translateY(100%);
-  }
-  72% {
-    transform: translateY(-2px);
-  }
-  100% {
-    transform: translateY(0);
-  }
-}
-
-@keyframes stamp-bar-l {
-  0% {
-    transform: translateX(-100%);
-  }
-  72% {
-    transform: translateX(2px);
-  }
-  100% {
-    transform: translateX(0);
-  }
-}
-
-@keyframes stamp-flash {
-  0% {
-    opacity: 0;
-  }
-  18% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
   }
 }
 
@@ -172,48 +109,11 @@
   will-change: clip-path;
 }
 
-.stamp-bar {
-  animation-duration: 150ms;
-  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
-  animation-fill-mode: both;
-  will-change: transform;
-}
-
-.stamp-bar-t {
-  animation-name: stamp-bar-t;
-  animation-delay: 200ms;
-}
-
-.stamp-bar-r {
-  animation-name: stamp-bar-r;
-  animation-delay: 240ms;
-}
-
-.stamp-bar-b {
-  animation-name: stamp-bar-b;
-  animation-delay: 280ms;
-}
-
-.stamp-bar-l {
-  animation-name: stamp-bar-l;
-  animation-delay: 320ms;
-}
-
-.stamp-flash {
-  animation: stamp-flash 260ms linear 420ms both;
-}
-
 /* Reduced motion keeps the frame swap legible but drops all movement. */
 @media (prefers-reduced-motion: reduce) {
   .stamp-stage,
-  .stamp-photo,
-  .stamp-bar {
+  .stamp-photo {
     animation: stamp-fade 240ms ease both;
-  }
-
-  .stamp-flash {
-    animation: none;
-    opacity: 0;
   }
 }
 

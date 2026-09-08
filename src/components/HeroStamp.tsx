@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { HERO_ORBIT_FRAMES } from '@/lib/storefront-content';
 
-/* "The Stamp" — the hero's one job is to show the transformation the product
- * performs: a bare photo wipes in, black moulding slams in from all four edges,
- * and a neon flash locks it. Then it cuts to the next photo.
+/* "The Stamp" — the hero cycles through room photographs with a clean wipe.
+ * The supplied assets already contain the real frame, so the hero must not draw
+ * another synthetic molding around them.
  *
  * All motion lives in CSS (`stamp-*` classes in globals.css) so it runs off the
  * main thread and holds its frame rate while the rest of the page is still
@@ -54,7 +54,7 @@ export function HeroStamp() {
     <div ref={ref} className="flex h-full w-full items-center justify-center">
       <div
         key={cycle}
-        className="stamp-stage relative aspect-3/4 h-full shrink-0 [--stamp-m:10px] sm:[--stamp-m:13px] md:[--stamp-m:16px] lg:[--stamp-m:18px]"
+        className="stamp-stage relative aspect-3/4 h-full shrink-0"
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -64,17 +64,6 @@ export function HeroStamp() {
           className="stamp-photo absolute inset-0 block h-full w-full object-cover"
         />
 
-        {/* The moulding lands ON the print's edge — deliberately no white liner,
-            because the rabbet lip covers the artwork edge on the real product. */}
-        <div className="stamp-bar stamp-bar-t absolute left-0 top-0 h-[var(--stamp-m)] w-full bg-border-high-contrast" />
-        <div className="stamp-bar stamp-bar-r absolute right-0 top-0 h-full w-[var(--stamp-m)] bg-border-high-contrast" />
-        <div className="stamp-bar stamp-bar-b absolute bottom-0 left-0 h-[var(--stamp-m)] w-full bg-border-high-contrast" />
-        <div className="stamp-bar stamp-bar-l absolute left-0 top-0 h-full w-[var(--stamp-m)] bg-border-high-contrast" />
-
-        <div
-          aria-hidden
-          className="stamp-flash pointer-events-none absolute inset-[var(--stamp-m)] border-2 border-neon-accent"
-        />
       </div>
     </div>
   );

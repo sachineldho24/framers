@@ -38,13 +38,9 @@ export function Testimonials() {
           viewport={{ once: true }}
           className="mx-auto flex max-w-[540px] flex-col items-center justify-center text-center"
         >
-          <span className="label-caps border-2 border-border-high-contrast px-4 py-1 text-[10px]">
-            Testimonials
-          </span>
-
           <h2
             id="testimonials-title"
-            className="mt-5 text-[clamp(1.75rem,5vw,3.5rem)] uppercase leading-none tracking-tighter"
+            className="text-[clamp(1.75rem,5vw,3.5rem)] uppercase leading-none tracking-tighter"
           >
             What Our Customers Say
           </h2>
