@@ -48,9 +48,6 @@ next-env.d.ts
 /tmp
 .openai
 
-# large world frame sequence — hosted externally, not committed (264 MB)
-/public/world
-
 # credentials — live keys, never commit
 rzp-key.csv
 
@@ -66,3 +63,16 @@ rzp-key.csv
 /Animations_Sample
 /posterx_posters
 /download_posters.sh
+
+# Local gallery authoring, downloaded references, and review output.
+# Only the optimized deployment assets in /public/gallery-assets are shipped.
+/gallery_v*/
+/asset_reference_pack/
+/public/world/
+/public/_contact_sheet.png
+/ChatGPT Image*.png
+/ICG_Findings_By_GPT_SOL.*
+/.claude/
+/.codex/
+__pycache__/
+*.py[cod]

@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { postAuthDestination, type AuthMode } from "@/lib/auth-redirect";
 import { Icon } from "@/components/Icon";
 
-type Mode = "signin" | "signup";
+type Mode = AuthMode;
 
 export function LoginForm() {
   const searchParams = useSearchParams();
-  const next = searchParams.get("next") ?? "/";
+  const next = searchParams.get("next");
 
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -61,7 +62,10 @@ export function LoginForm() {
     // navigation races cookie propagation (and the proxy's getUser() session
     // refresh), which left the form stuck on "Please wait…" until a manual
     // refresh. See Supabase SSR + App Router auth timing.
-    window.location.assign(next);
+    //
+    // It is also what makes the storefront header pick the new session up on
+    // arrival, so a fresh account sees its own profile immediately.
+    window.location.assign(postAuthDestination(mode, next));
   }
 
   const inputCls =

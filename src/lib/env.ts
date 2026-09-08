@@ -48,4 +48,21 @@ export const serverEnv = {
       process.env.RAZORPAY_WEBHOOK_SECRET
     );
   },
+  /**
+   * Transactional email. Supplied by the Vercel Marketplace messaging
+   * integration; until it is provisioned these are absent and
+   * `isEmailConfigured()` is false, which makes a ship/deliver notification a
+   * logged no-op instead of a crash.
+   */
+  get emailApiKey() {
+    return required("EMAIL_API_KEY", process.env.EMAIL_API_KEY);
+  },
+  get emailFrom() {
+    return required("EMAIL_FROM", process.env.EMAIL_FROM);
+  },
 };
+
+/** True if a transactional email provider is wired up. */
+export function isEmailConfigured(): boolean {
+  return Boolean(process.env.EMAIL_API_KEY && process.env.EMAIL_FROM);
+}

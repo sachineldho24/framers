@@ -12,6 +12,14 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generated gallery exports, vendored decoders, and local tool/browser data.
+    "gallery_v*/**",
+    "public/gallery-assets/**",
+    "asset_reference_pack/**",
+    "tmp/**",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
   ]),
 ]);
 

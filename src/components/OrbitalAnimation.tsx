@@ -9,26 +9,15 @@ import {
   useReducedMotion,
   type MotionValue,
 } from 'motion/react';
+import { HERO_ORBIT_FRAMES } from '@/lib/storefront-content';
 
 /* Self-contained 3D orbital carousel sized to its parent box (the hero card).
  * Frames auto-rotate around a ring; the front frame is largest/opaque, the back
  * ones recede and dim. Drag/swipe horizontally to spin; vertical touch still
  * scrolls the page (touch-action: pan-y). No page scroll-jacking. */
 
-interface OrbitFrameData {
-  id: string;
-  src: string;
-  alt: string;
-}
-
-const FRAMES: OrbitFrameData[] = [
-  { id: 'hilux', src: '/posters/hilux.jpg', alt: 'Framed Toyota Hilux print' },
-  { id: 'venue', src: '/posters/venue.jpg', alt: 'Framed Hyundai Venue print' },
-  { id: 'duke', src: '/posters/duke.jpg', alt: 'Framed KTM Duke print' },
-  { id: 'bmw', src: '/posters/bmw.jpg', alt: 'Framed BMW M3 print' },
-  { id: 'polo', src: '/posters/polo.jpg', alt: 'Framed VW Polo print' },
-];
-const N = FRAMES.length;
+type OrbitFrameData = (typeof HERO_ORBIT_FRAMES)[number];
+const N = HERO_ORBIT_FRAMES.length;
 
 function OrbitFrame({
   data,
@@ -50,7 +39,7 @@ function OrbitFrame({
   const scale = useTransform(depth, (d) => 0.58 + 0.42 * ((d + 1) / 2));
   const opacity = useTransform(depth, (d) => 0.22 + 0.78 * ((d + 1) / 2));
   const zIndex = useTransform(depth, (d) => Math.round((d + 1) * 100));
-  const frameH = frameW * 1.4;
+  const frameH = frameW * (4 / 3);
 
   return (
     <motion.div
@@ -60,23 +49,21 @@ function OrbitFrame({
         opacity,
         zIndex,
         width: frameW,
+        height: frameH,
         marginLeft: -frameW / 2,
         marginTop: -frameH / 2,
       }}
-      className="absolute left-1/2 top-1/2 will-change-transform"
+      className="absolute left-1/2 top-1/2 overflow-hidden will-change-transform"
     >
-      {/* brutalist frame: thick black molding + white mat */}
-      <div className="border-[5px] border-solid border-border-high-contrast bg-white sm:border-[7px] md:border-[9px]">
-        <div className="bg-white p-1 sm:p-1.5 md:p-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={data.src}
-            alt={data.alt}
-            draggable={false}
-            className="block aspect-3/4 w-full border-2 border-border-high-contrast object-cover"
-          />
-        </div>
-      </div>
+      {/* These assets are complete framed-room mockups already. Rendering a
+          second CSS molding around them creates a misleading frame-in-frame. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={data.image}
+        alt={data.alt}
+        draggable={false}
+        className="block h-full w-full object-cover"
+      />
     </motion.div>
   );
 }
@@ -85,7 +72,7 @@ export function OrbitalAnimation() {
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const rotation = useMotionValue(0);
-  const [geo, setGeo] = useState({ radiusX: 108, frameW: 150 });
+  const [geo, setGeo] = useState({ radiusX: 112, frameW: 116 });
 
   const dragging = useRef(false);
   const pending = useRef(false);
@@ -96,10 +83,10 @@ export function OrbitalAnimation() {
   useEffect(() => {
     const measure = () => {
       const w = ref.current?.clientWidth ?? 360;
-      // Scale frame size AND orbit radius with the available width so the arc
-      // spreads out on desktop instead of staying tiny + overlapping.
-      const frameW = Math.round(Math.max(150, Math.min(255, w * 0.21)));
-      const radiusX = Math.round(w * 0.27);
+      // Six frames need a wider orbit and smaller mobile footprint than the
+      // original five-card set. Both values stay bounded on large displays.
+      const frameW = Math.round(Math.max(116, Math.min(230, w * 0.22)));
+      const radiusX = Math.round(Math.max(112, Math.min(340, w * 0.3)));
       setGeo({ radiusX, frameW });
     };
     measure();
@@ -166,7 +153,7 @@ export function OrbitalAnimation() {
       className="relative h-full w-full cursor-grab select-none active:cursor-grabbing"
       style={{ perspective: 1000, touchAction: 'pan-y' }}
     >
-      {FRAMES.map((f, i) => (
+      {HERO_ORBIT_FRAMES.map((f, i) => (
         <OrbitFrame
           key={f.id}
           data={f}

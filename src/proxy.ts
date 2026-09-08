@@ -20,6 +20,6 @@ export const config = {
      * Run on all paths except static assets and image optimisation files.
      * Auth refresh + route guards are applied in updateSession().
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|gallery-assets/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

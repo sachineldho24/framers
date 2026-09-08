@@ -23,3 +23,22 @@ export function formatDate(iso: string): string {
     year: "numeric",
   }).format(new Date(iso));
 }
+
+/**
+ * Format an ISO timestamp as e.g. "14 Jun 2026, 4:32 pm".
+ *
+ * Pinned to Asia/Kolkata rather than the runtime's zone: the operator reading
+ * the audit log and the courier collecting the parcel are both in IST, and a
+ * server rendering in UTC would otherwise date a late-evening event to the
+ * previous day.
+ */
+export function formatDateTime(iso: string): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "Asia/Kolkata",
+  }).format(new Date(iso));
+}

@@ -44,15 +44,23 @@ export async function uploadToStorage(params: {
   if (error) throw new Error(`Storage upload failed: ${error.message}`);
 }
 
-/** Create a short-lived signed URL for a stored object. */
+/**
+ * Create a short-lived signed URL for a stored object.
+ *
+ * `download` sets `Content-Disposition: attachment` on Storage's side, so the
+ * operator's browser saves the file under the name we choose instead of opening
+ * a 40 MB PNG in a tab. Pass a string to name it; `true` keeps the object's own
+ * name.
+ */
 export async function createSignedUrl(
   path: string,
-  expiresInSeconds = 300
+  expiresInSeconds = 300,
+  options?: { download?: boolean | string }
 ): Promise<string> {
   const supabase = createServiceClient();
   const { data, error } = await supabase.storage
     .from(DESIGN_BUCKET)
-    .createSignedUrl(path, expiresInSeconds);
+    .createSignedUrl(path, expiresInSeconds, options);
   if (error || !data) {
     throw new Error(`Failed to sign URL: ${error?.message ?? "unknown"}`);
   }

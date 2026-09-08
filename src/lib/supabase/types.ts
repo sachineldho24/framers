@@ -113,6 +113,13 @@ export type Order = {
   crop_x: number | null;
   crop_y: number | null;
   crop_scale: number | null;
+  /**
+   * Customer-facing reference (`A1B2C3D4`) — a STORED GENERATED column added by
+   * migration 0009 so the admin queue can search on what customers actually
+   * quote. Optional so the app still typechecks before 0009 is run, and omitted
+   * from Insert/Update below because Postgres rejects writes to it.
+   */
+  short_ref?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -120,6 +127,28 @@ export type Order = {
 /** Order joined with its frame name — used by order history and admin list. */
 export type OrderWithFrame = Order & {
   frame_name: string;
+};
+
+/**
+ * What an `order_events` row is about. 'status' is fulfilment progress,
+ * 'payment' is money, 'tracking' is the consignment, 'note' is free text.
+ */
+export type OrderEventKind = "status" | "payment" | "tracking" | "note";
+
+/**
+ * One immutable entry in an order's timeline (migration 0009). Rows are never
+ * updated or deleted, so a corrected status leaves both events on the record.
+ * `actor_id` is null when the system wrote it (webhook / verify route).
+ */
+export type OrderEvent = {
+  id: string;
+  order_id: string;
+  kind: OrderEventKind;
+  from_status: string | null;
+  to_status: string | null;
+  note: string | null;
+  actor_id: string | null;
+  created_at: string;
 };
 
 /**
@@ -166,6 +195,8 @@ export type Database = {
           | "crop_x"
           | "crop_y"
           | "crop_scale"
+          // Generated column: Postgres errors on any attempt to write it.
+          | "short_ref"
         > & {
           id?: string;
           created_at?: string;
@@ -186,7 +217,19 @@ export type Database = {
           crop_y?: number | null;
           crop_scale?: number | null;
         };
-        Update: Partial<Omit<Order, "id">>;
+        Update: Partial<Omit<Order, "id" | "short_ref">>;
+        Relationships: [];
+      };
+      order_events: {
+        Row: OrderEvent;
+        // Append-only: there is no Update path by design, but the shape is
+        // required by GenericTable, so it mirrors Insert.
+        Insert: Omit<OrderEvent, "id" | "created_at" | "kind"> & {
+          id?: string;
+          created_at?: string;
+          kind?: OrderEventKind;
+        };
+        Update: Partial<Omit<OrderEvent, "id">>;
         Relationships: [];
       };
       frame_styles: {

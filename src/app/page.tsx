@@ -1,39 +1,16 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { OrbitalAnimationWrapper } from "@/components/OrbitalAnimationWrapper";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { MobileTopBar } from "@/components/MobileTopBar";
-import { BottomNav } from "@/components/BottomNav";
 import { MarqueeBar } from "@/components/MarqueeBar";
 import { Icon } from "@/components/Icon";
-import { getActiveFrames } from "@/lib/data/frames";
-import { formatPaise } from "@/lib/format";
+import { Testimonials } from "@/components/Testimonials";
+import ImageGallery from "@/components/ui/image-gallery";
+import { SHOP_CATEGORIES } from "@/lib/storefront-content";
 
-// Reads the session cookie via the Supabase server client → dynamic.
-export const dynamic = "force-dynamic";
-
-// Curated, clean poster art (copied into /public/posters) — used as sample
-// imagery on the product cards / category tiles. The site frames ANY user image;
-// these automotive prints are just examples.
-const SAMPLES = [
-  "/posters/hilux.jpg",
-  "/posters/venue.jpg",
-  "/posters/duke.jpg",
-  "/posters/polo.jpg",
-  "/posters/bmw.jpg",
-  "/posters/ferrari.jpg",
-];
-
-const CATEGORIES = [
-  { label: "Photo Frames", image: "/posters/venue.jpg", grayscale: false },
-  { label: "Poster Prints", image: "/posters/hilux.jpg", grayscale: true },
-  { label: "Custom Art", image: "/posters/duke.jpg", grayscale: false },
-];
-
-export default async function HomePage() {
-  const frames = await getActiveFrames();
-  const arrivals = frames.slice(0, 6);
-
+export default function HomePage() {
   return (
     <>
       <MobileTopBar />
@@ -42,90 +19,54 @@ export default async function HomePage() {
         <ErrorBanner />
       </Suspense>
 
-      <main className="overflow-x-clip pb-20 pt-16">
-        {/* ── Hero: orbital animation card + headline/CTA ── */}
-        <section className="relative flex flex-col items-center bg-surface px-margin-mobile pb-12 pt-6">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-10">
-            <span className="font-display absolute -right-20 top-10 select-none text-[180px] leading-none text-on-surface-variant">
-              20%
-            </span>
-          </div>
+      <main className="overflow-x-clip pt-16">
+        {/* ── Hero: mobile stack, viewport-led desktop split ── */}
+        <section className="relative bg-surface px-margin-mobile py-8 sm:py-10 lg:min-h-[calc(100svh-4rem)] lg:px-[clamp(2rem,6vw,6rem)] lg:py-8">
+          <div className="mx-auto grid w-full max-w-[1280px] items-center gap-7 grid-cols-1 lg:min-h-[calc(100svh-8rem)] lg:grid-cols-[minmax(0,0.92fr)_minmax(360px,0.78fr)] lg:gap-[clamp(3rem,7vw,8rem)]">
+            <div className="relative z-20 mx-auto h-[320px] w-full max-w-md sm:h-[380px] md:h-[420px] md:max-w-3xl lg:order-2 lg:h-[min(72svh,620px)] lg:max-w-none">
+              <OrbitalAnimationWrapper />
+            </div>
 
-          {/* Open 3D orbital — no card/box, floats on the surface.
-             Grows with the viewport so the arc spreads on desktop. */}
-          <div className="relative z-20 mx-auto mb-2 h-[320px] w-full max-w-md sm:mb-4 sm:h-[380px] md:h-[420px] md:max-w-3xl lg:h-[460px] lg:max-w-5xl">
-            <OrbitalAnimationWrapper />
-          </div>
-
-          <div className="z-30 text-center">
-            <p className="label-caps mb-1 text-on-surface-variant">Custom Framing</p>
-            <h2 className="mb-2 text-[28px] uppercase leading-none text-primary">
-              Frame Anything You Love
-            </h2>
-            <p className="mb-6 text-base text-on-surface">
-              Upload your photo — we print, frame, and ship it to your door.
-            </p>
-            <Link
-              href="/design/start"
-              className="brutalist-press inline-block border-2 border-primary bg-primary px-12 py-4 font-bold uppercase text-on-primary"
-            >
-              Start Framing
-            </Link>
+            <div className="z-30 mx-auto max-w-xl text-center lg:order-1 lg:mx-0 lg:text-left">
+              <h2 className="mb-4 text-[clamp(2rem,8vw,3.75rem)] uppercase leading-[0.94] tracking-[-0.03em] text-primary lg:text-[clamp(3rem,4.2vw,4.5rem)]">
+                Frame Anything You Love
+              </h2>
+              <p className="mx-auto mb-7 max-w-[34rem] text-base leading-relaxed text-on-surface lg:mx-0 lg:text-lg">
+                Upload your photo — we print, frame, and ship it to your door.
+              </p>
+              <Link
+                href="/design/start"
+                className="brutalist-press inline-flex min-h-12 items-center justify-center border-2 border-primary bg-primary px-10 py-3.5 font-bold uppercase text-on-primary transition-colors hover:bg-action-red focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-action-red"
+              >
+                Start Framing
+              </Link>
+            </div>
           </div>
         </section>
 
         <MarqueeBar />
 
-        {/* ── New Arrivals: horizontal scroll of real frames ── */}
-        <section id="frames" className="py-section">
-          <div className="mb-6 px-margin-mobile text-center">
-            <h3 className="mb-1 text-[28px] uppercase">New Arrivals</h3>
-            <p className="text-sm text-on-surface-variant">
-              New frame sizes and styles, added regularly.
-            </p>
-          </div>
+        <ImageGallery />
 
-          {arrivals.length === 0 ? (
-            <p className="px-margin-mobile text-center text-on-surface-variant">
-              No frames available yet. Check back soon.
-            </p>
-          ) : (
-            <div className="no-scrollbar flex gap-6 overflow-x-auto px-margin-mobile pb-4">
-              {arrivals.map((frame, i) => (
-                <Link
-                  key={frame.id}
-                  href={`/frames/${frame.slug}`}
-                  className="group flex w-[260px] flex-none flex-col items-center"
-                >
-                  <div className="relative aspect-3/4 w-full overflow-hidden">
-                    {i === 0 && (
-                      <span className="label-caps absolute left-2 top-2 z-10 bg-primary px-2 py-0.5 text-[9px] text-surface">
-                        New
-                      </span>
-                    )}
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={SAMPLES[i % SAMPLES.length]}
-                      alt={`${frame.name} sample`}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                  </div>
-                  <div className="mt-4 text-center">
-                    <h4 className="mb-1 text-xs font-bold uppercase">
-                      {frame.name}
-                    </h4>
-                    <p className="label-caps text-[10px] text-on-surface-variant">
-                      {formatPaise(frame.price_paise)}
-                    </p>
-                  </div>
-                </Link>
-              ))}
+        <section aria-labelledby="gallery-feature-title" className="border-y-2 border-primary bg-surface px-margin-mobile py-section">
+          <div className="mx-auto grid max-w-6xl items-center gap-8 md:grid-cols-[1.3fr_1fr] md:gap-12">
+            <Link href="/gallery" prefetch={false} tabIndex={-1} aria-hidden="true" className="relative block aspect-[6/5] overflow-hidden border-2 border-primary md:aspect-[3/2]">
+              <Image src="/gallery-assets/v07/room-0.webp" alt="" fill sizes="(max-width: 768px) calc(100vw - 40px), 60vw" className="object-cover" />
+            </Link>
+            <div>
+              <p className="label-caps mb-4 text-[11px]">Six spaces. Your inspiration.</p>
+              <h2 id="gallery-feature-title" className="mb-5 text-[clamp(2rem,4vw,3.5rem)] uppercase leading-[0.96] tracking-tighter">See what a frame can do.</h2>
+              <p className="mb-7 max-w-md text-base leading-relaxed">Walk through rooms made for the things we love. Find a little inspiration for your own walls.</p>
+              <Link href="/gallery" prefetch={false} className="inline-flex min-h-12 items-center gap-6 border-2 border-primary bg-primary px-6 py-3 font-bold text-on-primary transition-colors hover:bg-action-red focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-action-red">Explore the gallery <Icon name="arrow_forward" className="text-xl" /></Link>
             </div>
-          )}
+          </div>
         </section>
 
         {/* ── Shop by Category ── */}
-        <section className="border-y-2 border-border-high-contrast bg-surface-container-low px-margin-mobile py-section">
+        <section
+          id="shop"
+          className="scroll-mt-16 bg-surface-container-low px-margin-mobile py-section"
+        >
           <div className="mb-8 text-center">
             <h3 className="mb-3 text-[24px] uppercase leading-none tracking-tighter">
               Shop by Category
@@ -133,23 +74,22 @@ export default async function HomePage() {
             <div className="mx-auto h-1 w-16 bg-action-red" />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {CATEGORIES.map((cat) => (
+          <div className="mx-auto grid w-full max-w-6xl grid-cols-1 justify-items-center gap-6 sm:grid-cols-2 md:grid-cols-3">
+            {SHOP_CATEGORIES.map((cat) => (
               <Link
                 key={cat.label}
-                href="/design/start"
-                className="brutalist-shadow group relative aspect-[4/3] cursor-pointer overflow-hidden border-2 border-border-high-contrast bg-white"
+                href={cat.href}
+                className="brutalist-shadow group relative aspect-[4/3] w-full max-w-[420px] cursor-pointer overflow-hidden border-2 border-border-high-contrast bg-white sm:max-w-none lg:aspect-[6/5]"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={cat.image}
-                  alt={`${cat.label} examples`}
-                  className={`h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 ${
-                    cat.grayscale ? "grayscale group-hover:grayscale-0" : ""
-                  }`}
+                  alt={cat.alt}
+                  fill
+                  sizes="(max-width: 640px) calc(100vw - 40px), (max-width: 768px) 50vw, 33vw"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
                 />
-                <div className="absolute inset-x-0 bottom-0 border-t-2 border-border-high-contrast bg-white py-4 text-center transition-colors group-hover:bg-primary group-hover:text-white">
-                  <span className="font-display text-[20px] uppercase tracking-tighter">
+                <div className="absolute inset-x-0 bottom-0 flex min-h-16 items-center justify-center border-t-2 border-border-high-contrast bg-white px-4 py-3 text-center transition-colors group-hover:bg-primary group-hover:text-white">
+                  <span className="font-display text-[clamp(1rem,2vw,1.25rem)] uppercase leading-tight tracking-tighter">
                     {cat.label}
                   </span>
                 </div>
@@ -157,6 +97,8 @@ export default async function HomePage() {
             ))}
           </div>
         </section>
+
+        <Testimonials />
 
         {/* ── Newsletter ── */}
         <section className="flex flex-col items-center px-margin-mobile py-section">
@@ -166,11 +108,11 @@ export default async function HomePage() {
             </div>
             <div className="relative z-10 mx-auto max-w-lg text-center">
               <h3 className="mb-2 text-[22px] uppercase text-neon-accent">
-                Get Framing Tips &amp; Offers
+                Get Framing Tips
               </h3>
               <p className="mb-6 text-sm opacity-80">
-                Join our list for framing inspiration, new drops, and
-                subscriber-only discounts.
+                Join our list for framing inspiration, print care, and ideas
+                for making your walls personal.
               </p>
               <form className="flex flex-col gap-3">
                 <input
@@ -190,7 +132,6 @@ export default async function HomePage() {
         </section>
       </main>
 
-      <BottomNav />
     </>
   );
 }

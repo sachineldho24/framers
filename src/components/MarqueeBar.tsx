@@ -1,15 +1,9 @@
 import { Icon } from "./Icon";
+import { MARQUEE_ITEMS } from "@/lib/storefront-messaging";
 
-const ITEMS = [
-  { text: "FREE SHIPPING", icon: "local_shipping", accent: false },
-  { text: "20% OFF ALL ITEMS", accent: true },
-  { text: "NEW RELEASES WEEKLY", icon: "fiber_new", accent: false },
-  { text: "COLLECTORS EDITION", accent: true },
-] as const;
-
-/** Scrolling promotion bar. Duplicated content for a seamless loop. */
+/** Scrolling service bar. Duplicated content for a seamless loop. */
 export function MarqueeBar() {
-  const track = [...ITEMS, ...ITEMS];
+  const track = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS];
   return (
     <div className="flex items-center overflow-hidden border-y-2 border-border-high-contrast bg-on-background py-4">
       <div className="marquee gap-12">
@@ -21,9 +15,7 @@ export function MarqueeBar() {
             }`}
           >
             {item.text}
-            {"icon" in item && item.icon && (
-              <Icon name={item.icon} className="text-[14px]" />
-            )}
+            <Icon name={item.icon} className="text-[14px]" />
           </span>
         ))}
       </div>
