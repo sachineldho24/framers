@@ -124,6 +124,9 @@ try {
   await navigate(`${origin}/design/${sessionId}/upload`);
   await wait('!!document.querySelector("input[type=file]")');
   const setInitialFile = async name => {
+    // The server renders the input before React attaches its change handler.
+    // Wait for hydration on a cold production navigation before choosing a file.
+    await wait(`(() => { const input=document.querySelector('input[type=file]'); return !!input && Object.keys(input).some(key=>key.startsWith('__reactProps$')); })()`, 'upload input hydration');
     const tree = await call('DOM.getDocument');
     const input = await call('DOM.querySelector', { nodeId: tree.root.nodeId, selector: 'input[type=file]' });
     await call('DOM.setFileInputFiles', { nodeId: input.nodeId, files: [path.join(output, name)] });
