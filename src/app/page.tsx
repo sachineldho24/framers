@@ -48,7 +48,7 @@ export default function HomePage() {
 
         <ImageGallery />
 
-        <section aria-labelledby="gallery-feature-title" className="border-y-2 border-primary bg-surface px-margin-mobile py-section">
+        <section aria-labelledby="gallery-feature-title" className="bg-surface px-margin-mobile py-section">
           <div className="mx-auto grid max-w-6xl items-center gap-8 md:grid-cols-[1.3fr_1fr] md:gap-12">
             <Link href="/gallery" prefetch={false} tabIndex={-1} aria-hidden="true" className="relative block aspect-[6/5] overflow-hidden border-2 border-primary md:aspect-[3/2]">
               <Image src="/gallery-assets/v07/room-0.webp" alt="" fill sizes="(max-width: 768px) calc(100vw - 40px), 60vw" className="object-cover" />

@@ -5,7 +5,7 @@ import { MARQUEE_ITEMS } from "@/lib/storefront-messaging";
 export function MarqueeBar() {
   const track = [...MARQUEE_ITEMS, ...MARQUEE_ITEMS];
   return (
-    <div className="flex items-center overflow-hidden border-y-2 border-border-high-contrast bg-on-background py-4">
+    <div className="flex items-center overflow-hidden bg-on-background py-4">
       <div className="marquee gap-12">
         {track.map((item, i) => (
           <span
