@@ -36,7 +36,8 @@ function release(root: Group) {
 }
 
 export function createGalleryRuntime(canvas: HTMLCanvasElement, callbacks: Callbacks, initialProgress = 0, reducedMotion = false) {
-  const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: "low-power", stencil: false });
+  const mobileViewport = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+  const renderer = new WebGLRenderer({ canvas, antialias: !mobileViewport, powerPreference: "low-power", stencil: false });
   renderer.outputColorSpace = SRGBColorSpace;
   renderer.toneMapping = AgXToneMapping;
   renderer.toneMappingExposure = 1.2;
@@ -79,12 +80,14 @@ export function createGalleryRuntime(canvas: HTMLCanvasElement, callbacks: Callb
   let gesture: { id: number; y: number } | null = null;
   let lastOcclusion = -Infinity;
   let lastOcclusionRoom = -1;
+  let lastTelemetry = -Infinity;
   let occluded = false;
   const eye = new Vector3();
   const anchor = new Vector3();
   const projected = new Vector3();
   const cornerProjection = new Vector3();
   const direction = new Vector3();
+  const cameraDirection = new Vector3();
   const normal = new Vector3();
   const raycaster = new Raycaster();
 
@@ -112,7 +115,7 @@ export function createGalleryRuntime(canvas: HTMLCanvasElement, callbacks: Callb
       if (!(object instanceof Mesh)) return;
       const materials = Array.isArray(object.material) ? object.material : [object.material];
       for (const material of materials) {
-        if ("map" in material && material.map instanceof Texture) material.map.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
+        if ("map" in material && material.map instanceof Texture) material.map.anisotropy = Math.min(mobileViewport ? 2 : 4, renderer.capabilities.getMaxAnisotropy());
         // glTF unlit bakes are scene-linear diffuse appearance encoded as sRGB.
         if (material instanceof MeshBasicMaterial) {
           material.toneMapped = true;
@@ -127,7 +130,8 @@ export function createGalleryRuntime(canvas: HTMLCanvasElement, callbacks: Callb
   }
 
   function needed(index: number) {
-    return [index - 1, index, index + 1].filter(i => i >= 0 && i < GALLERY_ROOMS.length);
+    const window = mobileViewport ? [index, index + 1] : [index - 1, index, index + 1];
+    return window.filter(i => i >= 0 && i < GALLERY_ROOMS.length);
   }
 
   function ensureRoom(index: number): Promise<void> {
@@ -169,7 +173,7 @@ export function createGalleryRuntime(canvas: HTMLCanvasElement, callbacks: Callb
   function resize() {
     const box = canvas.getBoundingClientRect();
     width = Math.max(1, box.width); height = Math.max(1, box.height);
-    const pixelRatio = Math.min(window.devicePixelRatio, width < 768 ? 1.25 : 1.5);
+    const pixelRatio = Math.min(window.devicePixelRatio, mobileViewport ? 1.25 : 1.5);
     if (renderer.getPixelRatio() !== pixelRatio) renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width, height, false);
     if (tour) {
@@ -226,7 +230,8 @@ export function createGalleryRuntime(canvas: HTMLCanvasElement, callbacks: Callb
     projected.copy(anchor).project(tour.camera);
     direction.copy(anchor).sub(eye);
     const distance = direction.length();
-    const inFront = direction.dot(tour.camera.getWorldDirection(new Vector3())) > 0;
+    tour.camera.getWorldDirection(cameraDirection);
+    const inFront = direction.dot(cameraDirection) > 0;
     const facingCamera = normal.fromArray(data.anchors[roomIndex].normal).dot(direction) < 0;
     let visible = inFront && facingCamera && projected.z > -1 && projected.z < 1 && Math.abs(projected.x) < 0.88 && Math.abs(projected.y) < 0.75;
     if (visible) {
@@ -268,15 +273,18 @@ export function createGalleryRuntime(canvas: HTMLCanvasElement, callbacks: Callb
     }
     callbacks.frame(controller.current, { x: pinX, y: pinY, visible });
     canvas.dataset.progress = String(controller.current);
-    canvas.dataset.triangles = String(renderer.info.render.triangles);
-    canvas.dataset.drawCalls = String(renderer.info.render.calls);
-    canvas.dataset.frameCount = String(renderer.info.render.frame);
+    if (now - lastTelemetry >= 250 || !initialized) {
+      canvas.dataset.triangles = String(renderer.info.render.triangles);
+      canvas.dataset.drawCalls = String(renderer.info.render.calls);
+      canvas.dataset.frameCount = String(renderer.info.render.frame);
+      canvas.dataset.textures = String(renderer.info.memory.textures);
+      canvas.dataset.residentRooms = [...rooms.keys()].sort().join(",");
+      lastTelemetry = now;
+    }
     // A small resident window bounds GPU memory as the visitor explores.
     for (const [i, group] of rooms) {
       if (Math.abs(i - roomIndex) > 1) { rooms.delete(i); artworkBounds.delete(i); groups.delete(group); release(group); }
     }
-    canvas.dataset.textures = String(renderer.info.memory.textures);
-    canvas.dataset.residentRooms = [...rooms.keys()].sort().join(",");
     if (controller.moving && !missing.length) invalidate();
     else lastTime = 0;
   }

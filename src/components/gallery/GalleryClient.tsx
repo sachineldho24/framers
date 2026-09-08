@@ -114,7 +114,7 @@ export function GalleryClient() {
       <div className={styles.stage}>
         {/* Plain images keep the server-rendered fallback independent of WebGL. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className={styles.backdrop} src={room.image} alt={`Framed artwork in the ${room.title.toLowerCase()} room`} fetchPriority="high" style={{ opacity: showImage ? 1 : 0 }} />
+        <img className={styles.backdrop} src={room.image} alt={`Framed artwork in the ${room.title.toLowerCase()} room`} fetchPriority="high" decoding="async" draggable={false} style={{ opacity: showImage ? 1 : 0 }} />
         <canvas key={mode} ref={canvas} className={styles.canvas} style={{ opacity: mode === "images" || !showImage ? 1 : 0 }} aria-label="Room tour. Scroll or swipe to travel, use arrow keys to change rooms, or press Enter for artwork details." tabIndex={mode === "pending" || (mode === "3d" && !ready) ? -1 : 0}
           onKeyDown={event => {
             if (event.key === "ArrowRight" || event.key === "ArrowDown" || event.key === "PageDown") { event.preventDefault(); goTo(roomIndex + 1); }
@@ -153,7 +153,7 @@ export function GalleryClient() {
       <dialog ref={dialog} className={styles.dialog} aria-labelledby="gallery-artwork-title" onCancel={closeArtwork} onClose={closeArtwork}>
         <div className={styles.dialogHeader}><span>THE GALLERY / {detail.title.toUpperCase()}</span><button type="button" onClick={closeArtwork} aria-label="Close artwork details" autoFocus><X size={22} /></button></div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {selected !== null && <img className={styles.artImage} src={detail.artwork} alt={`Artwork displayed in the ${detail.title.toLowerCase()} room`} />}
+        {selected !== null && <img className={styles.artImage} src={detail.artwork} alt={`Artwork displayed in the ${detail.title.toLowerCase()} room`} decoding="async" draggable={false} />}
         <div className={styles.dialogBody}>
           <p className={styles.eyebrow}>FRAMING INSPIRATION</p>
           <h2 id="gallery-artwork-title">{detail.headline}</h2>
