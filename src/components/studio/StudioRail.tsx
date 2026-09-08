@@ -13,6 +13,7 @@ import { Icon } from "@/components/Icon";
 import { useStudio, type RailId } from "@/lib/studio/StudioContext";
 
 import { cx } from "./ui";
+import { useCompactStudio } from "./useCompactStudio";
 
 interface RailEntry {
   id: RailId;
@@ -34,16 +35,22 @@ export const RAIL_ENTRIES: RailEntry[] = [
 ];
 
 export function StudioRail({ panelId }: { panelId: string }) {
-  const { rail, setRail } = useStudio();
+  const { rail, setRail, tool, setTool, setEditingId } = useStudio();
+  const compact = useCompactStudio();
+  const entries = compact
+    ? ["uploads", "text", "tools", "templates", "elements", "brand", "projects", "apps"].map(
+        (id) => RAIL_ENTRIES.find((entry) => entry.id === id)!
+      )
+    : RAIL_ENTRIES;
 
   return (
     <nav
       role="tablist"
       aria-label="Studio panels"
-      aria-orientation="vertical"
-      className="flex w-[85px] shrink-0 flex-col items-center gap-1 border-r border-[var(--studio-border)] bg-[var(--studio-chrome)] py-3"
+      aria-orientation={compact ? "horizontal" : "vertical"}
+      className="studio-rail flex w-[85px] shrink-0 flex-col items-center gap-1 border-r border-[var(--studio-border)] bg-[var(--studio-chrome)] py-3"
     >
-      {RAIL_ENTRIES.map((entry) => {
+      {entries.map((entry) => {
         const active = rail === entry.id;
         return (
           <button
@@ -53,7 +60,11 @@ export function StudioRail({ panelId }: { panelId: string }) {
             id={`studio-rail-${entry.id}`}
             aria-selected={active}
             aria-controls={active ? panelId : undefined}
-            onClick={() => setRail(active ? null : entry.id)}
+            onClick={() => {
+              setTool("select");
+              setEditingId(null);
+              setRail(active && tool === "select" ? null : entry.id);
+            }}
             data-r="md"
             className={cx(
               "relative flex w-[68px] flex-col items-center gap-1 py-2 transition-colors",

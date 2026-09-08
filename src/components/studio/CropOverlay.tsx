@@ -24,6 +24,7 @@ import {
 import { aspectMatches, aspectPresets } from "@/lib/studio/crop";
 import type { ImageLayer } from "@/lib/studio/document";
 import { useStudio } from "@/lib/studio/StudioContext";
+import { useCompactStudio } from "./useCompactStudio";
 
 const CORNERS: HandleId[] = ["nw", "ne", "se", "sw"];
 const EDGES: HandleId[] = ["n", "e", "s", "w"];
@@ -73,7 +74,7 @@ export function CropOverlay({
   onHandleMove: (e: React.PointerEvent<Element>) => void;
   onHandleUp: (e: React.PointerEvent<Element>) => void;
 }) {
-  const { apply, setTool, doc } = useStudio();
+  const compact = useCompactStudio();
 
   const w = layer.width * viewport.scale;
   const h = layer.height * viewport.scale;
@@ -81,7 +82,6 @@ export function CropOverlay({
   const top = viewport.offsetY + layer.y * viewport.scale;
 
   const { crop } = layer;
-  const isFull = crop.w > 0.999 && crop.h > 0.999;
 
   const grip = (handle: HandleId) => ({
     onPointerDown: (e: React.PointerEvent<Element>) => onHandleDown(handle, e),
@@ -213,7 +213,7 @@ export function CropOverlay({
 
       {/* Unrotated screen space, so the bar stays readable however the layer
           is turned. */}
-      <div
+      {!compact && <div
         data-r="md"
         className="studio-shadow pointer-events-auto absolute flex w-[264px] flex-col gap-1 border border-[var(--studio-border)] bg-white p-1"
         style={{
@@ -222,6 +222,16 @@ export function CropOverlay({
           transform: "translateX(-50%)",
         }}
       >
+        <CropControls layer={layer} />
+      </div>}
+    </div>
+  );
+}
+
+export function CropControls({ layer }: { layer: ImageLayer }) {
+  const { apply, setTool, doc } = useStudio();
+  const isFull = layer.crop.w > 0.999 && layer.crop.h > 0.999;
+  return <div className="flex flex-col gap-2">
         {/* Ratios. Each one reshapes the layer *and* its crop together, so the
             photo can't come out stretched; the lit button is read back from the
             layer rather than remembered, so freely dragging a handle afterwards
@@ -274,7 +284,5 @@ export function CropOverlay({
             Done
           </button>
         </div>
-      </div>
-    </div>
-  );
+  </div>;
 }

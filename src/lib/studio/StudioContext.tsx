@@ -316,7 +316,7 @@ export function StudioProvider({
           docRef.current.height,
           containerWidth,
           containerHeight,
-          48
+          containerWidth < 600 || containerHeight < 400 ? 24 : 48
         )
       );
     },

@@ -204,7 +204,7 @@ export function SelectionOverlay({
           however the layer is turned. */}
       {selectedId === layer.id && (
         <div
-          className="pointer-events-auto absolute"
+          className="studio-floating-object pointer-events-auto absolute"
           style={{
             left: left + w / 2,
             top: top + h + ROTATE_GRIP_OFFSET + 28,

@@ -100,7 +100,7 @@ export function TextPanel() {
 
   return (
     <div>
-      <PanelSection>
+      <div className={layer ? "studio-text-presets-selected" : undefined}><PanelSection>
         <div className="flex flex-col gap-1.5">
           {TEXT_PRESET_ORDER.map((preset) => (
             <button
@@ -130,7 +130,7 @@ export function TextPanel() {
             </button>
           ))}
         </div>
-      </PanelSection>
+      </PanelSection></div>
 
       {layer ? (
         <TextStyleControls
@@ -229,6 +229,20 @@ function TextStyleControls({
 
   return (
     <>
+      <PanelSection title="Size">
+        <Slider
+          label={`Size · ${(printedInches(layer.fontSize, dpi) * 72).toFixed(
+            0
+          )} pt printed`}
+          value={Math.round(layer.fontSize)}
+          min={MIN_FONT_SIZE}
+          max={maxFontSize}
+          suffix="px"
+          onChange={(v) => style({ fontSize: v }, "font-size")}
+          onCommit={endGesture}
+        />
+      </PanelSection>
+
       <PanelSection title="Words">
         <StudioButton
           variant="outline"
@@ -290,19 +304,7 @@ function TextStyleControls({
         </div>
       </PanelSection>
 
-      <PanelSection title="Size">
-        <Slider
-          label={`Size · ${(printedInches(layer.fontSize, dpi) * 72).toFixed(
-            0
-          )} pt printed`}
-          value={Math.round(layer.fontSize)}
-          min={MIN_FONT_SIZE}
-          max={maxFontSize}
-          suffix="px"
-          onChange={(v) => style({ fontSize: v }, "font-size")}
-          onCommit={endGesture}
-        />
-      </PanelSection>
+
 
       <PanelSection title="Alignment">
         <div className="flex flex-wrap gap-3">

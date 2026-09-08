@@ -43,6 +43,8 @@ export function StudioBottomBar({
     fitTo,
     rail,
     setRail,
+    tool,
+    setTool,
     printSize,
     guides,
     showGuides,
@@ -50,6 +52,7 @@ export function StudioBottomBar({
   } = useStudio();
 
   const percent = Math.round(viewport.scale * 100);
+  const panelOpen = !!rail || tool !== "select";
   const quality = documentQuality(doc, printSize);
 
   // Which of the two limits is biting matters, because the fixes are opposite:
@@ -83,7 +86,7 @@ export function StudioBottomBar({
   }
 
   return (
-    <footer className="flex h-11 shrink-0 items-center gap-1 border-t border-[var(--studio-border)] bg-[var(--studio-chrome)] px-3">
+    <footer className="studio-bottom-bar flex h-11 shrink-0 items-center gap-1 border-t border-[var(--studio-border)] bg-[var(--studio-chrome)] px-3">
       <IconButton
         icon="remove"
         label="Zoom out"
@@ -166,7 +169,7 @@ export function StudioBottomBar({
         aria-hidden="true"
       />
 
-      <div className="flex items-center gap-0.5">
+      <div className="studio-page-nav flex items-center gap-0.5">
         <IconButton
           icon="chevron_left"
           label="Previous page"
@@ -188,12 +191,12 @@ export function StudioBottomBar({
 
       <div className="ml-auto flex items-center gap-1">
         <IconButton
-          icon={rail ? "left_panel_close" : "left_panel_open"}
-          label={rail ? "Hide panel" : "Show panel"}
+          icon={panelOpen ? "left_panel_close" : "left_panel_open"}
+          label={panelOpen ? "Hide panel" : "Show panel"}
           size="sm"
           tooltipSide="top"
-          onClick={() => setRail(rail ? null : "tools")}
-          className={cx(rail && "text-[var(--studio-accent)]")}
+          onClick={() => { setTool("select"); setRail(panelOpen ? null : "tools"); }}
+          className={cx(panelOpen && "text-[var(--studio-accent)]")}
         />
       </div>
     </footer>

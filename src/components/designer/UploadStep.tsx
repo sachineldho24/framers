@@ -7,7 +7,7 @@ import { DESIGN_BUCKET } from "@/lib/storage-shared";
 import { patchDesignerState } from "@/lib/designer-state";
 import { Icon } from "@/components/Icon";
 
-const ACCEPTED = ["image/jpeg", "image/png", "application/pdf"];
+const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const MAX_BYTES = 30 * 1024 * 1024; // 30 MB
 
 /**
@@ -27,77 +27,69 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const uploadInFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
   async function handleFile(file: File) {
+    if (uploadInFlight.current) return;
     setError(null);
     if (!ACCEPTED.includes(file.type)) {
-      setError("Please upload a JPG, PNG, or PDF file.");
+      setError("Please upload a JPG, PNG, WebP, or PDF file.");
       return;
     }
-    if (file.size > MAX_BYTES) {
-      setError("File is too large (max 30 MB).");
+    if (file.size === 0 || file.size > MAX_BYTES) {
+      setError(file.size === 0 ? "That file is empty. Please choose another file." : "File is too large (max 30 MB).");
       return;
     }
 
+    uploadInFlight.current = true;
     setBusy(true);
-    const supabase = createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      router.push(`/login?next=/design/${sessionId}/upload`);
-      return;
-    }
+    let objectUrl: string | null = null;
+    try {
+      const isImage = file.type !== "application/pdf";
+      let imageWidth: number | null = null;
+      let imageHeight: number | null = null;
+      if (isImage) {
+        objectUrl = URL.createObjectURL(file);
+        const dimensions = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+          img.onerror = () => reject(new Error("That file isn't a readable image. Please choose another image."));
+          img.src = objectUrl!;
+        });
+        imageWidth = dimensions.width;
+        imageHeight = dimensions.height;
+      }
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Please sign in again before uploading your file.");
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+      const uploadPath = `${user.id}/uploads/${crypto.randomUUID()}/source.${ext}`;
+      const { error: upErr } = await supabase.storage.from(DESIGN_BUCKET)
+        .upload(uploadPath, file, { contentType: file.type, upsert: false });
+      if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
 
-    const ext = file.name.split(".").pop() ?? "bin";
-    const uploadId = crypto.randomUUID();
-    const uploadPath = `${user.id}/uploads/${uploadId}/source.${ext}`;
-
-    const { error: upErr } = await supabase.storage
-      .from(DESIGN_BUCKET)
-      .upload(uploadPath, file, { contentType: file.type, upsert: false });
-    if (upErr) {
-      setError(`Upload failed: ${upErr.message}`);
-      setBusy(false);
-      return;
-    }
-
-    // Measure natural dimensions for the DPI / max-print logic on the next step.
-    const isImage = file.type !== "application/pdf";
-    let imageWidth: number | null = null;
-    let imageHeight: number | null = null;
-    const objectUrl = isImage ? URL.createObjectURL(file) : null;
-    if (objectUrl) {
-      await new Promise<void>((resolve) => {
-        const img = new Image();
-        img.onload = () => {
-          imageWidth = img.naturalWidth;
-          imageHeight = img.naturalHeight;
-          resolve();
-        };
-        img.onerror = () => resolve();
-        img.src = objectUrl;
+      const response = await fetch(`/api/design/session/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ uploadPath }),
       });
+      if (!response.ok) {
+        throw new Error(response.status === 401
+          ? "Please sign in again before uploading your file."
+          : "Your file couldn't be saved to this design. Please try uploading again.");
+      }
+      patchDesignerState(sessionId, { uploadPath, previewObjectUrl: objectUrl, imageWidth, imageHeight });
+      objectUrl = null; // Working state owns the successful preview until navigation.
+      router.push(`/design/${sessionId}/size`);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Upload failed. Check your connection and try again.");
+    } finally {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      uploadInFlight.current = false;
+      setBusy(false);
     }
-
-    // Persist working state (client) + the session (server). The patch upserts,
-    // so a session resumed in a fresh tab (no local record) still keeps this.
-    patchDesignerState(sessionId, {
-      uploadPath,
-      previewObjectUrl: objectUrl,
-      imageWidth,
-      imageHeight,
-    });
-
-    await fetch(`/api/design/session/${sessionId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ uploadPath }),
-    }).catch(() => null);
-
-    router.push(`/design/${sessionId}/size`);
   }
 
   return (
@@ -112,7 +104,7 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
         </p>
 
         <div className="mt-6 flex flex-wrap gap-2">
-          {["JPG / PNG / PDF", "MAX 30 MB", "MIN 150 DPI"].map((c) => (
+          {["JPG / PNG / WEBP / PDF", "MAX 30 MB", "MIN 150 DPI"].map((c) => (
             <span
               key={c}
               className="label-caps bg-black px-3 py-1 text-white"
@@ -150,7 +142,7 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
         </div>
 
         {error && (
-          <p className="label-caps mt-6 max-w-sm border-2 border-error px-3 py-2 text-error">
+          <p role="alert" className="label-caps mt-6 max-w-sm border-2 border-error px-3 py-2 text-error">
             {error}
           </p>
         )}
@@ -158,10 +150,11 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
         <input
           ref={inputRef}
           type="file"
-          accept=".jpg,.jpeg,.png,.pdf"
+          accept=".jpg,.jpeg,.png,.webp,.pdf"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0];
+            e.target.value = "";
             if (f) void handleFile(f);
           }}
         />

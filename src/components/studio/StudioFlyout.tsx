@@ -17,6 +17,8 @@ import { TextPanel } from "./panels/TextPanel";
 import { ToolsPanel } from "./panels/ToolsPanel";
 import { UploadsPanel } from "./panels/UploadsPanel";
 import { IconButton } from "./ui";
+import { CropControls } from "./CropOverlay";
+import { useCompactStudio } from "./useCompactStudio";
 import { useStudio, type RailId } from "@/lib/studio/StudioContext";
 
 const COMING_SOON: Partial<
@@ -53,13 +55,19 @@ export function StudioFlyout({
   panelId,
   onAddImage,
   uploads,
+  uploading,
+  uploadError,
 }: {
   panelId: string;
   onAddImage: () => void;
-  uploads: { src: string; name: string; url: string }[];
+  uploads: import("./panels/UploadsPanel").UploadEntry[];
+  uploading?: boolean;
+  uploadError?: string | null;
 }) {
-  const { rail, setRail } = useStudio();
-  if (!rail) return null;
+  const { rail, setRail, tool } = useStudio();
+  const compact = useCompactStudio();
+  // A subtool replaces the tool list instead of opening a second 300px panel.
+  if (!rail || (compact && tool === "crop") || (tool !== "select" && tool !== "crop" && tool !== "draw")) return null;
 
   const entry = RAIL_ENTRIES.find((e) => e.id === rail);
   const empty = COMING_SOON[rail];
@@ -69,9 +77,9 @@ export function StudioFlyout({
       id={panelId}
       role="tabpanel"
       aria-labelledby={`studio-rail-${rail}`}
-      className="flex w-[300px] shrink-0 flex-col border-r border-[var(--studio-border)] bg-[var(--studio-chrome)]"
+      className="studio-panel flex min-h-0 w-[300px] shrink-0 flex-col border-r border-[var(--studio-border)] bg-[var(--studio-chrome)]"
     >
-      <div className="flex items-center justify-between px-3 pt-3">
+      <div className="flex shrink-0 items-center justify-between px-3 pt-3">
         <h2 className="px-1 text-[15px] font-semibold text-[var(--studio-ink)]">
           {entry?.label}
         </h2>
@@ -83,11 +91,11 @@ export function StudioFlyout({
         />
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-2">
+      <div className="studio-panel-content min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-2">
         {rail === "tools" && <ToolsPanel />}
         {rail === "text" && <TextPanel />}
         {rail === "uploads" && (
-          <UploadsPanel uploads={uploads} onAddImage={onAddImage} />
+          <UploadsPanel uploads={uploads} onAddImage={onAddImage} uploading={uploading} error={uploadError} />
         )}
         {empty && (
           <ComingSoonPanel
@@ -107,8 +115,9 @@ export function StudioFlyout({
  * sliders without the rail selection changing under the user.
  */
 export function StudioToolPanel() {
-  const { tool, setTool } = useStudio();
-  if (tool === "select" || tool === "crop" || tool === "draw") return null;
+  const { tool, setTool, selectedLayer } = useStudio();
+  const compact = useCompactStudio();
+  if (tool === "select" || (tool === "crop" && !compact) || tool === "draw") return null;
 
   const titles: Record<string, string> = {
     adjust: "Adjust",
@@ -116,14 +125,16 @@ export function StudioToolPanel() {
     layers: "Layers",
     eraser: "Eraser",
     border: "Border",
+    crop: "Crop",
   };
 
   return (
     <aside
+      id="studio-flyout"
       aria-label={titles[tool]}
-      className="flex w-[300px] shrink-0 flex-col border-r border-[var(--studio-border)] bg-[var(--studio-chrome)]"
+      className="studio-panel flex min-h-0 w-[300px] shrink-0 flex-col border-r border-[var(--studio-border)] bg-[var(--studio-chrome)]"
     >
-      <div className="flex items-center justify-between px-3 pt-3">
+      <div className="flex shrink-0 items-center justify-between px-3 pt-3">
         <h2 className="px-1 text-[15px] font-semibold text-[var(--studio-ink)]">
           {titles[tool]}
         </h2>
@@ -134,7 +145,8 @@ export function StudioToolPanel() {
           onClick={() => setTool("select")}
         />
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 pt-2">
+      <div className="studio-panel-content min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-2">
+        {tool === "crop" && selectedLayer?.kind === "image" && <CropControls layer={selectedLayer} />}
         {tool === "adjust" && <AdjustPanel />}
         {tool === "frames" && <FramesPanel />}
         {tool === "layers" && <LayersPanel />}

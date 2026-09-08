@@ -13,7 +13,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Layer, StudioDocument } from "@/lib/studio/document";
-import { cloneLayer, createId, docSizeForFrame } from "@/lib/studio/document";
+import { cloneLayer, createId, createImageLayer, docSizeForFrame } from "@/lib/studio/document";
+import { containBox } from "@/lib/studio/geometry";
 import { waitForFonts } from "@/lib/studio/fontLoader";
 import {
   downloadBlob,
@@ -36,6 +37,9 @@ import { ContextMenu, type ContextMenuState } from "./ContextMenu";
 import { ContextualToolbar } from "./ContextualToolbar";
 import { CustomSizeDialog } from "./CustomSizeDialog";
 import { LayerInfoSheet } from "./LayerInfoSheet";
+import { MobileTextEditor } from "./MobileTextEditor";
+import { ObjectToolbar } from "./ObjectToolbar";
+import { useCompactStudio } from "./useCompactStudio";
 import { StudioBottomBar } from "./StudioBottomBar";
 import { StudioCanvas } from "./StudioCanvas";
 import { StudioFlyout, StudioToolPanel } from "./StudioFlyout";
@@ -146,6 +150,22 @@ function ShellInner({
   );
 
   const [uploads, setUploads] = useState<StudioShellUpload[]>(initialUploads);
+  const [uploading, setUploading] = useState(false);
+  const uploadInFlight = useRef(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  // Images in the saved document also belong in Uploads after a reload.
+  const availableUploads = useMemo(() => {
+    const entries = new Map(uploads.map((entry) => [entry.src, entry]));
+    for (const layer of doc.layers) {
+      if (layer.kind !== "image" || entries.has(layer.src)) continue;
+      const image = images.get(layer.src);
+      if (image && "src" in image) entries.set(layer.src, {
+        src: layer.src, name: layer.name, url: image.src,
+        naturalWidth: layer.naturalWidth, naturalHeight: layer.naturalHeight,
+      });
+    }
+    return [...entries.values()];
+  }, [uploads, doc.layers, images]);
   const insertText = useInsertText();
   const [ctxMenu, setCtxMenu] = useState<ContextMenuState | null>(null);
   const [infoLayer, setInfoLayer] = useState<Layer | null>(null);
@@ -157,6 +177,29 @@ function ShellInner({
   const [error, setError] = useState<string | null>(null);
 
   const surfaceRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const compact = useCompactStudio();
+  const mobileEditing = compact && selectedLayer?.kind === "text" && editingId === selectedLayer.id;
+  // Browser chrome and the software keyboard change the *visible* viewport.
+  // Reserve that space in layout so neither can cover the bottom controls.
+  useEffect(() => {
+    if (!compact) return;
+    const visible = window.visualViewport;
+    const update = () => {
+      if (visible && visible.scale !== 1) return;
+      rootRef.current?.style.setProperty("--studio-visible-height", `${visible?.height ?? window.innerHeight}px`);
+      rootRef.current?.style.setProperty("--studio-visible-top", `${visible?.offsetTop ?? 0}px`);
+    };
+    update();
+    visible?.addEventListener("resize", update);
+    visible?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      visible?.removeEventListener("resize", update);
+      visible?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [compact]);
   const clipboardRef = useRef<Layer | null>(null);
   const [canPaste, setCanPaste] = useState(false);
 
@@ -375,12 +418,28 @@ function ShellInner({
   /* --------------------------------------------------------------- actions */
 
   async function handlePickImage() {
-    const entry = await onPickImage();
-    if (!entry) return;
-    // The object URL is already in memory — register it so the first paint
-    // doesn't wait on a signing round-trip.
-    registerLocal(entry.src, entry.url);
-    setUploads((list) => [...list.filter((u) => u.src !== entry.src), entry]);
+    if (uploadInFlight.current) return;
+    uploadInFlight.current = true;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const entry = await onPickImage();
+      if (!entry) return;
+      registerLocal(entry.src, entry.url);
+      setUploads((list) => [...list.filter((u) => u.src !== entry.src), entry]);
+      const current = docRef.current;
+      const naturalWidth = entry.naturalWidth ?? current.width;
+      const naturalHeight = entry.naturalHeight ?? current.height;
+      const box = containBox(current.width, current.height, naturalWidth, naturalHeight);
+      const layer = createImageLayer({ ...entry, naturalWidth, naturalHeight, ...box });
+      apply({ type: "addLayer", layer });
+      select(layer.id);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Upload failed. Please try again.");
+    } finally {
+      uploadInFlight.current = false;
+      setUploading(false);
+    }
   }
 
   function handleDownload(format: DownloadFormat) {
@@ -484,7 +543,7 @@ function ShellInner({
   );
 
   return (
-    <div className="studio-root flex h-screen w-full flex-col overflow-hidden">
+    <div ref={rootRef} data-editing={mobileEditing || undefined} className="studio-root flex h-screen w-full flex-col overflow-hidden">
       <StudioTopBar
         userInitial={userInitial}
         sizes={sizes}
@@ -497,24 +556,26 @@ function ShellInner({
         busy={busy}
       />
 
-      <div className="flex min-h-0 flex-1">
+      <div className="studio-workspace flex min-h-0 flex-1">
         <StudioRail panelId="studio-flyout" />
         <StudioFlyout
           panelId="studio-flyout"
           onAddImage={() => void handlePickImage()}
-          uploads={uploads}
+          uploads={availableUploads}
+          uploading={uploading}
+          uploadError={uploadError}
         />
         <StudioToolPanel />
 
-        <main className="flex min-w-0 flex-1 flex-col">
-          <div ref={surfaceRef} className="relative min-h-0 flex-1">
+        <main className="studio-main flex min-h-0 min-w-0 flex-1 flex-col">
+          <div ref={surfaceRef} className="studio-surface relative min-h-0 flex-1 overflow-hidden">
             <StudioCanvas
               images={images}
               onContextMenu={(x, y, layerId) => setCtxMenu({ x, y, layerId })}
             />
 
             {/* Contextual pill, centred above the selection. */}
-            {showContextual && selectedLayer && (
+            {!compact && showContextual && selectedLayer && (
               <div
                 className="pointer-events-none absolute z-20 flex justify-center"
                 style={{
@@ -540,7 +601,7 @@ function ShellInner({
               data-r="full"
               aria-label="AI tools — not available yet"
               title="AI tools"
-              className="studio-shadow absolute bottom-4 left-4 z-20 flex h-11 w-11 items-center justify-center bg-[#16161a] text-white transition-transform hover:scale-105 motion-reduce:transition-none motion-reduce:hover:scale-100"
+              className="studio-canvas-extra studio-shadow absolute bottom-4 left-4 z-20 flex h-11 w-11 items-center justify-center bg-[#16161a] text-white transition-transform hover:scale-105 motion-reduce:transition-none motion-reduce:hover:scale-100"
             >
               <Icon name="auto_awesome" className="text-[20px]" />
             </button>
@@ -550,7 +611,7 @@ function ShellInner({
               label="Keyboard shortcuts"
               tooltipSide="top"
               onClick={() => setShortcutsOpen(true)}
-              className="studio-shadow-sm absolute bottom-4 right-4 z-20 bg-white"
+              className="studio-canvas-extra studio-shadow-sm absolute bottom-4 right-4 z-20 bg-white"
             />
 
             {pending > 0 && (
@@ -630,6 +691,13 @@ function ShellInner({
             )}
           </div>
 
+          {compact && selectedLayer && !mobileEditing && (
+            <div className="studio-mobile-actions" aria-label="Selected object controls">
+              {showContextual && <ContextualToolbar layer={selectedLayer} onBgRemover={() => setBgNoteOpen(true)} />}
+              <ObjectToolbar layer={selectedLayer} />
+            </div>
+          )}
+          {mobileEditing && selectedLayer?.kind === "text" && <MobileTextEditor key={selectedLayer.id} layer={selectedLayer} />}
           <StudioBottomBar surfaceRef={surfaceRef} />
         </main>
       </div>

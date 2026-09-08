@@ -26,10 +26,16 @@ function pickFile(): Promise<File | null> {
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".jpg,.jpeg,.png,.webp";
+    input.style.display = "none";
+    document.body.appendChild(input);
+    const finish = (file: File | null) => {
+      input.remove();
+      resolve(file);
+    };
     // Fires when the dialog is dismissed without a choice in browsers that
     // support it; the input is dropped either way so nothing leaks.
-    input.oncancel = () => resolve(null);
-    input.onchange = () => resolve(input.files?.[0] ?? null);
+    input.oncancel = () => finish(null);
+    input.onchange = () => finish(input.files?.[0] ?? null);
     input.click();
   });
 }
@@ -62,7 +68,19 @@ export async function pickAndUploadImage(
   if (file.size > MAX_BYTES) {
     throw new UploadError("That image is too large (max 30 MB).");
   }
+  if (file.size === 0) throw new UploadError("That file is empty. Please choose another image.");
 
+  // Decode before uploading: corrupt files must never become stored assets.
+  const url = URL.createObjectURL(file);
+  let natural: { width: number; height: number };
+  try {
+    natural = await measure(url);
+  } catch {
+    URL.revokeObjectURL(url);
+    throw new UploadError("That file isn't a readable image. Please choose another image.");
+  }
+
+  try {
   const supabase = createClient();
   const {
     data: { user },
@@ -80,9 +98,6 @@ export async function pickAndUploadImage(
     .upload(path, file, { contentType: file.type, upsert: false });
   if (error) throw new UploadError(`Upload failed: ${error.message}`);
 
-  const url = URL.createObjectURL(file);
-  const natural = await measure(url);
-
   return {
     src: path,
     name: file.name.replace(/\.[^.]+$/, "") || "Image",
@@ -90,4 +105,8 @@ export async function pickAndUploadImage(
     naturalWidth: natural.width,
     naturalHeight: natural.height,
   };
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error;
+  }
 }

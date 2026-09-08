@@ -28,9 +28,13 @@ export interface UploadEntry {
 export function UploadsPanel({
   uploads,
   onAddImage,
+  uploading = false,
+  error,
 }: {
   uploads: UploadEntry[];
   onAddImage: () => void;
+  uploading?: boolean;
+  error?: string | null;
 }) {
   const { doc, apply, select } = useStudio();
 
@@ -60,10 +64,13 @@ export function UploadsPanel({
         variant="outline"
         icon="add_photo_alternate"
         onClick={onAddImage}
+        disabled={uploading}
+        aria-busy={uploading}
         className="mb-3 w-full"
       >
-        Upload an image
+        {uploading ? "Uploading…" : "Upload an image"}
       </StudioButton>
+      {error && <p role="alert" className="mb-3 text-sm text-[#a02a24]">{error}</p>}
 
       {uploads.length === 0 ? (
         <EmptyState

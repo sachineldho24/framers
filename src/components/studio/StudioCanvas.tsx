@@ -62,6 +62,7 @@ import { PrintGuides } from "./PrintGuides";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { SnapGuides } from "./SnapGuides";
 import { TextEditOverlay } from "./TextEditOverlay";
+import { useCompactStudio } from "./useCompactStudio";
 
 type Gesture =
   | { kind: "none" }
@@ -165,6 +166,7 @@ export function StudioCanvas({
   // family it hasn't got, so the first paint of a freshly opened document is in
   // the wrong typeface until this bumps.
   const fontRevision = useStudioFonts(doc);
+  const compact = useCompactStudio();
 
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -252,13 +254,13 @@ export function StudioCanvas({
       maskCache: maskCache.current,
       // The textarea overlay is showing this layer's words already; drawing them
       // underneath as well would double every glyph.
-      skipLayerId: editingId ?? undefined,
+      skipLayerId: compact ? undefined : editingId ?? undefined,
     });
     // `fontRevision` is not read here — it is a dependency so that a face
     // arriving forces the repaint. The lint rule can only see the read, not the
     // reason, so it has to be told.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, viewport, images, createCanvas, editingId, fontRevision]);
+  }, [doc, viewport, images, createCanvas, editingId, fontRevision, compact]);
 
   // Bumped by the ResizeObserver so a container resize redraws (and, the first
   // time it reports a real width, fits) without `draw` having to own the
@@ -293,7 +295,7 @@ export function StudioCanvas({
 
     // Nothing has been panned or zoomed yet, so fitting is still the right
     // answer — and re-running it corrects the scale as well as the offset.
-    if (!last || viewportPristineRef.current) {
+    if (!last || viewportPristineRef.current || compact) {
       fitTo(w, h);
       return;
     }
@@ -305,7 +307,7 @@ export function StudioCanvas({
       offsetX: v.offsetX + (w - last.w) / 2,
       offsetY: v.offsetY + (h - last.h) / 2,
     }));
-  }, [resizeTick, fitTo, setViewport, viewportPristineRef]);
+  }, [resizeTick, fitTo, setViewport, viewportPristineRef, compact]);
 
   // A *page* resize changes what "fit" means. Unlike a container resize this is
   // always deliberate — the Resize menu or a custom size — so it re-fits even
@@ -968,7 +970,7 @@ export function StudioCanvas({
             onHandleMove={onPointerMove}
             onHandleUp={finishGesture}
           />
-        ) : editingId === selectedLayer.id && selectedLayer.kind === "text" ? (
+        ) : !compact && editingId === selectedLayer.id && selectedLayer.kind === "text" ? (
           // Likewise for typing: the caret is the only grab target that makes
           // sense while the words are being edited.
           <TextEditOverlay

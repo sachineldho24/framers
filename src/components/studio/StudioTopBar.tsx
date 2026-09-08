@@ -79,12 +79,12 @@ export function StudioTopBar({
 
   return (
     <header
-      className="flex h-14 shrink-0 items-center gap-2 border-b border-[var(--studio-border)] bg-[var(--studio-chrome)] px-3"
+      className="studio-topbar flex h-14 shrink-0 items-center gap-2 border-b border-[var(--studio-border)] bg-[var(--studio-chrome)] px-3"
       style={{ zIndex: 30 }}
     >
       <Link
         href="/"
-        className="mr-1 shrink-0 px-1 text-[15px] font-extrabold tracking-tight text-[var(--studio-ink)]"
+        className="studio-wordmark mr-1 shrink-0 px-1 text-[15px] font-extrabold tracking-tight text-[var(--studio-ink)]"
         aria-label="Framers home"
       >
         FRAMERS
@@ -244,7 +244,7 @@ export function StudioTopBar({
       )}
 
       {/* Title. Centred on wide screens, but it's a real input, not a label. */}
-      <div className="mx-auto min-w-0 flex-1 px-2">
+      <div className="studio-title mx-auto min-w-0 flex-1 px-2">
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
