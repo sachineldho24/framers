@@ -73,7 +73,7 @@ export default async function ConfirmationPage({
           </Link>
           <Link
             href="/"
-            className="flex-1 border-2 border-primary py-4 text-center font-bold uppercase transition-colors hover:bg-primary hover:text-on-primary"
+            className="flex-1 border-2 border-border-high-contrast py-4 text-center font-bold uppercase transition-colors hover:bg-primary hover:text-on-primary"
           >
             Design Another
           </Link>

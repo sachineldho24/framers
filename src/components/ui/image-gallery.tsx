@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { LATEST_CREATIONS } from "@/lib/storefront-content";
@@ -75,11 +76,14 @@ export default function ImageGallery() {
       <div className="mx-auto max-w-3xl px-margin-mobile text-center">
         <p className="label-caps mb-3 text-action-red">Made by Framers</p>
         <h2 id="latest-creations-title" className="text-[clamp(1.75rem,5vw,3.5rem)] uppercase leading-none tracking-tighter">
-          Our Latest Creations
+          Our Works
         </h2>
         <p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-on-surface-variant sm:text-base">
-          A visual collection of our recent work, each piece composed to turn personal art into a finished wall.
+          Custom artwork for the rides, people, and moments that mean something. A few favourites from our collection.
         </p>
+        <Link href="/works" className="label-caps mt-5 inline-flex min-h-11 items-center gap-4 border-b border-neon-accent py-2 text-neon-accent hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neon-accent">
+          View all works <span aria-hidden="true">↗</span>
+        </Link>
       </div>
 
       <div
@@ -119,14 +123,14 @@ export default function ImageGallery() {
               sizes="(max-width: 640px) 82vw, (max-width: 1024px) 46vw, 0px"
               className="object-contain"
             />
-            <span className="label-caps absolute bottom-0 left-0 bg-white px-3 py-2 text-[10px] text-primary">
+            <span className="label-caps absolute bottom-0 left-0 bg-surface px-3 py-2 text-[10px] text-on-background">
               {String(index + 1).padStart(2, "0")} / {LATEST_CREATIONS.length}
             </span>
           </button>
         ))}
       </div>
 
-      <div className="mx-auto mt-10 hidden h-[430px] w-full max-w-[1440px] gap-1 px-margin-mobile lg:flex">
+      <div className="group/works mx-auto mt-10 hidden h-[430px] w-full max-w-[1440px] gap-1 px-margin-mobile lg:flex">
         {LATEST_CREATIONS.map((item, index) => {
           const active = activeIndex === index;
 
@@ -142,8 +146,18 @@ export default function ImageGallery() {
               style={{ flexGrow: active ? 8 : 1 }}
               className="group relative min-w-0 basis-0 overflow-hidden bg-surface-container-low transition-[flex-grow] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none focus-visible:z-20 focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-action-red"
             >
-              <Image src={item.image} alt={item.alt} fill sizes={active ? "55vw" : "8vw"} className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02] motion-reduce:transition-none" />
-              <span className={`label-caps absolute bottom-0 left-0 bg-white px-3 py-2 text-[10px] text-primary transition-opacity duration-300 ${active ? "opacity-100" : "opacity-0"}`}>
+              <Image
+                src={item.image}
+                alt={item.alt}
+                fill
+                sizes={active ? "55vw" : "8vw"}
+                className={`transition-[filter] duration-300 ease-out motion-reduce:transition-none ${
+                  active
+                    ? "object-contain blur-none brightness-100"
+                    : "object-cover group-hover/works:blur-[4px] group-hover/works:brightness-[0.6] group-has-[:focus-visible]/works:blur-[4px] group-has-[:focus-visible]/works:brightness-[0.6]"
+                }`}
+              />
+              <span className={`label-caps absolute bottom-0 left-0 bg-surface px-3 py-2 text-[10px] text-on-background transition-opacity duration-300 ${active ? "opacity-100" : "opacity-0"}`}>
                 Creation {String(index + 1).padStart(2, "0")}
               </span>
             </button>

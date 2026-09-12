@@ -70,7 +70,7 @@ export function StudioRail({ panelId }: { panelId: string }) {
               "relative flex w-[68px] flex-col items-center gap-1 py-2 transition-colors",
               active
                 ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
-                : "text-[var(--studio-ink-muted)] hover:bg-black/[0.045] hover:text-[var(--studio-ink)]"
+                : "text-[var(--studio-ink-muted)] hover:bg-white/[0.045] hover:text-[var(--studio-ink)]"
             )}
           >
             <Icon name={entry.icon} className="text-[22px]" fill={active} />

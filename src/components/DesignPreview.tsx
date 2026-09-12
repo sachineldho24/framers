@@ -14,7 +14,7 @@ export function DesignPreview({
 }) {
   return (
     <div
-      className={`border-2 border-primary bg-surface-lowest ${className}`}
+      className={`border-2 border-border-high-contrast bg-surface-lowest ${className}`}
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={url} alt={alt} className="h-auto w-full" />

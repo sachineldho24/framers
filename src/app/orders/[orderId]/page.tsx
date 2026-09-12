@@ -55,7 +55,7 @@ export default async function OrderDetailPage({
       <main className="mx-auto w-full max-w-2xl flex-1 px-margin-mobile pb-32 pt-28">
         <Link
           href="/orders"
-          className="label-caps inline-flex items-center gap-1 text-[11px] text-on-surface-variant transition-colors hover:text-black"
+          className="label-caps inline-flex items-center gap-1 text-[11px] text-on-surface-variant transition-colors hover:text-on-background"
         >
           <Icon name="arrow_back" className="text-[16px]" />
           All orders

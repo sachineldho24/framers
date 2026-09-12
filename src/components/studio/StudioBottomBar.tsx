@@ -102,7 +102,7 @@ export function StudioBottomBar({
           type="button"
           onClick={() => zoomTo(1)}
           data-r="md"
-          className="min-w-[52px] px-1.5 py-1 text-[12px] font-medium tabular-nums text-[var(--studio-ink)] hover:bg-black/[0.055]"
+          className="min-w-[52px] px-1.5 py-1 text-[12px] font-medium tabular-nums text-[var(--studio-ink)] hover:bg-white/[0.055]"
         >
           {percent}%
         </button>

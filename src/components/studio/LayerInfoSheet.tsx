@@ -62,7 +62,7 @@ export function LayerInfoSheet({
         aria-modal="true"
         aria-labelledby="studio-info-title"
         data-r="lg"
-        className="studio-shadow w-full max-w-[380px] border border-[var(--studio-border)] bg-white p-5"
+        className="studio-shadow w-full max-w-[380px] border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between gap-3">
@@ -226,9 +226,9 @@ function QualityVerdict({ layer, dpi }: { layer: ImageLayer; dpi: number }) {
     <p
       className={cx(
         "mt-3 flex items-start gap-2 px-3 py-2.5 text-[12.5px] leading-relaxed",
-        verdict.tone === "good" && "bg-[#eef7ef] text-[#1f6b32]",
-        verdict.tone === "ok" && "bg-[#fdf5e6] text-[#8a5a12]",
-        verdict.tone === "poor" && "bg-[#fdeeed] text-[#a02a24]"
+        verdict.tone === "good" && "bg-[#102b1a] text-[#8edba5]",
+        verdict.tone === "ok" && "bg-[#30230f] text-[#f3c779]",
+        verdict.tone === "poor" && "bg-[#35100e] text-[#ffb4ab]"
       )}
       data-r="md"
     >

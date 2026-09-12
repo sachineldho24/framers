@@ -129,7 +129,7 @@ export default async function AdminOrdersPage({
                 <Link
                   href={`/admin/orders/${order.id}`}
                   className={`flex flex-col gap-3 border-2 border-border-high-contrast p-4 transition-colors hover:bg-surface-muted ${
-                    isStale(order) ? "bg-neon-accent" : "bg-surface-lowest"
+                    isStale(order) ? "bg-neon-accent/10" : "bg-surface-lowest"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
@@ -186,7 +186,7 @@ export default async function AdminOrdersPage({
                   <tr
                     key={order.id}
                     className={`border-b border-outline-variant last:border-b-0 ${
-                      isStale(order) ? "bg-neon-accent" : "bg-surface-lowest"
+                      isStale(order) ? "bg-neon-accent/10" : "bg-surface-lowest"
                     }`}
                   >
                     <td className="px-4 py-3 align-middle">

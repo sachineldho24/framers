@@ -19,7 +19,7 @@ export default async function AccountPage() {
         <h1 className="text-3xl">Account</h1>
         <p className="label-caps mt-2 text-on-surface-variant">{user.email}</p>
 
-        <section className="mt-8 border-2 border-black bg-white p-6">
+        <section className="mt-8 border-2 border-border-high-contrast bg-surface p-6">
           <h2 className="text-[22px] uppercase">Session</h2>
           <p className="mt-3 text-base text-on-surface-variant">
             Signed in as {user.email}.

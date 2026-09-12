@@ -80,7 +80,7 @@ export function CancelRefundControl({
                   type="button"
                   disabled={busy}
                   onClick={() => send({ status: "cancelled" })}
-                  className="label-caps brutalist-press bg-error px-5 py-3 text-[11px] text-white disabled:opacity-60"
+                  className="label-caps brutalist-press bg-error px-5 py-3 text-[11px] text-on-error disabled:opacity-60"
                 >
                   {busy ? "Cancelling…" : "Yes, cancel it"}
                 </button>
@@ -98,7 +98,7 @@ export function CancelRefundControl({
             <button
               type="button"
               onClick={() => setConfirming("cancel")}
-              className="label-caps flex w-full items-center justify-between gap-3 border-2 border-error px-5 py-3 text-[11px] text-error transition-colors hover:bg-error hover:text-white"
+              className="label-caps flex w-full items-center justify-between gap-3 border-2 border-error px-5 py-3 text-[11px] text-error transition-colors hover:bg-error hover:text-on-error"
             >
               Cancel this order
               <Icon name="cancel" className="text-[16px]" />
@@ -129,7 +129,7 @@ export function CancelRefundControl({
                   type="button"
                   disabled={busy}
                   onClick={() => send({ paymentStatus: "refunded" })}
-                  className="label-caps brutalist-press bg-error px-5 py-3 text-[11px] text-white disabled:opacity-60"
+                  className="label-caps brutalist-press bg-error px-5 py-3 text-[11px] text-on-error disabled:opacity-60"
                 >
                   {busy ? "Recording…" : "I've refunded it in Razorpay"}
                 </button>
@@ -147,7 +147,7 @@ export function CancelRefundControl({
             <button
               type="button"
               onClick={() => setConfirming("refund")}
-              className="label-caps flex w-full items-center justify-between gap-3 border-2 border-error px-5 py-3 text-[11px] text-error transition-colors hover:bg-error hover:text-white"
+              className="label-caps flex w-full items-center justify-between gap-3 border-2 border-error px-5 py-3 text-[11px] text-error transition-colors hover:bg-error hover:text-on-error"
             >
               Mark payment refunded
               <Icon name="currency_exchange" className="text-[16px]" />

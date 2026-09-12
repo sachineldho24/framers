@@ -7,6 +7,8 @@ import { getFinishById } from "@/lib/data/finishes";
 import { createPendingOrder } from "@/lib/data/orders";
 import { razorpay } from "@/lib/razorpay";
 import type { DesignSource } from "@/lib/supabase/types";
+import { shippingError } from "@/lib/shipping";
+import { verifyIndianPincode } from "@/lib/shipping-server";
 
 function err(code: string, message: string, status: number) {
   return NextResponse.json({ error: { code, message } }, { status });
@@ -24,6 +26,7 @@ interface Body {
   city?: string;
   state?: string;
   pincode?: string;
+  country?: string;
   // Designer-flow fields.
   frameStyleId?: string | null;
   finishId?: string | null;
@@ -57,6 +60,16 @@ export async function POST(request: Request) {
     body = (await request.json()) as Body;
   } catch {
     return err("bad_request", "Invalid request.", 400);
+  }
+
+  if (!body || typeof body !== "object") return err("bad_request", "Invalid request.", 400);
+  const shippingIssue = shippingError(body);
+  if (shippingIssue) return err("invalid_shipping", shippingIssue, 400);
+  try {
+    const pinIssue = await verifyIndianPincode(body.pincode!, body.state!);
+    if (pinIssue) return err("invalid_shipping", pinIssue, 400);
+  } catch {
+    return err("shipping_unavailable", "We couldn't verify your Indian PIN code. Please try again shortly.", 503);
   }
 
   // Required fields.
@@ -131,8 +144,8 @@ export async function POST(request: Request) {
       addressLine1: body.addressLine1!,
       addressLine2: body.addressLine2 ?? null,
       city: body.city!,
-      state: body.state!,
-      pincode: body.pincode!,
+      state: body.state!.trim(),
+      pincode: body.pincode!.trim(),
     });
 
     return NextResponse.json({

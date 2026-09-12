@@ -3,45 +3,45 @@
 /*
  * High-Octane Minimalist design system.
  * Source of truth: design/high_octane_minimalist/DESIGN.md
- * Brutalist: 0px radius everywhere, no shadows/gradients, bold black borders,
+ * Brutalist: 0px radius everywhere, no shadows/gradients, bold contrasting borders,
  * high-visibility action-red / neon-accent for CTAs.
  */
 
 @theme {
-  /* Surfaces — "Tuxedo" base */
-  --color-background: #f9f9f9;
-  --color-surface: #f9f9f9;
-  --color-surface-muted: #ebebeb;
-  --color-surface-container: #eeeeee;
-  --color-surface-lowest: #ffffff;
+  /* Black surfaces with subtle separation for panels and controls. */
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-surface-muted: #141414;
+  --color-surface-container: #1c1c1c;
+  --color-surface-lowest: #000000;
 
   /* Ink */
-  --color-foreground: #1b1b1b;
-  --color-on-background: #1b1b1b;
-  --color-on-surface: #1b1b1b;
-  --color-on-surface-variant: #4c4546;
+  --color-foreground: #f5f5f5;
+  --color-on-background: #f5f5f5;
+  --color-on-surface: #f5f5f5;
+  --color-on-surface-variant: #b8b8b8;
   --color-inverse-surface: #303030;
   --color-inverse-on-surface: #f1f1f1;
   --color-inverse-primary: #c6c6c6;
 
   /* Structure */
-  --color-primary: #000000;
+  --color-primary: #242424;
   --color-on-primary: #ffffff;
-  --color-on-primary-container: #848484;
-  --color-surface-container-low: #f3f3f3;
-  --color-outline: #7e7576;
-  --color-outline-variant: #cfc4c5;
-  --color-border-high-contrast: #000000;
+  --color-on-primary-container: #a3a3a3;
+  --color-surface-container-low: #0c0c0c;
+  --color-outline: #969696;
+  --color-outline-variant: #3d3d3d;
+  --color-border-high-contrast: #737373;
 
   /* High-visibility accents — the "redline" */
   --color-action-red: #ff0000;
   --color-neon-accent: #ccff00;
 
   /* Status */
-  --color-error: #ba1a1a;
-  --color-on-error: #ffffff;
-  --color-error-container: #ffdad6;
-  --color-on-error-container: #93000a;
+  --color-error: #ff8a80;
+  --color-on-error: #240706;
+  --color-error-container: #35100e;
+  --color-on-error-container: #ffb4ab;
 
   /* Typography — wired to next/font CSS variables in layout.tsx */
   --font-display: var(--font-montserrat), "Arial Black", sans-serif;
@@ -123,6 +123,7 @@
 }
 
 html {
+  color-scheme: dark;
   background: var(--color-background);
   color: var(--color-foreground);
 }
@@ -214,7 +215,7 @@ h3 {
  * (brutalist: no gradient); drop a photo at /walls/wall.jpg and add the
  * --photo modifier class to use a real room background. */
 .frame-wall {
-  background-color: #d9d6cf;
+  background-color: var(--color-surface-muted);
 }
 .frame-wall--photo {
   background-image: url(/walls/wall.jpg);
@@ -222,12 +223,12 @@ h3 {
   background-position: center;
 }
 
-/* Brutalist range slider — 2px black track, square action-red thumb */
+/* Brutalist range slider — visible track, square action-red thumb */
 .designer-range {
   -webkit-appearance: none;
   appearance: none;
   height: 2px;
-  background: #000000;
+  background: var(--color-outline);
   outline: none;
   cursor: pointer;
 }
@@ -237,14 +238,14 @@ h3 {
   width: 22px;
   height: 22px;
   background: var(--color-action-red);
-  border: 2px solid #000000;
+  border: 2px solid var(--color-border-high-contrast);
   border-radius: 0 !important;
 }
 .designer-range::-moz-range-thumb {
   width: 22px;
   height: 22px;
   background: var(--color-action-red);
-  border: 2px solid #000000;
+  border: 2px solid var(--color-border-high-contrast);
   border-radius: 0 !important;
 }
 
@@ -295,12 +296,13 @@ h3 {
  */
 .studio-root {
   --studio-accent: #7c5cff;
-  --studio-accent-soft: #f1edff;
-  --studio-chrome: #ffffff;
-  --studio-canvas-bg: #f2f3f5;
-  --studio-border: #e6e6ea;
-  --studio-ink: #16161a;
-  --studio-ink-muted: #6b6b75;
+  --studio-accent-soft: #241b42;
+  --studio-chrome: #000000;
+  --studio-surface: #141414;
+  --studio-canvas-bg: #111111;
+  --studio-border: #3d3d43;
+  --studio-ink: #f5f5f5;
+  --studio-ink-muted: #aaaab4;
   font-family: var(--font-body);
   color: var(--studio-ink);
 }
@@ -421,7 +423,7 @@ h3 {
     padding: 4px 8px;
     overflow-x: auto;
     border-top: 1px solid var(--studio-border);
-    background: white;
+    background: var(--studio-chrome);
     scrollbar-width: none;
   }
   .studio-mobile-actions > div { flex-shrink: 0; border: 0; box-shadow: none; padding: 0; }
@@ -472,12 +474,12 @@ h3 {
 .studio-range::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: 9999px !important;
-  background: #e6e6ea;
+  background: var(--studio-border);
 }
 .studio-range::-moz-range-track {
   height: 4px;
   border-radius: 9999px !important;
-  background: #e6e6ea;
+  background: var(--studio-border);
 }
 .studio-range::-webkit-slider-thumb {
   -webkit-appearance: none;

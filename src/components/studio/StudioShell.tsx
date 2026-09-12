@@ -611,14 +611,14 @@ function ShellInner({
               label="Keyboard shortcuts"
               tooltipSide="top"
               onClick={() => setShortcutsOpen(true)}
-              className="studio-canvas-extra studio-shadow-sm absolute bottom-4 right-4 z-20 bg-white"
+              className="studio-canvas-extra studio-shadow-sm absolute bottom-4 right-4 z-20 bg-[var(--studio-chrome)]"
             />
 
             {pending > 0 && (
               <p
                 role="status"
                 data-r="full"
-                className="studio-shadow-sm absolute left-1/2 top-3 z-20 flex -translate-x-1/2 items-center gap-1.5 bg-white px-3 py-1.5 text-[12px] text-[var(--studio-ink-muted)]"
+                className="studio-shadow-sm absolute left-1/2 top-3 z-20 flex -translate-x-1/2 items-center gap-1.5 bg-[var(--studio-chrome)] px-3 py-1.5 text-[12px] text-[var(--studio-ink-muted)]"
               >
                 <Icon
                   name="progress_activity"
@@ -636,7 +636,7 @@ function ShellInner({
               <div
                 role="status"
                 data-r="full"
-                className="studio-shadow-sm absolute left-1/2 top-3 z-20 flex -translate-x-1/2 items-center gap-2 bg-[#fdf5e6] px-3 py-1.5 text-[12px] text-[#8a5a12]"
+                className="studio-shadow-sm absolute left-1/2 top-3 z-20 flex -translate-x-1/2 items-center gap-2 bg-[#30230f] px-3 py-1.5 text-[12px] text-[#f3c779]"
               >
                 <Icon name="warning" className="text-[15px]" />
                 <span>Too close to the edge — the frame may cover this</span>
@@ -675,7 +675,7 @@ function ShellInner({
               <div
                 role="alert"
                 data-r="md"
-                className="studio-shadow absolute left-1/2 top-3 z-30 flex max-w-[min(92%,460px)] -translate-x-1/2 items-start gap-2 border border-[#f2b8b5] bg-[#fdeceb] px-3 py-2 text-[12.5px] text-[#8c1d18]"
+                className="studio-shadow absolute left-1/2 top-3 z-30 flex max-w-[min(92%,460px)] -translate-x-1/2 items-start gap-2 border border-[#f2b8b5] bg-[#35100e] px-3 py-2 text-[12.5px] text-[#ffb4ab]"
               >
                 <Icon name="error" className="mt-px shrink-0 text-[16px]" />
                 <span className="flex-1">{error}</span>
@@ -763,7 +763,7 @@ function BgRemoverNotice({
       role="dialog"
       aria-label="Background remover"
       data-r="lg"
-      className="studio-shadow fixed bottom-20 left-4 z-[65] w-[304px] border border-[var(--studio-border)] bg-white p-4"
+      className="studio-shadow fixed bottom-20 left-4 z-[65] w-[304px] border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-4"
     >
       <div className="mb-1 flex items-start justify-between gap-2">
         <h2 className="text-[14px] font-semibold text-[var(--studio-ink)]">
@@ -801,7 +801,7 @@ function ShortcutsSheet({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-labelledby="studio-shortcuts-title"
         data-r="lg"
-        className="studio-shadow w-full max-w-[440px] border border-[var(--studio-border)] bg-white p-5"
+        className="studio-shadow w-full max-w-[440px] border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-center justify-between">

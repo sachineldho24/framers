@@ -91,7 +91,7 @@ export function UploadArtwork({
           <div className="flex h-16 w-16 items-center justify-center bg-black">
             <Icon name="upload_file" className="text-4xl text-white" />
           </div>
-          <span className="label-caps border-2 border-black bg-action-red px-3 py-1 text-white">
+          <span className="label-caps border-2 border-border-high-contrast bg-action-red px-3 py-1 text-white">
             Pro Upload
           </span>
         </div>
@@ -125,7 +125,7 @@ export function UploadArtwork({
       <button
         onClick={() => inputRef.current?.click()}
         disabled={busy}
-        className="flex w-full items-center justify-center gap-3 border-2 border-black bg-white py-5 font-bold uppercase text-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-3 border-2 border-border-high-contrast bg-surface py-5 font-bold uppercase text-on-background shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition-all hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-0.5 disabled:opacity-60"
       >
         {busy ? "Uploading…" : "Upload File"}
         <Icon name="cloud_upload" />

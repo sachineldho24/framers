@@ -105,7 +105,7 @@ export function ContextMenu({
       role="menu"
       aria-label="Canvas actions"
       data-r="md"
-      className="studio-shadow fixed z-[60] border border-[var(--studio-border)] bg-white p-1"
+      className="studio-shadow fixed z-[60] border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-1"
       style={{ left, top, width: MENU_WIDTH }}
     >
       {text && !text.locked && (
@@ -177,7 +177,7 @@ export function ContextMenu({
         data-r="sm"
         className={cx(
           "flex w-full items-center gap-2.5 px-2.5 py-[7px] text-left text-[13px] text-[var(--studio-ink)] transition-colors",
-          "hover:bg-black/[0.055] disabled:pointer-events-none disabled:opacity-35"
+          "hover:bg-white/[0.055] disabled:pointer-events-none disabled:opacity-35"
         )}
       >
         <Icon name="align_horizontal_center" className="text-[18px] opacity-80" />
@@ -202,7 +202,7 @@ export function ContextMenu({
                 )
               }
               data-r="sm"
-              className="flex flex-col items-center gap-0.5 py-1.5 text-[10.5px] text-[var(--studio-ink-muted)] transition-colors hover:bg-black/[0.055]"
+              className="flex flex-col items-center gap-0.5 py-1.5 text-[10.5px] text-[var(--studio-ink-muted)] transition-colors hover:bg-white/[0.055]"
             >
               <Icon name={a.icon} className="text-[18px]" />
               {a.label}

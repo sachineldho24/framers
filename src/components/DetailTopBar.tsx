@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "./Icon";
+import { BrandLogo } from "./BrandLogo";
 
 /**
  * Detail-page top bar: back button (left), wordmark (centre), cart (right).
@@ -21,9 +22,10 @@ export function DetailTopBar() {
       </button>
       <Link
         href="/"
-        className="font-display text-[28px] uppercase tracking-tighter text-on-background"
+        aria-label="Framers Lab home"
+        className="inline-flex min-h-11 items-center focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neon-accent"
       >
-        FRAMERS LAB
+        <BrandLogo preload className="w-[176px] sm:w-[216px]" />
       </Link>
       <Link
         href="/orders"

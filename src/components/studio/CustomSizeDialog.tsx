@@ -188,7 +188,7 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-label="Custom page size"
         data-r="lg"
-        className="studio-shadow w-full max-w-[380px] bg-white p-4 text-[var(--studio-ink)]"
+        className="studio-shadow w-full max-w-[380px] bg-[var(--studio-chrome)] p-4 text-[var(--studio-ink)]"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-[14px] font-semibold">Custom size</h2>
@@ -197,7 +197,7 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
             onClick={onClose}
             aria-label="Close"
             data-r="full"
-            className="grid h-7 w-7 place-items-center hover:bg-black/[0.055]"
+            className="grid h-7 w-7 place-items-center hover:bg-white/[0.055]"
           >
             <Icon name="close" className="text-[18px]" />
           </button>
@@ -222,7 +222,7 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
                 "flex-1 py-1 text-[12px] font-medium transition-colors",
                 u === unit
                   ? "bg-[#16161a] text-white"
-                  : "text-[var(--studio-ink-muted)] hover:bg-black/[0.04]"
+                  : "text-[var(--studio-ink-muted)] hover:bg-white/[0.04]"
               )}
             >
               {u}
@@ -242,7 +242,7 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
               }}
               inputMode="decimal"
               data-r="md"
-              className="mt-1 block w-full border border-[var(--studio-border)] bg-white px-2 py-1.5 text-[13px] font-semibold text-[var(--studio-ink)] focus:border-[var(--studio-accent)] focus:outline-none"
+              className="mt-1 block w-full border border-[var(--studio-border)] bg-[var(--studio-chrome)] px-2 py-1.5 text-[13px] font-semibold text-[var(--studio-ink)] focus:border-[var(--studio-accent)] focus:outline-none"
             />
           </label>
 
@@ -259,7 +259,7 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
               "mb-[3px] grid h-8 w-8 shrink-0 place-items-center border transition-colors",
               locked
                 ? "border-[var(--studio-accent)] bg-[var(--studio-accent)] text-white"
-                : "border-[var(--studio-border)] text-[var(--studio-ink-muted)] hover:bg-black/[0.04]"
+                : "border-[var(--studio-border)] text-[var(--studio-ink-muted)] hover:bg-white/[0.04]"
             )}
           >
             <Icon
@@ -278,7 +278,7 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
               }}
               inputMode="decimal"
               data-r="md"
-              className="mt-1 block w-full border border-[var(--studio-border)] bg-white px-2 py-1.5 text-[13px] font-semibold text-[var(--studio-ink)] focus:border-[var(--studio-accent)] focus:outline-none"
+              className="mt-1 block w-full border border-[var(--studio-border)] bg-[var(--studio-chrome)] px-2 py-1.5 text-[13px] font-semibold text-[var(--studio-ink)] focus:border-[var(--studio-accent)] focus:outline-none"
             />
           </label>
         </div>
@@ -293,9 +293,9 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
               <span
                 className={cx(
                   "font-semibold",
-                  dpiTone === "bad" && "text-[#c8322b]",
-                  dpiTone === "warn" && "text-[#8a5a12]",
-                  dpiTone === "good" && "text-[#1f7a45]"
+                  dpiTone === "bad" && "text-[#ff8a80]",
+                  dpiTone === "warn" && "text-[#f3c779]",
+                  dpiTone === "good" && "text-[#8edba5]"
                 )}
               >
                 {dpi} DPI
@@ -303,7 +303,7 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
               {result.size.capped && " — large pages print below 300 DPI"}
             </>
           ) : touched && (widthText.trim() || heightText.trim()) ? (
-            <span className="text-[#c8322b]">
+            <span className="text-[#ff8a80]">
               {result?.ok === false
                 ? result.error
                 : "Enter a width and a height."}
@@ -335,7 +335,7 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
                   type="button"
                   onClick={() => applyPreset(preset)}
                   data-r="md"
-                  className="border border-[var(--studio-border)] px-2 py-1 text-[12px] text-[var(--studio-ink)] hover:bg-black/[0.04]"
+                  className="border border-[var(--studio-border)] px-2 py-1 text-[12px] text-[var(--studio-ink)] hover:bg-white/[0.04]"
                 >
                   {preset.label}
                 </button>

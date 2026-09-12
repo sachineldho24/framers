@@ -174,7 +174,7 @@ export function ReviewStep({
             two now, and the frame scrolling out of sight while you read the
             price is the one thing you are deciding about. */}
         <section className="flex justify-center lg:sticky lg:top-24 lg:self-start">
-          <div className="w-full max-w-[400px] border-2 border-black bg-white p-3">
+          <div className="w-full max-w-[400px] border-2 border-border-high-contrast bg-surface p-3">
             <FramePreview
               ref={previewRef}
               widthMm={frame.width_mm}
@@ -188,9 +188,9 @@ export function ReviewStep({
           </div>
         </section>
 
-        {/* Spec + price, on a white surface so the page's grey reads as a
+        {/* Spec + price, on a black surface so the surrounding panel reads as a
             gutter rather than as unused space. */}
-        <section className="border-2 border-black bg-white p-5 md:p-8">
+        <section className="border-2 border-border-high-contrast bg-surface p-5 md:p-8">
           <h1 className="text-[36px] leading-[0.95] md:text-[48px]">
             Review Your Frame
           </h1>
@@ -198,7 +198,7 @@ export function ReviewStep({
             This is exactly what we print, frame and ship.
           </p>
 
-          <table className="mt-7 w-full border-2 border-black text-left">
+          <table className="mt-7 w-full border-2 border-border-high-contrast text-left">
             <tbody>
               <Row k="Size" v={frame.name} />
               <Row k="Final framed size" v={`${finalWIn}″ × ${finalHIn}″`} />
@@ -222,7 +222,7 @@ export function ReviewStep({
               className={`mt-4 flex items-start gap-3 border-2 px-4 py-3 ${
                 photo.verdict.tone === "poor"
                   ? "border-error text-error"
-                  : "border-black"
+                  : "border-border-high-contrast"
               }`}
             >
               <Icon
@@ -243,7 +243,7 @@ export function ReviewStep({
                 </p>
               ) : (
                 <p className="text-[14px] text-on-surface-variant">
-                  <strong className="text-black">
+                  <strong className="text-on-background">
                     {Math.round(photo.dpi)} DPI
                   </strong>{" "}
                   at this size — {photo.verdict.label.toLowerCase()}.
@@ -255,7 +255,7 @@ export function ReviewStep({
           {/* Itemised price. Shipping is stated as a line of its own because a
               total with nothing after it invites the "and then delivery?"
               question at exactly the wrong moment. */}
-          <div className="mt-8 space-y-4 border-t-2 border-black pt-6">
+          <div className="mt-8 space-y-4 border-t-2 border-border-high-contrast pt-6">
             <PriceRow k={`Frame — ${frame.name}`} v={frame.price_paise} />
             {style && style.price_modifier_paise > 0 && (
               <PriceRow
@@ -278,7 +278,7 @@ export function ReviewStep({
               </span>
             </div>
             <div className="flex items-end justify-between border-t border-dashed border-outline-variant pt-6">
-              <span className="label-caps text-[13px] text-black">Total</span>
+              <span className="label-caps text-[13px] text-on-background">Total</span>
               <span className="font-display text-[34px] font-black leading-none">
                 {formatPaise(total)}
               </span>
@@ -303,7 +303,7 @@ export function ReviewStep({
 
           <Link
             href={`/design/${sessionId}/edit`}
-            className="mt-4 flex w-full items-center justify-center gap-2 border-2 border-black bg-white py-4 text-[14px] font-bold uppercase tracking-widest text-black transition-colors hover:bg-black hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
+            className="mt-4 flex w-full items-center justify-center gap-2 border-2 border-border-high-contrast bg-surface py-4 text-[14px] font-bold uppercase tracking-widest text-on-background transition-colors hover:bg-surface-container hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
           >
             <Icon name="tune" className="text-[20px]" />
             {edited ? "Keep editing" : "Edit your artwork"}
@@ -324,7 +324,7 @@ export function ReviewStep({
                 <>
                   Made to order — replaced free if it arrives damaged or
                   defective.{" "}
-                  <Link href="/terms" className="underline hover:text-black">
+                  <Link href="/terms" className="underline hover:text-on-background">
                     Terms
                   </Link>
                 </>
@@ -341,7 +341,7 @@ export function ReviewStep({
       {/* Mobile action bar. The error is repeated here rather than only in the
           column above: on a phone that copy is off-screen, and a silent failure
           on the last step before payment is the worst place for one. */}
-      <div className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t-2 border-black bg-white px-margin-mobile py-3 lg:hidden">
+      <div className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t-2 border-border-high-contrast bg-surface px-margin-mobile py-3 lg:hidden">
         {error && (
           <p className="label-caps mb-3 border-2 border-error px-3 py-2 text-error">
             {error}
@@ -379,7 +379,7 @@ function Row({ k, v }: { k: string; v: string }) {
       >
         {k}
       </th>
-      <td className="px-4 py-4 text-[15px] font-bold text-black">{v}</td>
+      <td className="px-4 py-4 text-[15px] font-bold text-on-background">{v}</td>
     </tr>
   );
 }
@@ -396,7 +396,7 @@ function PriceRow({ k, v }: { k: string; v: number }) {
 function Assurance({ icon, text }: { icon: string; text: ReactNode }) {
   return (
     <li className="flex items-start gap-3 text-[14px] text-on-surface-variant">
-      <Icon name={icon} className="mt-0.5 text-[18px] text-black" />
+      <Icon name={icon} className="mt-0.5 text-[18px] text-on-background" />
       <span>{text}</span>
     </li>
   );

@@ -39,7 +39,7 @@ function Pill({ children }: { children: React.ReactNode }) {
   return (
     <div
       data-r="full"
-      className="studio-shadow pointer-events-auto flex items-center gap-0.5 border border-[var(--studio-border)] bg-white px-1.5 py-1"
+      className="studio-shadow pointer-events-auto flex items-center gap-0.5 border border-[var(--studio-border)] bg-[var(--studio-chrome)] px-1.5 py-1"
     >
       {children}
     </div>
@@ -78,7 +78,7 @@ function TextToolbar({ layer }: { layer: TextLayer }) {
         type="button"
         onClick={() => setEditingId(layer.id)}
         data-r="full"
-        className="flex h-7 items-center gap-1 px-2 text-[12px] font-medium text-[var(--studio-ink)] transition-colors hover:bg-black/[0.055]"
+        className="flex h-7 items-center gap-1 px-2 text-[12px] font-medium text-[var(--studio-ink)] transition-colors hover:bg-white/[0.055]"
         title="Type on the page"
       >
         <Icon name="edit" className="text-[15px]" />
@@ -91,7 +91,7 @@ function TextToolbar({ layer }: { layer: TextLayer }) {
         type="button"
         onClick={() => setRail("text")}
         data-r="full"
-        className="flex h-7 items-center gap-1 px-2 text-[12px] font-medium text-[var(--studio-ink)] transition-colors hover:bg-black/[0.055]"
+        className="flex h-7 items-center gap-1 px-2 text-[12px] font-medium text-[var(--studio-ink)] transition-colors hover:bg-white/[0.055]"
         title="Font, size, colour and spacing"
       >
         <Icon name="text_fields" className="text-[15px]" />
@@ -149,7 +149,7 @@ function ImageToolbar({
         type="button"
         onClick={() => setTool("adjust")}
         data-r="full"
-        className="flex h-7 items-center gap-1 px-2 text-[12px] font-medium text-[var(--studio-ink)] transition-colors hover:bg-black/[0.055]"
+        className="flex h-7 items-center gap-1 px-2 text-[12px] font-medium text-[var(--studio-ink)] transition-colors hover:bg-white/[0.055]"
         title="Adjust colour and exposure"
       >
         <Icon name="edit" className="text-[15px]" />
@@ -164,7 +164,7 @@ function ImageToolbar({
         data-r="full"
         aria-label="BG Remover — not available yet"
         title="BG Remover"
-        className="relative flex h-7 items-center gap-1 px-2 text-[12px] font-medium text-[var(--studio-ink-muted)] transition-colors hover:bg-black/[0.055] hover:text-[var(--studio-ink)]"
+        className="relative flex h-7 items-center gap-1 px-2 text-[12px] font-medium text-[var(--studio-ink-muted)] transition-colors hover:bg-white/[0.055] hover:text-[var(--studio-ink)]"
       >
         <Icon name="auto_fix_high" className="text-[15px]" />
         BG Remover
@@ -237,7 +237,7 @@ function PillButton({
         "flex h-7 w-7 items-center justify-center transition-colors",
         active
           ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
-          : "text-[var(--studio-ink-muted)] hover:bg-black/[0.055] hover:text-[var(--studio-ink)]"
+          : "text-[var(--studio-ink-muted)] hover:bg-white/[0.055] hover:text-[var(--studio-ink)]"
       )}
     >
       <Icon name={icon} className="text-[16px]" />

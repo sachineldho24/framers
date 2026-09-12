@@ -110,7 +110,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
           size === "sm" ? "h-7 w-7" : "h-9 w-9",
           active
             ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
-            : "text-[var(--studio-ink)] hover:bg-black/[0.055]",
+            : "text-[var(--studio-ink)] hover:bg-white/[0.055]",
           "disabled:pointer-events-none disabled:opacity-35",
           className
         )}
@@ -164,9 +164,9 @@ export const StudioButton = forwardRef<HTMLButtonElement, StudioButtonProps>(
           variant === "solid" &&
             "bg-[#16161a] text-white hover:bg-[#2a2a33] disabled:hover:bg-[#16161a]",
           variant === "outline" &&
-            "border border-[var(--studio-border)] bg-white text-[var(--studio-ink)] hover:bg-black/[0.03]",
+            "border border-[var(--studio-border)] bg-[var(--studio-chrome)] text-[var(--studio-ink)] hover:bg-white/[0.03]",
           variant === "ghost" &&
-            "text-[var(--studio-ink)] hover:bg-black/[0.055]",
+            "text-[var(--studio-ink)] hover:bg-white/[0.055]",
           "disabled:pointer-events-none disabled:opacity-40",
           className
         )}
@@ -251,7 +251,7 @@ export function Menu({
           role="menu"
           data-r="md"
           className={cx(
-            "studio-shadow absolute top-full z-50 mt-1 min-w-[212px] border border-[var(--studio-border)] bg-white p-1",
+            "studio-shadow absolute top-full z-50 mt-1 min-w-[212px] border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-1",
             align === "end" ? "right-0" : "left-0"
           )}
         >
@@ -288,8 +288,8 @@ export function MenuItem({
       data-r="sm"
       className={cx(
         "flex w-full items-center gap-2.5 px-2.5 py-[7px] text-left text-[13px] transition-colors",
-        danger ? "text-[#c8322b]" : "text-[var(--studio-ink)]",
-        "hover:bg-black/[0.055] disabled:pointer-events-none disabled:opacity-35"
+        danger ? "text-[#ff8a80]" : "text-[var(--studio-ink)]",
+        "hover:bg-white/[0.055] disabled:pointer-events-none disabled:opacity-35"
       )}
     >
       {icon ? (

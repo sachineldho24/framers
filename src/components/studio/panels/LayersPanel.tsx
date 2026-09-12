@@ -45,7 +45,7 @@ export function LayersPanel() {
                   "group flex items-center gap-1 border px-1.5 py-1 transition-colors",
                   selected
                     ? "border-[var(--studio-accent)] bg-[var(--studio-accent-soft)]"
-                    : "border-[var(--studio-border)] bg-white hover:border-black/15"
+                    : "border-[var(--studio-border)] bg-[var(--studio-chrome)] hover:border-white/30"
                 )}
                 data-r="sm"
               >

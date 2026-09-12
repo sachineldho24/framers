@@ -75,7 +75,7 @@ export function BorderPanel() {
                 "h-8 border px-3 text-[12px] font-medium transition-colors",
                 Math.abs(width - preset.width) < 0.0005
                   ? "border-[var(--studio-accent)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
-                  : "border-[var(--studio-border)] bg-white text-[var(--studio-ink)] hover:bg-black/[0.03]"
+                  : "border-[var(--studio-border)] bg-[var(--studio-chrome)] text-[var(--studio-ink)] hover:bg-white/[0.03]"
               )}
             >
               {preset.label}
@@ -105,7 +105,7 @@ export function BorderPanel() {
             className={cx(
               "mt-2 flex items-start gap-2 px-1 text-[11.5px] leading-relaxed",
               visibleMm < 2
-                ? "text-[#8a5a12]"
+                ? "text-[#f3c779]"
                 : "text-[var(--studio-ink-muted)]"
             )}
           >

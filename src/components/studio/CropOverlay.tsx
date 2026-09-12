@@ -215,7 +215,7 @@ export function CropOverlay({
           is turned. */}
       {!compact && <div
         data-r="md"
-        className="studio-shadow pointer-events-auto absolute flex w-[264px] flex-col gap-1 border border-[var(--studio-border)] bg-white p-1"
+        className="studio-shadow pointer-events-auto absolute flex w-[264px] flex-col gap-1 border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-1"
         style={{
           left: left + w / 2,
           top: top + h + 20,
@@ -256,7 +256,7 @@ export function CropControls({ layer }: { layer: ImageLayer }) {
                 className={
                   on
                     ? "border border-[var(--studio-accent)] bg-[var(--studio-accent-soft)] px-2 py-1 text-[11.5px] font-semibold text-[var(--studio-accent)]"
-                    : "border border-[var(--studio-border)] px-2 py-1 text-[11.5px] font-medium text-[var(--studio-ink)] transition-colors hover:bg-black/[0.04] motion-reduce:transition-none"
+                    : "border border-[var(--studio-border)] px-2 py-1 text-[11.5px] font-medium text-[var(--studio-ink)] transition-colors hover:bg-white/[0.04] motion-reduce:transition-none"
                 }
               >
                 {preset.label}

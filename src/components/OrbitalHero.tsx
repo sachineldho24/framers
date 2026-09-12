@@ -228,7 +228,7 @@ function OrbitalCard({
         onClick={(e) => { if (isDragging) { e.preventDefault(); e.stopPropagation(); return; } onCenter(index); }}
         whileHover={{ scale: 1.05, z: 50, y: -15 }}
         transition={{ type: 'spring', stiffness: 300, damping: 24, mass: 1 }}
-        className={`relative overflow-hidden transition-all duration-500 bg-white orbital-hero-card ${
+        className={`relative overflow-hidden transition-all duration-500 bg-surface orbital-hero-card ${
           localHover
             ? 'shadow-[0_30px_60px_rgba(0,0,0,0.25)] ring-1 ring-black/10'
             : isCentered
@@ -272,8 +272,8 @@ function OrbitalCard({
 
         {/* Spotlight badge */}
         {isCentered && (
-          <div className="absolute top-2.5 right-2.5 z-40 bg-white/90 border border-black/10 text-zinc-700 text-[6.5px] font-mono tracking-widest px-1.5 py-0.5 uppercase flex items-center gap-1 orbital-hero-badge">
-            <span className="w-1 h-1 bg-black animate-pulse orbital-hero-dot" />
+          <div className="absolute top-2.5 right-2.5 z-40 bg-surface/90 border border-outline-variant text-on-surface-variant text-[6.5px] font-mono tracking-widest px-1.5 py-0.5 uppercase flex items-center gap-1 orbital-hero-badge">
+            <span className="w-1 h-1 bg-neon-accent animate-pulse orbital-hero-dot" />
             Spotlight
           </div>
         )}
@@ -283,15 +283,15 @@ function OrbitalCard({
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: localHover ? 1 : 0, y: localHover ? 0 : 15 }}
           transition={{ duration: 0.28, ease: 'easeOut' }}
-          className="absolute inset-x-2 bottom-2 z-30 orbital-glass-panel bg-white/90 backdrop-blur-md px-3 py-2 border border-black/10 shadow-lg flex items-center justify-between pointer-events-none"
+          className="absolute inset-x-2 bottom-2 z-30 orbital-glass-panel bg-surface/90 backdrop-blur-md px-3 py-2 border border-outline-variant shadow-lg flex items-center justify-between pointer-events-none"
         >
           <div className="text-left">
-            <span className="text-[7px] font-mono text-black font-bold uppercase tracking-widest leading-none block">{poster.tag}</span>
-            <span className="text-[10px] font-bold text-zinc-900 mt-0.5 leading-none block" style={{ fontFamily: 'var(--font-display), sans-serif' }}>{poster.title}</span>
+            <span className="text-[7px] font-mono text-on-background font-bold uppercase tracking-widest leading-none block">{poster.tag}</span>
+            <span className="text-[10px] font-bold text-on-background mt-0.5 leading-none block" style={{ fontFamily: 'var(--font-display), sans-serif' }}>{poster.title}</span>
           </div>
           <div className="text-right">
-            <span className="text-[10px] font-mono font-bold text-zinc-700">Custom</span>
-            <span className="text-[6.5px] text-zinc-500 block leading-none">Framed Print</span>
+            <span className="text-[10px] font-mono font-bold text-on-surface-variant">Custom</span>
+            <span className="text-[6.5px] text-on-surface-variant block leading-none">Framed Print</span>
           </div>
         </motion.div>
       </motion.div>
@@ -537,7 +537,7 @@ export function OrbitalHero() {
   }, [rotation, isAnimatingToCenter, handleCenterPoster]);
 
   return (
-    <div className="orbital-hero relative w-full bg-[#f9f9f9] text-[#1b1b1b] min-h-[860px] md:min-h-[960px] overflow-hidden flex flex-col items-center py-16">
+    <div className="orbital-hero relative w-full bg-background text-on-background min-h-[860px] md:min-h-[960px] overflow-hidden flex flex-col items-center py-16">
 
       {/* Backing spotlight */}
       <div
@@ -546,8 +546,8 @@ export function OrbitalHero() {
       />
 
       {/* Flanking columns */}
-      <div className="absolute left-[6%] inset-y-0 w-px bg-gradient-to-b from-transparent via-black/8 to-transparent pointer-events-none hidden md:block z-0" />
-      <div className="absolute right-[6%] inset-y-0 w-px bg-gradient-to-b from-transparent via-black/8 to-transparent pointer-events-none hidden md:block z-0" />
+      <div className="absolute left-[6%] inset-y-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent pointer-events-none hidden md:block z-0" />
+      <div className="absolute right-[6%] inset-y-0 w-px bg-gradient-to-b from-transparent via-white/10 to-transparent pointer-events-none hidden md:block z-0" />
 
       {/* Dust particles */}
       <DustParticles />
@@ -558,21 +558,21 @@ export function OrbitalHero() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 border border-black/10 bg-white/70 backdrop-blur-md mb-6 orbital-hero-pill"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 border border-outline-variant bg-surface/70 backdrop-blur-md mb-6 orbital-hero-pill"
         >
           <Sparkles className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
-          <span className="text-[9px] font-mono font-black uppercase tracking-widest text-zinc-600">Premium Gallery Exhibition</span>
+          <span className="text-[9px] font-mono font-black uppercase tracking-widest text-on-surface-variant">Premium Gallery Exhibition</span>
         </motion.div>
 
         <motion.h2
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
-          className="text-4xl sm:text-6xl md:text-[5rem] font-bold tracking-tight text-[#1b1b1b] leading-[1.05] max-w-3xl"
+          className="text-4xl sm:text-6xl md:text-[5rem] font-bold tracking-tight text-on-background leading-[1.05] max-w-3xl"
           style={{ fontFamily: 'var(--font-display), Georgia, serif' }}
         >
           Elegance, Raised to<br />
-          <span className="italic font-normal text-transparent bg-clip-text bg-gradient-to-r from-zinc-500 via-zinc-900 to-zinc-500">
+          <span className="italic font-normal text-transparent bg-clip-text bg-gradient-to-r from-zinc-400 via-zinc-100 to-zinc-400">
             Gallery Standard
           </span>
         </motion.h2>
@@ -581,7 +581,7 @@ export function OrbitalHero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.5, delay: 0.3 }}
-          className="mt-6 text-xs sm:text-sm text-zinc-500 max-w-xl tracking-wide leading-relaxed"
+          className="mt-6 text-xs sm:text-sm text-on-surface-variant max-w-xl tracking-wide leading-relaxed"
           style={{ fontFamily: 'var(--font-body), system-ui, sans-serif' }}
         >
           An interactive, three-dimensional physical showcase. Drag, swipe, or scroll to explore masterwork poster prints in cinematic 3D framing.
@@ -631,7 +631,7 @@ export function OrbitalHero() {
 
       {/* Interaction hint */}
       <div className="relative z-30 flex items-center justify-center gap-2 mt-4 mb-8 select-none">
-        <div className="flex items-center gap-2 bg-white/70 backdrop-blur-md border border-black/10 px-4 py-1.5 text-[9px] font-mono text-zinc-500 tracking-widest uppercase shadow-sm select-none orbital-hero-pill">
+        <div className="flex items-center gap-2 bg-surface/70 backdrop-blur-md border border-outline-variant px-4 py-1.5 text-[9px] font-mono text-on-surface-variant tracking-widest uppercase shadow-sm select-none orbital-hero-pill">
           <span className="w-1.5 h-1.5 bg-emerald-500 animate-pulse orbital-hero-dot" />
           <span>Drag, Swipe, or Scroll to Spin</span>
         </div>
@@ -646,7 +646,7 @@ export function OrbitalHero() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 140, damping: 20 }}
-            className="w-full orbital-glass-panel bg-white/80 border border-black/8 p-6 sm:p-8 flex flex-col md:flex-row justify-between items-start gap-6 shadow-xl relative overflow-hidden"
+            className="w-full orbital-glass-panel bg-surface/80 border border-outline-variant p-6 sm:p-8 flex flex-col md:flex-row justify-between items-start gap-6 shadow-xl relative overflow-hidden"
           >
             {/* Decorative spotlight */}
             <div
@@ -656,28 +656,28 @@ export function OrbitalHero() {
 
             <div className="flex-1 text-left">
               <div className="flex items-center gap-2">
-                <span className="text-[9px] font-mono font-bold tracking-widest text-black uppercase bg-black/8 px-2 py-0.5 leading-none block orbital-hero-badge">
+                <span className="text-[9px] font-mono font-bold tracking-widest text-on-background uppercase bg-surface-container px-2 py-0.5 leading-none block orbital-hero-badge">
                   {centerPoster.tag}
                 </span>
               </div>
               <h3
-                className="text-xl sm:text-2xl font-bold text-[#1b1b1b] mt-3.5 tracking-tight leading-none"
+                className="text-xl sm:text-2xl font-bold text-on-background mt-3.5 tracking-tight leading-none"
                 style={{ fontFamily: 'var(--font-display), Georgia, serif' }}
               >
                 {centerPoster.title}
               </h3>
-              <p className="text-xs sm:text-sm italic text-zinc-500 mt-1" style={{ fontFamily: 'var(--font-display), Georgia, serif' }}>
+              <p className="text-xs sm:text-sm italic text-on-surface-variant mt-1" style={{ fontFamily: 'var(--font-display), Georgia, serif' }}>
                 {centerPoster.subTitle}
               </p>
-              <p className="text-xs text-zinc-500 mt-4 leading-relaxed max-w-md" style={{ fontFamily: 'var(--font-body), system-ui, sans-serif' }}>
+              <p className="text-xs text-on-surface-variant mt-4 leading-relaxed max-w-md" style={{ fontFamily: 'var(--font-body), system-ui, sans-serif' }}>
                 A custom curated design print rendered using premium matte photography. Crafted securely in museum glass with professional acid-free backing mounts.
               </p>
             </div>
 
-            <div className="flex flex-col items-start md:items-end justify-between h-full min-h-[90px] w-full md:w-auto border-t md:border-t-0 md:border-l border-black/8 pt-4 md:pt-0 md:pl-6 self-stretch">
+            <div className="flex flex-col items-start md:items-end justify-between h-full min-h-[90px] w-full md:w-auto border-t md:border-t-0 md:border-l border-outline-variant pt-4 md:pt-0 md:pl-6 self-stretch">
               <div className="text-left md:text-right">
-                <span className="text-[8px] font-mono text-zinc-500 uppercase tracking-widest leading-none block">Custom Framing</span>
-                <span className="text-2xl font-mono font-black text-[#1b1b1b] mt-1.5 block">From ₹499</span>
+                <span className="text-[8px] font-mono text-on-surface-variant uppercase tracking-widest leading-none block">Custom Framing</span>
+                <span className="text-2xl font-mono font-black text-on-background mt-1.5 block">From ₹300</span>
                 <span className="text-[8px] text-emerald-600 font-mono mt-1 block">In stock / Ships across India</span>
               </div>
 
@@ -701,7 +701,7 @@ export function OrbitalHero() {
       {/* Footer watermark */}
       <div className="mt-8 flex justify-between items-center w-full max-w-[1400px] px-8 text-zinc-400 text-[8.5px] font-mono font-semibold relative z-20 select-none uppercase">
         <div className="flex items-center gap-3">
-          <span className="w-1.5 h-1.5 bg-black animate-pulse orbital-hero-dot" />
+          <span className="w-1.5 h-1.5 bg-neon-accent animate-pulse orbital-hero-dot" />
           <span>Interactive 3D Stage // v1.0</span>
         </div>
         <div className="flex items-center gap-6">

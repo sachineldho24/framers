@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import {
   Montserrat,
   Hanken_Grotesk,
@@ -34,6 +34,11 @@ export const metadata: Metadata = {
   title: "Framers — Custom Framing, Delivered",
   description:
     "Upload any photo, poster, or print and we'll frame it by hand and ship it to your door. Custom framing made easy, across India.",
+};
+
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#000000",
 };
 
 export default function RootLayout({

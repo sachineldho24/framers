@@ -17,9 +17,9 @@ export function FrameCard({
 }) {
   return (
     <Link href={`/frames/${frame.slug}`} className="group flex flex-col">
-      <div className="relative aspect-3/4 w-full border-2 border-transparent bg-surface-muted p-6 transition-all duration-300 group-hover:border-primary">
+      <div className="relative aspect-3/4 w-full border-2 border-transparent bg-surface-muted p-6 transition-all duration-300 group-hover:border-border-high-contrast">
         {isNew && (
-          <span className="label-caps absolute left-4 top-4 z-10 bg-primary px-3 py-1 text-[10px] text-surface">
+          <span className="label-caps absolute left-4 top-4 z-10 bg-primary px-3 py-1 text-[10px] text-white">
             New
           </span>
         )}
@@ -27,7 +27,7 @@ export function FrameCard({
         <img
           src={sampleImage}
           alt={`${frame.name} sample`}
-          className="h-full w-full border-2 border-on-background object-cover"
+          className="h-full w-full border-2 border-black object-cover"
         />
       </div>
       <div className="mt-6 text-center">

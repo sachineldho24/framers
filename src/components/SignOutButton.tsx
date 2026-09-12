@@ -24,7 +24,7 @@ export function SignOutButton({ className = "" }: { className?: string }) {
       type="button"
       onClick={signOut}
       disabled={busy}
-      className={`label-caps border-2 border-black px-6 py-3 uppercase transition-colors hover:bg-primary hover:text-on-primary disabled:opacity-60 ${className}`}
+      className={`label-caps border-2 border-border-high-contrast px-6 py-3 uppercase transition-colors hover:bg-primary hover:text-on-primary disabled:opacity-60 ${className}`}
     >
       {busy ? "Signing out…" : "Sign Out"}
     </button>

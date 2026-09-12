@@ -45,8 +45,10 @@ test("the header offers a profile menu rather than a bare account link", () => {
   assert.match(topBar, /href="\/login"/);
 });
 
-test("shop-by-category cards get more height on laptop viewports", () => {
-  assert.match(homepage, /aspect-\[4\/3\][^"]*lg:aspect-\[6\/5\]/);
+test("category cards preserve portrait artwork at every viewport size", () => {
+  const categorySection = homepage.slice(homepage.indexOf('id="shop"'), homepage.indexOf("<Testimonials"));
+  assert.match(categorySection, /aspect-\[5\/7\]/);
+  assert.match(categorySection, /object-contain/);
 });
 
 test("homepage carries a testimonials section", () => {

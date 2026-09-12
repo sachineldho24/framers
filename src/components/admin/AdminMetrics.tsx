@@ -54,7 +54,7 @@ export function AdminMetrics({ counts }: { counts: AdminOrderCounts }) {
           key={tile.tab}
           href={`/admin?tab=${tile.tab}`}
           className={`flex flex-col justify-between gap-4 border-2 border-border-high-contrast p-4 transition-colors hover:bg-surface-muted ${
-            tile.urgent ? "bg-neon-accent" : "bg-surface-lowest"
+            tile.urgent ? "bg-neon-accent/10" : "bg-surface-lowest"
           }`}
         >
           <div className="flex items-start justify-between gap-2">

@@ -14,21 +14,21 @@ values
     'a5-frame',
     'Compact 148 x 210mm frame. Perfect for a single car or bike portrait on a desk or shelf.',
     1748, 2480, 148, 210,
-    49900, true, 10
+    30000, true, 10
   ),
   (
     'A4 Frame',
     'a4-frame',
     'Classic 210 x 297mm frame. Our most popular size for custom vehicle posters.',
     2480, 3508, 210, 297,
-    79900, true, 20
+    50000, true, 20
   ),
   (
     'A3 Frame',
     'a3-frame',
     'Statement 297 x 420mm frame. Big, bold wall art for your build.',
     3508, 4961, 297, 420,
-    129900, true, 30
+    100000, true, 30
   ),
   (
     'Square 12"',

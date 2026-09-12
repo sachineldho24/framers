@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -15,6 +15,7 @@ import {
   type RazorpaySuccess,
 } from "@/lib/razorpay-client";
 import { Icon } from "./Icon";
+import { INDIAN_STATES, OUTSIDE_INDIA_MESSAGE, shippingError } from "@/lib/shipping";
 
 interface Summary {
   frame: { id: string; name: string; price_paise: number; width_mm: number; height_mm: number };
@@ -30,6 +31,7 @@ interface Form {
   city: string;
   state: string;
   pincode: string;
+  country: string;
 }
 
 const EMPTY_FORM: Form = {
@@ -41,6 +43,7 @@ const EMPTY_FORM: Form = {
   city: "",
   state: "",
   pincode: "",
+  country: "IN",
 };
 
 export function CheckoutClient() {
@@ -51,6 +54,13 @@ export function CheckoutClient() {
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const shippingDialog = useRef<HTMLDialogElement>(null);
+  const [shippingMessage, setShippingMessage] = useState(OUTSIDE_INDIA_MESSAGE);
+
+  function showShippingMessage(message: string) {
+    setShippingMessage(message);
+    shippingDialog.current?.showModal();
+  }
 
   // Read the design hand-off + load the order summary.
   useEffect(() => {
@@ -92,14 +102,16 @@ export function CheckoutClient() {
       return "Enter a valid 10-digit phone number.";
     if (!form.addressLine1.trim()) return "Please enter your address.";
     if (!form.city.trim()) return "Please enter your city.";
-    if (!form.state.trim()) return "Please enter your state.";
-    if (!/^\d{6}$/.test(form.pincode.trim()))
-      return "Enter a valid 6-digit pincode.";
     return null;
   }
 
   async function handlePay() {
     if (!handoff || !summary) return;
+    const domesticIssue = shippingError(form);
+    if (domesticIssue) {
+      showShippingMessage(domesticIssue);
+      return;
+    }
     const validationError = validate();
     if (validationError) {
       setError(validationError);
@@ -107,6 +119,23 @@ export function CheckoutClient() {
     }
     setError(null);
     setPaying(true);
+
+    // Check before loading/opening a payment window. The order API checks again.
+    try {
+      const response = await fetch("/api/shipping/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ country: form.country, state: form.state, pincode: form.pincode.trim() }),
+      });
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error?.message ?? "We couldn't verify your shipping address. Please try again.");
+      }
+    } catch (error) {
+      showShippingMessage(error instanceof Error ? error.message : "We couldn't verify your shipping address. Please try again.");
+      setPaying(false);
+      return;
+    }
 
     const ok = await loadRazorpay();
     if (!ok) {
@@ -138,6 +167,7 @@ export function CheckoutClient() {
           city: form.city.trim(),
           state: form.state.trim(),
           pincode: form.pincode.trim(),
+          country: form.country,
         }),
       });
       if (!res.ok) {
@@ -205,7 +235,7 @@ export function CheckoutClient() {
   }
 
   const inputCls =
-    "w-full border-2 border-border-high-contrast bg-white p-4 label-caps tracking-normal placeholder:text-outline focus:border-action-red focus:outline-none";
+    "w-full border-2 border-border-high-contrast bg-surface p-4 label-caps tracking-normal placeholder:text-outline focus:border-action-red focus:outline-none";
 
   return (
     <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
@@ -219,6 +249,19 @@ export function CheckoutClient() {
             <h2 className="text-[28px] uppercase tracking-tight">Shipping</h2>
           </div>
           <div className="space-y-6">
+            <div>
+              <label htmlFor="shipping-country" className="label-caps mb-2 block">Country / region</label>
+              <select id="shipping-country" autoComplete="shipping country" className={inputCls}
+                value={form.country} aria-describedby="shipping-coverage"
+                onChange={(event) => {
+                  set("country", event.target.value);
+                  if (event.target.value !== "IN") showShippingMessage(OUTSIDE_INDIA_MESSAGE);
+                }}>
+                <option value="IN">India</option>
+                <option value="OTHER">Outside India</option>
+              </select>
+              <p id="shipping-coverage" className="mt-2 text-sm text-on-surface-variant">We currently ship within India only.</p>
+            </div>
             <input
               className={inputCls}
               placeholder="FULL NAME"
@@ -260,15 +303,21 @@ export function CheckoutClient() {
                 value={form.city}
                 onChange={(e) => set("city", e.target.value)}
               />
-              <input
-                className={inputCls}
-                placeholder="STATE"
-                value={form.state}
-                onChange={(e) => set("state", e.target.value)}
-              />
+              <div>
+                <label htmlFor="shipping-state" className="label-caps mb-2 block">State / union territory</label>
+                <select id="shipping-state" autoComplete="shipping address-level1" className={inputCls}
+                  value={form.state} onChange={(e) => set("state", e.target.value)}>
+                  <option value="">Select state</option>
+                  {INDIAN_STATES.map(state => <option key={state} value={state}>{state}</option>)}
+                </select>
+              </div>
               <input
                 className={inputCls}
                 placeholder="PINCODE"
+                aria-label="Indian PIN code"
+                autoComplete="shipping postal-code"
+                inputMode="numeric"
+                maxLength={6}
                 value={form.pincode}
                 onChange={(e) => set("pincode", e.target.value)}
               />
@@ -284,7 +333,7 @@ export function CheckoutClient() {
             <h2 className="text-[28px] uppercase tracking-tight">Review</h2>
           </div>
           <div className="flex items-center gap-6 border-2 border-border-high-contrast bg-surface-muted p-4">
-            <div className="h-32 w-24 flex-shrink-0 overflow-hidden border border-outline-variant bg-white">
+            <div className="h-32 w-24 flex-shrink-0 overflow-hidden border border-outline-variant bg-surface">
               {summary.previewUrl ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img
@@ -315,7 +364,7 @@ export function CheckoutClient() {
 
       {/* Right: summary */}
       <aside className="space-y-6 lg:sticky lg:top-24 lg:col-span-5">
-        <div className="border-2 border-border-high-contrast bg-white p-6 shadow-[4px_4px_0px_0px_#000]">
+        <div className="border-2 border-border-high-contrast bg-surface p-6 shadow-[4px_4px_0px_0px_#000]">
           <h2 className="mb-8 border-b-2 border-border-high-contrast pb-4 text-[28px] uppercase">
             Order Summary
           </h2>
@@ -341,7 +390,7 @@ export function CheckoutClient() {
           </div>
 
           {error && (
-            <p className="label-caps mb-4 border-2 border-error px-3 py-2 text-error">
+            <p role="alert" className="label-caps mb-4 border-2 border-error px-3 py-2 text-error">
               {error}
             </p>
           )}
@@ -361,6 +410,14 @@ export function CheckoutClient() {
           </div>
         </div>
       </aside>
+      <dialog ref={shippingDialog} aria-labelledby="shipping-dialog-title" aria-describedby="shipping-dialog-message"
+        className="fixed inset-0 m-auto w-[calc(100%-40px)] max-w-sm border-2 border-border-high-contrast bg-surface p-6 text-on-background backdrop:bg-black/40">
+        <h2 id="shipping-dialog-title" className="text-xl font-bold">Shipping availability</h2>
+        <p id="shipping-dialog-message" className="mt-3 text-sm leading-relaxed">{shippingMessage}</p>
+        <form method="dialog" className="mt-5">
+          <button autoFocus className="min-h-11 w-full bg-primary px-4 py-3 font-bold text-white">Back to address</button>
+        </form>
+      </dialog>
     </div>
   );
 }

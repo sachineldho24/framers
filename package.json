@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:unit": "node --experimental-strip-types --import ./scripts/test-register.mjs --test \"src/**/*.test.ts\""
+    "test:unit": "node --experimental-strip-types --import ./scripts/test-register.mjs --test \"src/**/*.test.ts\"",
+    "assets:works": "node scripts/build-work-images.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

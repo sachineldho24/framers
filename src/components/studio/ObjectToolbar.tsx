@@ -26,7 +26,7 @@ export function ObjectToolbar({ layer }: { layer: Layer }) {
   return (
     <div
       data-r="md"
-      className="studio-shadow flex items-center gap-0.5 border border-[var(--studio-border)] bg-white p-1"
+      className="studio-shadow flex items-center gap-0.5 border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-1"
     >
       {layer.kind === "text" && !layer.locked && (
         <IconButton

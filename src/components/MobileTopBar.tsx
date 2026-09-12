@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { Icon } from "./Icon";
+import { BrandLogo } from "./BrandLogo";
 import { isAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -165,27 +166,26 @@ export function MobileTopBar() {
           aria-label="Open navigation menu"
           aria-controls="site-navigation-drawer"
           aria-expanded={open}
-          className="flex h-11 w-11 items-center justify-center text-on-background transition-colors hover:bg-black hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
+          className="flex h-11 w-11 shrink-0 items-center justify-center text-on-background transition-colors hover:bg-surface-container hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
         >
           <Icon name="menu" className="text-[26px]" />
         </button>
 
-        <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap font-display text-[clamp(0.875rem,4vw,1.5rem)] font-black uppercase leading-none tracking-[0.06em] text-on-background sm:tracking-[0.12em] lg:tracking-[0.18em]">
+        <div className="pointer-events-none flex min-w-0 flex-1 justify-center px-2 sm:absolute sm:left-1/2 sm:-translate-x-1/2 sm:px-0">
           <Link
             href="/"
             aria-label="Framers Lab home"
-            className="pointer-events-auto inline-flex items-baseline"
+            className="pointer-events-auto inline-flex min-h-11 max-w-full items-center focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neon-accent"
           >
-            <span>Framers</span>
-            <span className="ml-[0.3em] text-action-red">Lab</span>
+            <BrandLogo preload className="w-[150px] max-w-full sm:w-[190px] lg:w-[216px]" />
           </Link>
-        </h1>
+        </div>
 
         <div className="ml-auto flex items-center">
           <Link
             href="/orders"
             aria-label="Your orders"
-            className="flex h-11 w-11 items-center justify-center transition-colors hover:bg-black hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
+            className="flex h-11 w-11 items-center justify-center transition-colors hover:bg-surface-container hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
           >
             <Icon name="shopping_cart" className="text-[24px]" />
           </Link>
@@ -309,19 +309,17 @@ export function MobileTopBar() {
           aria-modal={open ? true : undefined}
           aria-label="Site navigation"
           inert={!open}
-          className={`absolute inset-y-0 left-0 flex h-dvh w-[min(92vw,360px)] flex-col border-r border-outline-variant bg-white transition-transform duration-[250ms] ease-out motion-reduce:transition-none ${
+          className={`absolute inset-y-0 left-0 flex h-dvh w-[min(92vw,360px)] flex-col border-r border-outline-variant bg-surface transition-transform duration-[250ms] ease-out motion-reduce:transition-none ${
             open ? "translate-x-0" : "-translate-x-full"
           }`}
         >
           <div className="flex min-h-16 items-center justify-between border-b border-outline-variant px-5">
-            <span className="font-display text-[17px] font-extrabold uppercase tracking-[0.06em] text-black">
-              Framers <span className="text-action-red">Lab</span>
-            </span>
+            <BrandLogo className="w-[188px]" />
             <button
               type="button"
               onClick={closeDrawer}
               aria-label="Close navigation menu"
-              className="flex h-11 w-11 items-center justify-center bg-surface-container-low text-black transition-colors hover:bg-black hover:text-white active:bg-on-surface-variant focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
+              className="flex h-11 w-11 items-center justify-center bg-surface-container-low text-on-background transition-colors hover:bg-surface-container hover:text-white active:bg-surface-container focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
             >
               <Icon name="close" className="text-[26px]" />
             </button>
@@ -343,8 +341,8 @@ export function MobileTopBar() {
                   onClick={closeDrawer}
                   className={`group flex min-h-14 touch-manipulation items-center gap-3 px-3 py-3 text-[16px] leading-tight transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red ${
                     index === 0
-                      ? "bg-action-red font-semibold text-white hover:bg-black active:bg-on-surface-variant"
-                      : "font-medium text-black hover:bg-surface-container-low active:bg-surface-muted"
+                      ? "bg-action-red font-semibold text-white hover:bg-surface-container active:bg-surface-container"
+                      : "font-medium text-on-background hover:bg-surface-container-low active:bg-surface-muted"
                   }`}
                 >
                   <Icon
@@ -376,7 +374,7 @@ export function MobileTopBar() {
                     key={item.href}
                     href={item.href}
                     onClick={closeDrawer}
-                    className="group flex min-h-13 touch-manipulation items-center gap-3 px-3 py-3 text-[15px] font-medium text-black transition-colors hover:bg-surface-container-low active:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
+                    className="group flex min-h-13 touch-manipulation items-center gap-3 px-3 py-3 text-[15px] font-medium text-on-background transition-colors hover:bg-surface-container-low active:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
                   >
                     <Icon
                       name={item.icon}
@@ -393,21 +391,21 @@ export function MobileTopBar() {
             <Link
               href="/"
               onClick={closeDrawer}
-              className="mr-5 inline-block min-h-11 py-3 hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
+              className="mr-5 inline-block min-h-11 py-3 hover:text-on-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
             >
               Home
             </Link>
             <Link
               href="/privacy"
               onClick={closeDrawer}
-              className="mr-5 inline-block min-h-11 py-3 hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
+              className="mr-5 inline-block min-h-11 py-3 hover:text-on-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
             >
               Privacy
             </Link>
             <Link
               href="/terms"
               onClick={closeDrawer}
-              className="inline-block min-h-11 py-3 hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
+              className="inline-block min-h-11 py-3 hover:text-on-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red"
             >
               Terms
             </Link>
