@@ -3,17 +3,11 @@ import type { Metadata } from "next";
 import { DetailTopBar } from "@/components/DetailTopBar";
 import { ProductDetail } from "@/components/ProductDetail";
 import { getActiveFrames, getFrameBySlug } from "@/lib/data/frames";
+import { HERO_ORBIT_FRAMES } from "@/lib/storefront-content";
 
 export const dynamic = "force-dynamic";
 
-const SAMPLES = [
-  "/posters/03.jpg",
-  "/posters/04.jpg",
-  "/posters/05.jpg",
-  "/posters/06.jpg",
-  "/posters/07.jpg",
-  "/posters/08.jpg",
-];
+const SAMPLES = HERO_ORBIT_FRAMES.map(frame => frame.image);
 
 export async function generateMetadata({
   params,

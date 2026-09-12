@@ -22,11 +22,11 @@ interface HeroFrame {
 }
 
 const HERO_FRAMES: HeroFrame[] = [
-  { id: 'polo', title: 'VW Polo', src: '/posters/polo.jpg' },
-  { id: 'duke', title: 'KTM Duke', src: '/posters/duke.jpg' },
-  { id: 'hilux', title: 'Toyota Hilux', src: '/posters/hilux.jpg' },
-  { id: 'venue', title: 'Hyundai Venue', src: '/posters/venue.jpg' },
-  { id: 'bmw', title: 'BMW M3', src: '/posters/bmw.jpg' },
+  { id: 'polo', title: 'VW Polo', src: '/work-images/previews/cars-volkswagen-polo-red-1.webp' },
+  { id: 'duke', title: 'KTM Duke', src: '/work-images/previews/bikes-ktm-duke-250-toxie-1.webp' },
+  { id: 'hilux', title: 'Toyota Hilux', src: '/work-images/previews/cars-toyota-hilux-white-1.webp' },
+  { id: 'venue', title: 'Hyundai Venue', src: '/work-images/previews/cars-hyundai-venue-white-1.webp' },
+  { id: 'bmw', title: 'BMW M3', src: '/work-images/previews/cars-bmw-m3-yellow-1.webp' },
 ];
 
 const N = HERO_FRAMES.length;
@@ -116,7 +116,7 @@ function FanFrame({ frame, index, progress, gapX, arcDrop }: FanFrameProps) {
     >
       <div
         className={[
-          'relative box-border border-solid border-border-high-contrast bg-white',
+          'relative box-border border-solid border-black bg-white',
           // thick brutalist black molding, clamp-sized for mobile → desktop
           'border-[clamp(6px,2.4vw,13px)]',
           // hard 6px offset only on the active centre frame
@@ -148,7 +148,7 @@ function StaticHero() {
     <section className="relative w-full overflow-x-hidden bg-surface px-margin-mobile py-section">
       <div className="mx-auto max-w-5xl text-center">
         <p className="label-caps mb-3 text-action-red">Custom Framing · Delivered</p>
-        <h1 className="font-display text-[clamp(34px,9vw,76px)] leading-[0.95] text-primary">
+        <h1 className="font-display text-[clamp(34px,9vw,76px)] leading-[0.95] text-on-background">
           Frame Anything
         </h1>
         <p className="mx-auto mt-4 max-w-md text-base text-on-surface-variant">
@@ -169,7 +169,7 @@ function StaticHero() {
         {HERO_FRAMES.map((frame) => (
           <div
             key={frame.id}
-            className="relative box-border border-[6px] border-solid border-border-high-contrast bg-white"
+            className="relative box-border border-[6px] border-solid border-black bg-white"
           >
             <div className="border-[4px] border-solid border-white bg-white">
               <div className="relative aspect-3/4 w-full overflow-hidden bg-surface-muted">
@@ -253,7 +253,7 @@ export function ScrollMorphHero() {
           className="relative z-[60] px-margin-mobile pt-[max(env(safe-area-inset-top),4px)] text-center"
         >
           <p className="label-caps mb-2 text-action-red">Custom Framing · Delivered</p>
-          <h1 className="font-display text-[clamp(30px,8vw,72px)] leading-[0.92] text-primary">
+          <h1 className="font-display text-[clamp(30px,8vw,72px)] leading-[0.92] text-on-background">
             Frame Anything
           </h1>
           <p className="mx-auto mt-3 max-w-xs text-sm text-on-surface-variant sm:max-w-md sm:text-base">

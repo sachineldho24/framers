@@ -95,7 +95,7 @@ export function ToolsPanel() {
               "flex items-center gap-3 px-2.5 py-2 text-left transition-colors",
               active
                 ? "bg-[var(--studio-accent-soft)]"
-                : "hover:bg-black/[0.045]",
+                : "hover:bg-white/[0.045]",
               "disabled:pointer-events-none disabled:opacity-40"
             )}
           >
@@ -134,7 +134,7 @@ export function ToolsPanel() {
         type="button"
         onClick={() => insertText("heading")}
         data-r="md"
-        className="mt-1 flex items-center gap-3 border-t border-[var(--studio-border)] px-2.5 pb-2 pt-3 text-left transition-colors hover:bg-black/[0.045]"
+        className="mt-1 flex items-center gap-3 border-t border-[var(--studio-border)] px-2.5 pb-2 pt-3 text-left transition-colors hover:bg-white/[0.045]"
       >
         <Icon name="title" className="text-[21px] text-[var(--studio-ink-muted)]" />
         <span className="min-w-0">

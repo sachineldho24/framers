@@ -78,7 +78,7 @@ export function OrderStatusStepper({
             <div className="flex flex-col items-center">
               <span
                 aria-hidden="true"
-                className={`grid h-7 w-7 shrink-0 place-items-center border-2 border-black ${
+                className={`grid h-7 w-7 shrink-0 place-items-center border-2 border-border-high-contrast ${
                   current
                     ? "bg-action-red text-on-primary"
                     : done
@@ -98,7 +98,7 @@ export function OrderStatusStepper({
                 <span
                   aria-hidden="true"
                   className={`w-0.5 flex-1 ${
-                    done ? "bg-primary" : "bg-outline-variant"
+                    done ? "bg-neon-accent" : "bg-outline-variant"
                   }`}
                 />
               )}
@@ -107,7 +107,7 @@ export function OrderStatusStepper({
             <div className={last ? "pb-0 pt-0.5" : "pb-6 pt-0.5"}>
               <p
                 className={`label-caps text-[13px] ${
-                  current || done ? "text-black" : "text-outline"
+                  current || done ? "text-on-background" : "text-outline"
                 }`}
               >
                 {step.label}

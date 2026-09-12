@@ -119,7 +119,7 @@ function ModeButton({
         "flex items-center justify-center gap-1.5 border px-2 py-2 text-[12.5px] font-medium transition-colors",
         active
           ? "border-[var(--studio-accent)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
-          : "border-[var(--studio-border)] bg-white text-[var(--studio-ink)] hover:bg-black/[0.03]"
+          : "border-[var(--studio-border)] bg-[var(--studio-chrome)] text-[var(--studio-ink)] hover:bg-white/[0.03]"
       )}
     >
       <Icon name={icon} className="text-[17px]" />
@@ -150,7 +150,7 @@ function BrushPreview({ size, feather }: { size: number; feather: number }) {
           width: diameter,
           height: diameter,
           borderRadius: "9999px",
-          background: `radial-gradient(circle, rgba(22,22,26,.85) 0%, rgba(22,22,26,.85) ${solid}%, rgba(22,22,26,0) 100%)`,
+          background: `radial-gradient(circle, rgba(245,245,245,.85) 0%, rgba(245,245,245,.85) ${solid}%, rgba(245,245,245,0) 100%)`,
         }}
       />
       <span className="sr-only">

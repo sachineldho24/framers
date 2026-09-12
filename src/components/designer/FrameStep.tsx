@@ -140,8 +140,8 @@ export function FrameStep({
             <button
               key={c}
               onClick={() => setColorFilter(c)}
-              className={`border-2 border-black px-4 py-2 font-bold uppercase transition-all hover:bg-black hover:text-white ${
-                colorFilter === c ? "bg-black text-white" : "bg-white"
+              className={`border-2 border-border-high-contrast px-4 py-2 font-bold uppercase transition-all ${
+                colorFilter === c ? "bg-neon-accent text-black" : "bg-surface hover:bg-surface-container hover:text-white"
               }`}
             >
               {c}
@@ -163,8 +163,8 @@ export function FrameStep({
                 aria-pressed={selected}
                 className={`group block border-2 p-2 text-left transition-all ${
                   selected
-                    ? "border-black ring-4 ring-neon-accent"
-                    : "border-black hover:bg-surface-muted"
+                    ? "border-border-high-contrast ring-4 ring-neon-accent"
+                    : "border-border-high-contrast hover:bg-surface-muted"
                 }`}
               >
                 <div className="frame-wall flex h-[150px] items-center justify-center overflow-hidden p-3 md:h-[190px]">
@@ -195,9 +195,9 @@ export function FrameStep({
       </section>
 
       {/* Right — sticky config */}
-      <aside className="border-t-2 border-black bg-surface-muted px-margin-mobile py-10 md:px-8 lg:border-l-2 lg:border-t-0">
+      <aside className="border-t-2 border-border-high-contrast bg-surface-muted px-margin-mobile py-10 md:px-8 lg:border-l-2 lg:border-t-0">
         <div className="lg:sticky lg:top-24">
-          <div className="border-2 border-black bg-white p-3">
+          <div className="border-2 border-border-high-contrast bg-surface p-3">
             <FramePreview
               widthMm={frame.width_mm}
               heightMm={frame.height_mm}
@@ -216,8 +216,8 @@ export function FrameStep({
               <button
                 key={f.id}
                 onClick={() => chooseFinish(f.id)}
-                className={`border-2 border-black px-3 py-2 font-bold uppercase transition-all hover:bg-black hover:text-white ${
-                  f.id === finishId ? "bg-black text-white" : "bg-white"
+                className={`border-2 border-border-high-contrast px-3 py-2 font-bold uppercase transition-all ${
+                  f.id === finishId ? "bg-neon-accent text-black" : "bg-surface hover:bg-surface-container hover:text-white"
                 }`}
               >
                 {f.name}
@@ -226,7 +226,7 @@ export function FrameStep({
           </div>
 
           {/* Price */}
-          <div className="mt-6 flex items-center justify-between border-t-2 border-black pt-4">
+          <div className="mt-6 flex items-center justify-between border-t-2 border-border-high-contrast pt-4">
             <span className="label-caps">Total</span>
             <span className="font-display text-[24px] font-black">
               {formatPaise(total)}

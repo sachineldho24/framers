@@ -70,7 +70,7 @@ export function UploadsPanel({
       >
         {uploading ? "Uploading…" : "Upload an image"}
       </StudioButton>
-      {error && <p role="alert" className="mb-3 text-sm text-[#a02a24]">{error}</p>}
+      {error && <p role="alert" className="mb-3 text-sm text-[#ffb4ab]">{error}</p>}
 
       {uploads.length === 0 ? (
         <EmptyState

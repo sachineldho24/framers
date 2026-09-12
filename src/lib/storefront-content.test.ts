@@ -15,7 +15,7 @@ test("storefront content includes all six hero frames and requested categories",
   assert.equal(new Set(HERO_ORBIT_FRAMES.map((frame) => frame.image)).size, 6);
   assert.deepEqual(
     SHOP_CATEGORIES.map((category) => category.label),
-    ["Birthday", "Wedding & Anniversary", "Cars & Bikes"],
+    ["Cars", "Bikes", "Buses", "Birthday", "Anniversary", "Portraits", "Vans", "Frame mockups"],
   );
 
   for (const item of [...HERO_ORBIT_FRAMES, ...SHOP_CATEGORIES]) {
@@ -23,13 +23,15 @@ test("storefront content includes all six hero frames and requested categories",
     assert.ok(existsSync(assetPath), `${item.image} should exist in public`);
     assert.ok(statSync(assetPath).size > 0, `${item.image} should not be empty`);
   }
+  assert.ok(SHOP_CATEGORIES.every(category => category.href.startsWith("/works/") && category.count > 0));
 });
 
-test("latest creations includes all fourteen unique local mockups", () => {
+test("latest creations includes fourteen unique real artworks", () => {
   assert.equal(LATEST_CREATIONS.length, 14);
   assert.equal(new Set(LATEST_CREATIONS.map((item) => item.image)).size, 14);
 
   for (const item of LATEST_CREATIONS) {
+    assert.ok(item.image.startsWith("/work-images/"));
     const assetPath = join(process.cwd(), "public", item.image.replace(/^\//, ""));
     assert.ok(existsSync(assetPath), `${item.image} should exist in public`);
     assert.ok(statSync(assetPath).size > 0, `${item.image} should not be empty`);

@@ -108,7 +108,7 @@ export function TextPanel() {
               type="button"
               data-r="md"
               onClick={() => insertText(preset)}
-              className="flex w-full items-center justify-between gap-2 border border-[var(--studio-border)] bg-white px-3 py-2.5 text-left transition-colors hover:bg-black/[0.03]"
+              className="flex w-full items-center justify-between gap-2 border border-[var(--studio-border)] bg-[var(--studio-chrome)] px-3 py-2.5 text-left transition-colors hover:bg-white/[0.03]"
             >
               <span
                 className="min-w-0 truncate text-[var(--studio-ink)]"
@@ -272,7 +272,7 @@ function TextStyleControls({
                 "h-7 border px-2 text-[12px] transition-colors",
                 layer.fontWeight === weight
                   ? "border-[var(--studio-accent)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
-                  : "border-[var(--studio-border)] bg-white text-[var(--studio-ink)] hover:bg-black/[0.03]"
+                  : "border-[var(--studio-border)] bg-[var(--studio-chrome)] text-[var(--studio-ink)] hover:bg-white/[0.03]"
               )}
             >
               {WEIGHT_LABELS[weight] ?? weight}
@@ -439,7 +439,7 @@ function Toggle({
         "h-8 border px-3 text-[12px] font-medium transition-colors",
         active
           ? "border-[var(--studio-accent)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
-          : "border-[var(--studio-border)] bg-white text-[var(--studio-ink)] hover:bg-black/[0.03]",
+          : "border-[var(--studio-border)] bg-[var(--studio-chrome)] text-[var(--studio-ink)] hover:bg-white/[0.03]",
         "disabled:pointer-events-none disabled:opacity-40"
       )}
     >
@@ -555,13 +555,13 @@ function FontPicker({
           placeholder="Search fonts"
           aria-label="Search fonts"
           data-r="md"
-          className="h-8 w-full border border-[var(--studio-border)] bg-white pl-8 pr-2 text-[12.5px] text-[var(--studio-ink)] outline-none placeholder:text-[var(--studio-ink-muted)] focus:border-[var(--studio-accent)]"
+          className="h-8 w-full border border-[var(--studio-border)] bg-[var(--studio-chrome)] pl-8 pr-2 text-[12.5px] text-[var(--studio-ink)] outline-none placeholder:text-[var(--studio-ink-muted)] focus:border-[var(--studio-accent)]"
         />
       </div>
 
       <div
         data-r="md"
-        className="max-h-[264px] overflow-y-auto border border-[var(--studio-border)] bg-white"
+        className="max-h-[264px] overflow-y-auto border border-[var(--studio-border)] bg-[var(--studio-chrome)]"
       >
         {groups.length === 0 ? (
           <p className="px-3 py-4 text-center text-[12px] text-[var(--studio-ink-muted)]">
@@ -583,7 +583,7 @@ function FontPicker({
                     "flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors",
                     font.id === value
                       ? "bg-[var(--studio-accent-soft)]"
-                      : "hover:bg-black/[0.03]"
+                      : "hover:bg-white/[0.03]"
                   )}
                 >
                   <span

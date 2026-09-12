@@ -6,11 +6,11 @@ export type DrawerLink = {
 
 export const DRAWER_DISCOVER_LINKS: readonly DrawerLink[] = [
   { href: "/design/start", label: "Start framing", icon: "add_photo_alternate" },
-  { href: "/#shop", label: "Shop frames", icon: "grid_view" },
+  { href: "/#shop", label: "Browse categories", icon: "grid_view" },
   { href: "/gallery", label: "Explore the gallery", icon: "view_in_ar" },
   {
-    href: "/#latest-creations-title",
-    label: "Latest creations",
+    href: "/works",
+    label: "Our works",
     icon: "collections",
   },
 ];

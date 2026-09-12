@@ -116,7 +116,7 @@ export function SizeStep({
 
   const pip =
     fit == null
-      ? "#ebebeb"
+      ? "var(--color-outline)"
       : fit.verdict.tone === "good"
         ? "#16a34a"
         : fit.verdict.tone === "ok"
@@ -162,11 +162,11 @@ export function SizeStep({
         {fit && (
           <p className="mt-3 max-w-md text-on-surface-variant">
             Gallery-sharp up to{" "}
-            <strong className="text-black">
+            <strong className="text-on-background">
               {fit.sharpIn.width.toFixed(1)}″ × {fit.sharpIn.height.toFixed(1)}″
             </strong>
             , and still good on a wall up to{" "}
-            <strong className="text-black">
+            <strong className="text-on-background">
               {fit.maxIn.width.toFixed(1)}″ × {fit.maxIn.height.toFixed(1)}″
             </strong>
             .
@@ -201,7 +201,7 @@ export function SizeStep({
               key={f.id}
               onClick={() => choose(i)}
               className={`label-caps ${
-                i === idx ? "text-black" : "text-outline"
+                i === idx ? "text-on-background" : "text-outline"
               }`}
             >
               {f.name.replace(/\s*frame/i, "")}
@@ -219,8 +219,8 @@ export function SizeStep({
               <button
                 key={f.id}
                 onClick={() => choose(i)}
-                className={`border-2 border-black px-4 py-2 font-bold uppercase transition-all hover:bg-black hover:text-white ${
-                  i === idx ? "bg-black text-white" : "bg-white text-black"
+                className={`border-2 border-border-high-contrast px-4 py-2 font-bold uppercase transition-all ${
+                  i === idx ? "bg-neon-accent text-black" : "bg-surface text-on-background hover:bg-surface-container hover:text-white"
                 }`}
               >
                 {f.name}
@@ -250,7 +250,7 @@ export function SizeStep({
                     This photo has the pixels for{" "}
                     <button
                       onClick={() => choose(bestIdx)}
-                      className="font-bold text-black underline"
+                      className="font-bold text-on-background underline"
                     >
                       {frames[bestIdx].name}
                     </button>{" "}
@@ -261,7 +261,7 @@ export function SizeStep({
                     This photo is small for every size we frame.{" "}
                     <button
                       onClick={() => router.push(`/design/${sessionId}/upload`)}
-                      className="font-bold text-black underline"
+                      className="font-bold text-on-background underline"
                     >
                       Upload a larger file
                     </button>{" "}
@@ -296,7 +296,7 @@ export function SizeStep({
       </section>
 
       {/* Right — live preview */}
-      <section className="flex items-center justify-center border-t-2 border-black bg-surface-muted px-margin-mobile py-12 md:border-l-2 md:border-t-0">
+      <section className="flex items-center justify-center border-t-2 border-border-high-contrast bg-surface-muted px-margin-mobile py-12 md:border-l-2 md:border-t-0">
         <div className="w-full max-w-sm">
           <FramePreview
             widthMm={frame.width_mm}

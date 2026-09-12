@@ -5,7 +5,7 @@ const STATUS_STYLES: Record<OrderStatus, { label: string; className: string }> =
     pending: { label: "Pending", className: "bg-primary text-on-primary" },
     processing: {
       label: "Processing",
-      className: "bg-on-surface-variant text-on-primary",
+      className: "bg-surface-container text-on-primary",
     },
     shipped: {
       label: "Shipped",
@@ -17,7 +17,7 @@ const STATUS_STYLES: Record<OrderStatus, { label: string; className: string }> =
     },
     cancelled: {
       label: "Cancelled",
-      className: "border-2 border-primary text-primary",
+      className: "border-2 border-border-high-contrast text-on-background",
     },
   };
 

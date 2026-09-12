@@ -15,7 +15,7 @@ test("drawer navigation groups approved destinations for mobile scanning", () =>
       "/design/start",
       "/#shop",
       "/gallery",
-      "/#latest-creations-title",
+      "/works",
     ]
   );
   assert.deepEqual(

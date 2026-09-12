@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import { Icon } from "@/components/Icon";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useStudio, type SaveStatus } from "@/lib/studio/StudioContext";
 import type { DownloadFormat } from "@/lib/studio/export";
 
@@ -84,13 +85,10 @@ export function StudioTopBar({
     >
       <Link
         href="/"
-        className="studio-wordmark mr-1 shrink-0 px-1 text-[15px] font-extrabold tracking-tight text-[var(--studio-ink)]"
+        className="studio-wordmark mr-1 inline-flex min-h-10 shrink-0 items-center px-1"
         aria-label="Framers home"
       >
-        FRAMERS
-        <span className="ml-1 align-super text-[10px] font-semibold text-[var(--studio-ink-muted)]">
-          v1
-        </span>
+        <BrandLogo preload className="w-[104px] sm:w-[124px]" />
       </Link>
 
       <Menu label="File">
@@ -236,7 +234,7 @@ export function StudioTopBar({
             name={save.icon}
             className={cx(
               "text-[18px]",
-              saveStatus === "error" && "text-[#c8322b]"
+              saveStatus === "error" && "text-[#ff8a80]"
             )}
           />
           {save.text}
@@ -269,7 +267,7 @@ export function StudioTopBar({
           }}
           aria-label="Design title"
           data-r="md"
-          className="mx-auto block w-full max-w-[420px] truncate bg-transparent px-2 py-1 text-center text-[13.5px] font-semibold text-[var(--studio-ink)] hover:bg-black/[0.04] focus:bg-black/[0.04] focus:outline-none"
+          className="mx-auto block w-full max-w-[420px] truncate bg-transparent px-2 py-1 text-center text-[13.5px] font-semibold text-[var(--studio-ink)] hover:bg-white/[0.04] focus:bg-white/[0.04] focus:outline-none"
         />
       </div>
 

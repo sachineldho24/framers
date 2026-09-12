@@ -38,7 +38,7 @@ export default async function DesignStartPage({
         <StartChooser frameId={frameId ?? null} />
 
         {/* How it works */}
-        <section className="mt-section border-t-2 border-black pt-10">
+        <section className="mt-section border-t-2 border-border-high-contrast pt-10">
           <h2 className="label-caps mb-8 text-center tracking-[0.2em]">
             How it works
           </h2>
@@ -50,7 +50,7 @@ export default async function DesignStartPage({
             ].map(([n, t, d]) => (
               <li
                 key={n}
-                className="border-2 border-black bg-surface-muted p-6"
+                className="border-2 border-border-high-contrast bg-surface-muted p-6"
               >
                 <span className="font-display text-[32px] font-black text-action-red">
                   {n}

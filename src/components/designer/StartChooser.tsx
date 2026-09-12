@@ -47,7 +47,7 @@ export function StartChooser({ frameId }: { frameId: string | null }) {
         <button
           onClick={start}
           disabled={busy}
-          className="brutalist-press group flex w-full flex-col items-start border-2 border-black bg-surface-muted p-8 text-left transition-all hover:bg-white disabled:opacity-60"
+          className="brutalist-press group flex w-full flex-col items-start border-2 border-border-high-contrast bg-surface-muted p-8 text-left transition-all hover:bg-surface disabled:opacity-60"
         >
           <div className="mb-6 flex h-16 w-16 items-center justify-center bg-action-red">
             <Icon name="cloud_upload" className="text-4xl text-white" />

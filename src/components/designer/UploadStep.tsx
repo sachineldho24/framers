@@ -129,7 +129,7 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
           <button
             onClick={() => router.push(`/design/${sessionId}/edit`)}
             disabled={busy}
-            className="brutalist-press flex w-full items-center justify-center gap-3 border-2 border-black bg-white py-5 font-bold uppercase tracking-widest text-black transition-colors hover:bg-black hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red disabled:opacity-60"
+            className="brutalist-press flex w-full items-center justify-center gap-3 border-2 border-border-high-contrast bg-surface py-5 font-bold uppercase tracking-widest text-on-background transition-colors hover:bg-surface-container hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action-red disabled:opacity-60"
           >
             <Icon name="brush" className="text-[20px]" />
             Open Studio
@@ -161,7 +161,7 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
       </section>
 
       {/* Right — drop zone */}
-      <section className="flex items-center justify-center border-t-2 border-black bg-surface-muted px-margin-mobile py-16 md:border-l-2 md:border-t-0">
+      <section className="flex items-center justify-center border-t-2 border-border-high-contrast bg-surface-muted px-margin-mobile py-16 md:border-l-2 md:border-t-0">
         <div
           onDragOver={(e) => {
             e.preventDefault();
@@ -175,7 +175,7 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
             if (f) void handleFile(f);
           }}
           className={`flex aspect-[3/4] w-full max-w-sm flex-col items-center justify-center border-2 border-dashed ${
-            dragOver ? "border-action-red bg-white" : "border-black"
+            dragOver ? "border-action-red bg-surface" : "border-border-high-contrast"
           }`}
         >
           <Icon name="image" className="text-6xl text-outline" />

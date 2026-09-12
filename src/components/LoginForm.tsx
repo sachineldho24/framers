@@ -69,7 +69,7 @@ export function LoginForm() {
   }
 
   const inputCls =
-    "w-full border-2 border-primary bg-surface-lowest px-3 py-3 outline-none focus:border-action-red";
+    "w-full border-2 border-border-high-contrast bg-surface-lowest px-3 py-3 outline-none focus:border-action-red";
 
   return (
     <div className="flex flex-col gap-6">
@@ -85,7 +85,7 @@ export function LoginForm() {
       </div>
 
       {/* Mode toggle */}
-      <div className="flex border-2 border-primary">
+      <div className="flex border-2 border-border-high-contrast">
         <button
           type="button"
           onClick={() => setMode("signin")}
@@ -142,7 +142,7 @@ export function LoginForm() {
               onClick={() => setShowPassword((v) => !v)}
               aria-label={showPassword ? "Hide password" : "Show password"}
               aria-pressed={showPassword}
-              className="absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant transition-colors hover:text-primary"
+              className="absolute inset-y-0 right-0 flex items-center px-3 text-on-surface-variant transition-colors hover:text-on-background"
             >
               <Icon name={showPassword ? "visibility" : "visibility_off"} />
             </button>
@@ -155,7 +155,7 @@ export function LoginForm() {
           </p>
         )}
         {info && (
-          <p className="label-caps border-2 border-primary px-3 py-2">{info}</p>
+          <p className="label-caps border-2 border-border-high-contrast px-3 py-2">{info}</p>
         )}
 
         <button

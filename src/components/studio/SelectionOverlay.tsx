@@ -109,7 +109,7 @@ export function SelectionOverlay({
         {layer.locked ? (
           <span
             data-r="full"
-            className="absolute -top-3 -right-3 inline-flex h-6 w-6 items-center justify-center bg-white text-[13px] shadow"
+            className="absolute -top-3 -right-3 inline-flex h-6 w-6 items-center justify-center bg-white text-black text-[13px] shadow"
             style={{ color: accent }}
           >
             <span className="material-symbols-outlined text-[15px]">lock</span>

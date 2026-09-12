@@ -56,7 +56,7 @@ export function AdjustPanel() {
 
       {!image && (
         <PanelSection title="Adjustments">
-          <p className="text-[11px] leading-relaxed text-neutral-500">
+          <p className="text-[11px] leading-relaxed text-[var(--studio-ink-muted)]">
             Filters and colour adjustments apply to photos. Use the Text panel to
             change this layer&rsquo;s colour and outline.
           </p>

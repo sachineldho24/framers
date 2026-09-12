@@ -18,7 +18,7 @@ const STEPS: { key: DesignerStep; label: string }[] = [
 ];
 
 /**
- * Fixed top bar for the designer flow: white bg, black bottom border
+ * Fixed top bar for the designer flow: black background, contrasting bottom border
  * (DESIGN.md Nav rule), position + always-visible EXIT.
  *
  * Three things are load-bearing here:
@@ -51,7 +51,7 @@ export function DesignerChrome({
   const prev = currentIdx > 0 ? STEPS[currentIdx - 1] : null;
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-black bg-white">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-border-high-contrast bg-surface">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-margin-mobile">
         {/* Compact position readout + the only way back — mobile only. */}
         <div className="flex items-center gap-1 sm:hidden">
@@ -60,7 +60,7 @@ export function DesignerChrome({
               href={`/design/${sessionId}/${prev.key}`}
               aria-label={`Back to ${prev.label}`}
               title={`Back to ${prev.label}`}
-              className="-ml-2 grid h-11 w-11 shrink-0 place-items-center text-black transition-colors hover:bg-black hover:text-white"
+              className="-ml-2 grid h-11 w-11 shrink-0 place-items-center text-on-background transition-colors hover:bg-surface-container hover:text-white"
             >
               <Icon name="arrow_back" className="text-[22px]" />
             </Link>
@@ -69,7 +69,7 @@ export function DesignerChrome({
             <span className="label-caps text-[11px] text-on-surface-variant">
               Step {currentIdx + 1} of {STEPS.length}
             </span>
-            <span className="label-caps text-[14px] text-black">
+            <span className="label-caps text-[14px] text-on-background">
               {STEPS[currentIdx]?.label}
             </span>
           </p>
@@ -91,9 +91,9 @@ export function DesignerChrome({
                 aria-current={isCurrent ? "step" : undefined}
                 className={`label-caps text-[13px] ${
                   isCurrent
-                    ? "border-b-2 border-action-red pb-1 text-black"
+                    ? "border-b-2 border-action-red pb-1 text-on-background"
                     : done
-                      ? "text-on-surface-variant transition-colors hover:text-black"
+                      ? "text-on-surface-variant transition-colors hover:text-on-background"
                       : "text-outline"
                 }`}
               >
@@ -118,7 +118,7 @@ export function DesignerChrome({
 
         <Link
           href="/"
-          className="label-caps border-b-2 border-transparent text-black transition-colors hover:border-black"
+          className="label-caps border-b-2 border-transparent text-on-background transition-colors hover:border-border-high-contrast"
         >
           Exit
         </Link>

@@ -79,7 +79,7 @@ export default async function AdminOrderDetailPage({
     <>
       <Link
         href="/admin"
-        className="label-caps inline-flex items-center gap-1 text-[11px] text-on-surface-variant transition-colors hover:text-black"
+        className="label-caps inline-flex items-center gap-1 text-[11px] text-on-surface-variant transition-colors hover:text-on-background"
       >
         <Icon name="arrow_back" className="text-[16px]" />
         Queue

@@ -29,7 +29,7 @@ export default async function AdminLayout({
       <footer className="border-t-2 border-border-high-contrast px-margin-mobile py-6">
         <p className="label-caps text-[10px] text-on-surface-variant">
           Operator view ·{" "}
-          <Link href="/" className="underline hover:text-black">
+          <Link href="/" className="underline hover:text-on-background">
             back to the storefront
           </Link>
         </p>

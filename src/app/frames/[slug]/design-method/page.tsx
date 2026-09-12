@@ -61,13 +61,13 @@ export default async function DesignMethodPage({
 
         {/* Upload card */}
         <div className="mb-section max-w-xl">
-          <div className="brutalist-shadow card-transition flex h-full flex-col justify-between border-2 border-black bg-surface-muted p-8 hover:bg-white">
+          <div className="brutalist-shadow card-transition flex h-full flex-col justify-between border-2 border-border-high-contrast bg-surface-muted p-8 hover:bg-surface">
             <UploadArtwork frameId={frame.id} frameSlug={frame.slug} />
           </div>
         </div>
 
         {/* Trust points */}
-        <section className="border-t-2 border-black pt-12">
+        <section className="border-t-2 border-border-high-contrast pt-12">
           <h3 className="label-caps mb-8 text-center uppercase tracking-[0.2em]">
             Why choose Framers?
           </h3>
@@ -75,7 +75,7 @@ export default async function DesignMethodPage({
             {TRUST.map((t) => (
               <div
                 key={t.title}
-                className="flex flex-col items-center border-2 border-black bg-surface-container p-6 text-center"
+                className="flex flex-col items-center border-2 border-border-high-contrast bg-surface-container p-6 text-center"
               >
                 <Icon name={t.icon} className="mb-4 text-4xl" />
                 <h4 className="label-caps mb-2">{t.title}</h4>
@@ -86,12 +86,12 @@ export default async function DesignMethodPage({
         </section>
 
         {/* Visualize */}
-        <section className="mt-section grid grid-cols-1 items-center gap-12 border-2 border-black bg-black p-8 text-white md:p-16 lg:grid-cols-2">
+        <section className="mt-section grid grid-cols-1 items-center gap-12 border-2 border-border-high-contrast bg-black p-8 text-white md:p-16 lg:grid-cols-2">
           <div>
             <h2 className="mb-6 text-[28px] uppercase leading-tight">
               Visualize Your Space
             </h2>
-            <p className="mb-8 text-primary-fixed-dim">
+            <p className="mb-8 text-on-surface-variant">
               Our high-fidelity mockups show exactly how your design looks in a
               premium frame before you print.
             </p>
@@ -102,7 +102,7 @@ export default async function DesignMethodPage({
                   Color Accuracy
                 </span>
               </div>
-              <div className="h-12 w-px bg-on-surface-variant" />
+              <div className="h-12 w-px bg-surface-container" />
               <div className="flex flex-col">
                 <span className="text-3xl font-black text-neon-accent">48h</span>
                 <span className="label-caps text-[10px] uppercase">
@@ -114,11 +114,11 @@ export default async function DesignMethodPage({
           <div className="brutalist-shadow relative aspect-square overflow-hidden border-4 border-white bg-surface-container-highest">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src="/posters/06.jpg"
+              src="/work-images/previews/mockups-yamaha-rx100-wall-1.webp"
               alt="Framed poster mockup"
               className="h-full w-full object-cover brightness-90 grayscale transition-all duration-700 hover:grayscale-0"
             />
-            <div className="pointer-events-none absolute inset-0 border-[20px] border-black/10" />
+            <div className="pointer-events-none absolute inset-0 border-[20px] border-border-high-contrast/10" />
           </div>
         </section>
       </main>

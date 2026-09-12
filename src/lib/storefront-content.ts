@@ -1,72 +1,31 @@
-export const HERO_ORBIT_FRAMES = [
-  {
-    id: "birthday-gold",
-    image: "/storefront/birthday-gold.png",
-    alt: "Personalised black and gold birthday frame displayed on a shelf",
-  },
-  {
-    id: "anniversary-couple",
-    image: "/storefront/anniversary-couple.png",
-    alt: "Personalised couple anniversary frame displayed beside a sofa",
-  },
-  {
-    id: "bmw",
-    image: "/storefront/bmw-frame.jpg",
-    alt: "Neon yellow BMW artwork in a black frame",
-  },
-  {
-    id: "birthday-pink",
-    image: "/storefront/birthday-pink.png",
-    alt: "Personalised pink birthday frame displayed in a home interior",
-  },
-  {
-    id: "anniversary-collage",
-    image: "/storefront/anniversary-collage.png",
-    alt: "Personalised anniversary collage frame displayed in a warm interior",
-  },
-  {
-    id: "duke",
-    image: "/storefront/duke-frame.jpg",
-    alt: "KTM Duke motorcycle artwork in a black frame",
-  },
-] as const;
-export const SHOP_CATEGORIES = [
-  {
-    label: "Birthday",
-    image: "/storefront/birthday-pink.png",
-    alt: "Personalised birthday frame",
-    href: "/design/start",
-  },
-  {
-    label: "Wedding & Anniversary",
-    image: "/storefront/anniversary-collage.png",
-    alt: "Personalised wedding and anniversary frame",
-    href: "/design/start",
-  },
-  {
-    label: "Cars & Bikes",
-    image: "/storefront/duke-frame.jpg",
-    alt: "Framed motorcycle artwork",
-    href: "/design/start",
-  },
-] as const;
+import { FEATURED_WORKS, HERO_WORKS, WORKS, WORK_CATEGORIES } from "./works";
 
-export const LATEST_CREATIONS = [
-  { image: "/latest-creations/creation-01.jpg", alt: "Light brown 3D minimalist wall frame mockup" },
-  { image: "/latest-creations/creation-02.jpg", alt: "Black and white clean minimalist wall photo frame" },
-  { image: "/latest-creations/creation-03.jpg", alt: "White minimal wall art mockup in a bright interior" },
-  { image: "/latest-creations/creation-04.jpg", alt: "Beige and white minimalist wall art mockup" },
-  { image: "/latest-creations/creation-05.jpg", alt: "Gray modern wall art frame mockup" },
-  { image: "/latest-creations/creation-06.jpg", alt: "Beige and black minimalist wall frame mockup" },
-  { image: "/latest-creations/creation-07.jpg", alt: "Beige and brown three-frame wall mockup" },
-  { image: "/latest-creations/creation-08.jpg", alt: "Grey and yellow six-frame gallery wall mockup" },
-  { image: "/latest-creations/creation-09.jpg", alt: "Gray minimalist luxury wall frame mockup" },
-  { image: "/latest-creations/creation-10.jpg", alt: "Beige minimalist 3D wall frame mockup" },
-  { image: "/latest-creations/creation-11.jpg", alt: "Grey and gold 3D wall frame mockup" },
-  { image: "/latest-creations/creation-12.jpg", alt: "Grey modern 3D wall frame mockup" },
-  { image: "/latest-creations/creation-13.jpg", alt: "Green and pink 3D minimalist wall frame mockup" },
-  { image: "/latest-creations/creation-14.jpg", alt: "Red and black bold wall frame mockup" },
-] as const;
+export const HERO_ORBIT_FRAMES = HERO_WORKS.map(work => ({
+  id: work.id,
+  image: work.image,
+  alt: work.alt,
+  title: work.title,
+  href: `/works/${work.category}`,
+}));
+
+export const SHOP_CATEGORIES = WORK_CATEGORIES.map(category => {
+  const cover = WORKS.find(work => work.id === category.cover);
+  if (!cover) throw new Error(`Missing category cover: ${category.cover}`);
+  return {
+    label: category.label,
+    image: cover.image,
+    alt: cover.alt,
+    href: `/works/${category.id}`,
+    count: WORKS.filter(work => work.category === category.id).length,
+  };
+});
+
+export const LATEST_CREATIONS = FEATURED_WORKS.map(work => ({
+  image: work.image,
+  alt: work.alt,
+  title: work.title,
+  href: `/works/${work.category}`,
+}));
 
 /**
  * Social proof for the landing page.
