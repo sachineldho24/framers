@@ -11,7 +11,7 @@ const HeroMotion = dynamic(
   () => import('./HeroStamp').then((mod) => mod.HeroStamp),
   { ssr: false, loading: () => (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={HERO_ORBIT_FRAMES[0].image} alt={HERO_ORBIT_FRAMES[0].alt} fetchPriority="high" className="h-full w-full object-contain pb-14" />
+    <img src={HERO_ORBIT_FRAMES[0].image} alt={HERO_ORBIT_FRAMES[0].alt} fetchPriority="high" className="h-full w-full object-contain" />
   ) },
 );
 

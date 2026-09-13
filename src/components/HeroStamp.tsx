@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, ArrowRight, Pause, Play } from 'lucide-react';
 import { HERO_ORBIT_FRAMES } from '@/lib/storefront-content';
 
 /* "The Stamp" cycles through six real artworks with a clean wipe.
@@ -19,9 +17,8 @@ export function HeroStamp() {
   const ref = useRef<HTMLDivElement>(null);
   const onScreen = useRef(true);
   const [cycle, setCycle] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const playing = !paused && !reducedMotion;
+  const playing = !reducedMotion;
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -64,10 +61,10 @@ export function HeroStamp() {
   const frame = HERO_ORBIT_FRAMES[cycle % HERO_ORBIT_FRAMES.length];
 
   return (
-    <div ref={ref} aria-label="Featured Framers artwork" aria-roledescription="carousel" className="flex h-full w-full flex-col gap-3">
+    <div ref={ref} aria-label="Featured Framers artwork" aria-roledescription="carousel" className="h-full w-full">
       <div
         key={cycle}
-        className={`${playing ? 'stamp-stage' : ''} relative min-h-0 w-full flex-1`}
+        className={`${playing ? 'stamp-stage' : ''} relative h-full w-full`}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -77,15 +74,7 @@ export function HeroStamp() {
           className={`${playing ? 'stamp-photo' : ''} absolute inset-0 block h-full w-full object-contain`}
         />
       </div>
-      <div className="flex min-h-11 items-center justify-between gap-2 border-t border-outline-variant pt-2">
-        <Link href={frame.href} className="min-w-0 truncate py-2 font-label text-[10px] font-bold uppercase text-on-surface-variant hover:text-neon-accent focus-visible:outline-2 focus-visible:outline-neon-accent">{frame.title} <span aria-hidden="true">↗</span></Link>
-        <div className="flex shrink-0 items-center gap-1">
-          <span className="mr-1 font-label text-[10px] tabular-nums text-outline">{String(cycle % HERO_ORBIT_FRAMES.length + 1).padStart(2, '0')} / 06</span>
-          <button type="button" aria-label="Previous featured artwork" onClick={() => { setPaused(true); setCycle(c => c + HERO_ORBIT_FRAMES.length - 1); }} className="grid h-11 w-9 place-items-center hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-neon-accent"><ArrowLeft size={16} /></button>
-          <button type="button" aria-label={playing ? 'Pause slideshow' : 'Play slideshow'} disabled={reducedMotion} onClick={() => setPaused(value => !value)} className="grid h-11 w-9 place-items-center hover:bg-surface-muted disabled:opacity-30 focus-visible:outline-2 focus-visible:outline-neon-accent">{playing ? <Pause size={14} /> : <Play size={14} />}</button>
-          <button type="button" aria-label="Next featured artwork" onClick={() => { setPaused(true); setCycle(c => c + 1); }} className="grid h-11 w-9 place-items-center hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-neon-accent"><ArrowRight size={16} /></button>
-        </div>
-      </div>
+
     </div>
   );
 }
