@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-/** Supplied horizontal wordmark, with white lettering for the black site theme. */
+/** Original wordmark with the flask mapped to the site's neon green (#CCFF00). */
 export function BrandLogo({
   className = "w-[156px]",
   preload = false,
@@ -10,7 +10,7 @@ export function BrandLogo({
 }) {
   return (
     <Image
-      src="/brand/framers-lab-wordmark.png"
+      src="/brand/framers-lab-wordmark-neon.svg"
       alt="Framers Lab"
       width={1200}
       height={254}
