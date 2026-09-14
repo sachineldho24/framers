@@ -1,0 +1,76 @@
+.backdrop {
+  --poster-height: clamp(160px, max(17vw, 22svh), 280px);
+  --poster-gap: clamp(6px, 0.65vw, 10px);
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #000;
+}
+
+.wall {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: calc(100% + 1000px);
+  transform: translate(-50%, -50%) rotate(10deg) skewX(-8deg);
+}
+
+.track {
+  display: flex;
+  width: max-content;
+  margin-bottom: var(--poster-gap);
+  animation: drift 160s linear infinite;
+  will-change: transform;
+}
+
+.track:nth-child(3n + 2) {
+  animation-duration: 180s;
+  animation-delay: -48s;
+}
+
+.track:nth-child(3n) {
+  animation-duration: 170s;
+  animation-delay: -85s;
+}
+
+.group {
+  display: flex;
+  flex: none;
+  gap: var(--poster-gap);
+  padding-right: var(--poster-gap);
+}
+
+.poster {
+  flex: none;
+  height: var(--poster-height);
+  /* The supplied collage contains fourteen columns and three rows. */
+  aspect-ratio: 8000 / 11335;
+  background-image: url("/hero/poster-collage.webp");
+  background-size: 1400% 300%;
+  background-repeat: no-repeat;
+  background-color: #141414;
+}
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 82%);
+}
+
+.backdrop[data-suspended="true"] .track {
+  animation-play-state: paused;
+}
+
+@keyframes drift {
+  to {
+    transform: translate3d(-25%, 0, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track {
+    animation: none;
+    will-change: auto;
+  }
+}
