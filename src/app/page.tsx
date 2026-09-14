@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
-import { OrbitalAnimationWrapper } from "@/components/OrbitalAnimationWrapper";
+import { HeroBackdrop } from "@/components/HeroBackdrop";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { MobileTopBar } from "@/components/MobileTopBar";
 import { MarqueeBar } from "@/components/MarqueeBar";
@@ -20,27 +20,24 @@ export default function HomePage() {
       </Suspense>
 
       <main className="overflow-x-clip pt-16">
-        {/* ── Hero: mobile stack, viewport-led desktop split ── */}
-        <section className="relative bg-surface px-margin-mobile py-8 sm:py-10 lg:min-h-[calc(100svh-4rem)] lg:px-[clamp(2rem,6vw,6rem)] lg:py-8">
-          <div className="mx-auto grid w-full max-w-[1280px] items-center gap-7 grid-cols-1 lg:min-h-[calc(100svh-8rem)] lg:grid-cols-[minmax(0,0.92fr)_minmax(360px,0.78fr)] lg:gap-[clamp(3rem,7vw,8rem)]">
-            <div className="relative z-20 mx-auto h-[380px] w-full max-w-md sm:h-[440px] md:h-[480px] md:max-w-3xl lg:order-2 lg:h-[min(72svh,620px)] lg:max-w-none">
-              <OrbitalAnimationWrapper />
-            </div>
-
-            <div className="z-30 mx-auto max-w-xl text-center lg:order-1 lg:mx-0 lg:text-left">
-              <h2 className="mb-4 text-[clamp(2rem,8vw,3.75rem)] uppercase leading-[0.94] tracking-[-0.03em] text-on-background lg:text-[clamp(3rem,4.2vw,4.5rem)]">
+        {/* Hero: quiet, slanted poster wall behind the primary message. */}
+        <section className="relative isolate flex min-h-[max(560px,calc(100svh-4rem))] items-center justify-center overflow-hidden bg-surface px-margin-mobile py-24 lg:px-[clamp(2rem,6vw,6rem)]" aria-labelledby="hero-heading">
+          <HeroBackdrop />
+          <div className="relative z-10 mx-auto w-full max-w-[1280px]">
+            <div className="mx-auto max-w-3xl text-center">
+              <h2 id="hero-heading" className="mb-4 text-balance text-[clamp(2rem,8vw,3.75rem)] uppercase leading-[0.94] tracking-[-0.03em] text-on-background lg:text-[clamp(3rem,4.2vw,4.5rem)]">
                 Frame Anything You Love
               </h2>
-              <p className="mx-auto mb-7 max-w-[34rem] text-base leading-relaxed text-on-surface lg:mx-0 lg:text-lg">
+              <p className="mx-auto mb-7 max-w-[34rem] text-base leading-relaxed text-on-surface lg:text-lg">
                 Upload your photo — we print, frame, and ship it to your door.
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-4 lg:justify-start"><Link
+              <div className="flex flex-wrap items-center justify-center gap-4"><Link
                 href="/design/start"
-                className="brutalist-press inline-flex min-h-12 items-center justify-center border-2 border-border-high-contrast bg-primary px-10 py-3.5 font-bold uppercase text-on-primary transition-colors hover:bg-action-red focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-action-red"
+                className="brutalist-press inline-flex min-h-12 items-center justify-center border-2 border-border-high-contrast bg-black px-10 py-3.5 font-bold uppercase text-neon-accent transition-colors hover:bg-neon-accent hover:text-black focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neon-accent"
               >
                 Start Framing
               </Link>
-              <Link href="/works" className="inline-flex min-h-12 items-center gap-3 px-2 font-label text-xs font-bold uppercase text-neon-accent hover:text-white focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neon-accent">Our works <Icon name="arrow_forward" className="text-lg" /></Link></div>
+              <Link href="/works" className="inline-flex min-h-12 items-center gap-3 px-2 font-label text-xs font-bold uppercase text-white hover:text-neon-accent focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-neon-accent">Our works <Icon name="arrow_forward" className="text-lg" /></Link></div>
             </div>
           </div>
         </section>
