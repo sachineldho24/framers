@@ -10,6 +10,7 @@ import { RAIL_ENTRIES } from "./StudioRail";
 import { AdjustPanel } from "./panels/AdjustPanel";
 import { BorderPanel } from "./panels/BorderPanel";
 import { ComingSoonPanel } from "./panels/ComingSoonPanel";
+import { ElementsPanel } from "./panels/ElementsPanel";
 import { ErasePanel } from "./panels/ErasePanel";
 import { FramesPanel } from "./panels/FramesPanel";
 import { LayersPanel } from "./panels/LayersPanel";
@@ -28,11 +29,6 @@ const COMING_SOON: Partial<
     icon: "dashboard",
     title: "Templates are coming",
     body: "Ready-made layouts for common frame sizes. For now, start from your own image in Uploads.",
-  },
-  elements: {
-    icon: "category",
-    title: "Elements are coming",
-    body: "Shapes, lines and graphics you can drop onto the page. Your uploaded images work today.",
   },
   brand: {
     icon: "palette",
@@ -77,7 +73,7 @@ export function StudioFlyout({
       id={panelId}
       role="tabpanel"
       aria-labelledby={`studio-rail-${rail}`}
-      className="studio-panel flex min-h-0 w-[300px] shrink-0 flex-col border-r border-[var(--studio-border)] bg-[var(--studio-chrome)]"
+      className="studio-panel flex min-h-0 w-[300px] shrink-0 flex-col bg-[var(--studio-chrome)]"
     >
       <div className="flex shrink-0 items-center justify-between px-3 pt-3">
         <h2 className="px-1 text-[15px] font-semibold text-[var(--studio-ink)]">
@@ -93,6 +89,7 @@ export function StudioFlyout({
 
       <div className="studio-panel-content min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-2">
         {rail === "tools" && <ToolsPanel />}
+        {rail === "elements" && <ElementsPanel />}
         {rail === "text" && <TextPanel />}
         {rail === "uploads" && (
           <UploadsPanel uploads={uploads} onAddImage={onAddImage} uploading={uploading} error={uploadError} />
@@ -132,7 +129,7 @@ export function StudioToolPanel() {
     <aside
       id="studio-flyout"
       aria-label={titles[tool]}
-      className="studio-panel flex min-h-0 w-[300px] shrink-0 flex-col border-r border-[var(--studio-border)] bg-[var(--studio-chrome)]"
+      className="studio-panel flex min-h-0 w-[300px] shrink-0 flex-col bg-[var(--studio-chrome)]"
     >
       <div className="flex shrink-0 items-center justify-between px-3 pt-3">
         <h2 className="px-1 text-[15px] font-semibold text-[var(--studio-ink)]">

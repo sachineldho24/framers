@@ -61,7 +61,9 @@ export function LayersPanel() {
                         ? "visibility_off"
                         : layer.kind === "text"
                           ? "title"
-                          : "image"
+                          : layer.kind === "shape"
+                            ? "category"
+                            : "image"
                     }
                     className={cx(
                       "shrink-0 text-[17px]",

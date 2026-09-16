@@ -12,6 +12,7 @@ import type { FilterId } from "./filters";
 import { DEFAULT_FILTER } from "./filters";
 import { DEFAULT_FONT_ID, getFont, nearestWeight } from "./fonts";
 import { containBox, coverBox } from "./geometry";
+import { getShape } from "./shapes";
 import {
   DEFAULT_LINE_HEIGHT,
   MAX_FONT_SIZE,
@@ -115,7 +116,7 @@ export interface ImageLayer extends LayerBase {
   strokes: Stroke[];
 }
 
-export type Layer = ImageLayer | TextLayer;
+export type Layer = ImageLayer | TextLayer | ShapeLayer;
 
 /**
  * A text layer.
@@ -148,6 +149,26 @@ export interface TextLayer extends LayerBase {
   /** Outline colour; only drawn when `strokeWidth > 0`. */
   strokeColor: string;
   /** Fraction of `fontSize`. 0 = no outline. */
+  strokeWidth: number;
+}
+
+/**
+ * A vector element.
+ *
+ * The layer stores a catalogue id, not a path. Keeping the geometry in
+ * `shapes.ts` is what lets the canvas, the panel's thumbnails and the flattened
+ * print trace the same commands, and it keeps the document small JSON that
+ * survives a round trip.
+ *
+ * `width`/`height` are the drawn box: every shape is generated to fill it.
+ */
+export interface ShapeLayer extends LayerBase {
+  kind: "shape";
+  /** A `shapes.ts` catalogue id. */
+  shapeId: string;
+  /** Fill for a closed shape, stroke colour for an open one. */
+  color: string;
+  /** Doc px. Ignored by filled shapes. */
   strokeWidth: number;
 }
 
@@ -230,6 +251,10 @@ export function isImageLayer(layer: Layer): layer is ImageLayer {
 
 export function isTextLayer(layer: Layer): layer is TextLayer {
   return layer.kind === "text";
+}
+
+export function isShapeLayer(layer: Layer): layer is ShapeLayer {
+  return layer.kind === "shape";
 }
 
 /** Only image layers have a `src` to resolve, so loaders filter through this. */
@@ -375,6 +400,48 @@ export function createTextLayer(params: {
     uppercase: params.uppercase ?? TEXT_DEFAULTS.uppercase,
     strokeColor: TEXT_DEFAULTS.strokeColor,
     strokeWidth: TEXT_DEFAULTS.strokeWidth,
+  };
+}
+
+export const SHAPE_DEFAULTS = {
+  color: "#111111",
+  /** Doc px. Only open shapes read it. */
+  strokeWidth: 12,
+};
+
+/** A stroke thicker than this stops being a line and becomes a blob. */
+export const MAX_SHAPE_STROKE = 400;
+
+export function createShapeLayer(params: {
+  shapeId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  name?: string;
+  color?: string;
+  strokeWidth?: number;
+}): ShapeLayer {
+  return {
+    id: createId("shp"),
+    kind: "shape",
+    // Named after the element, so the layer list reads "Heart", not "Shape".
+    name: params.name ?? getShape(params.shapeId)?.label ?? "Shape",
+    x: params.x,
+    y: params.y,
+    width: params.width,
+    height: params.height,
+    rotation: 0,
+    opacity: 1,
+    locked: false,
+    visible: true,
+    shapeId: params.shapeId,
+    color: colour(params.color, SHAPE_DEFAULTS.color),
+    strokeWidth: clamp(
+      num(params.strokeWidth, SHAPE_DEFAULTS.strokeWidth),
+      0,
+      MAX_SHAPE_STROKE
+    ),
   };
 }
 
@@ -557,10 +624,40 @@ function coerceImageLayer(v: Partial<ImageLayer>): Layer | null {
   };
 }
 
+function coerceShapeLayer(v: Partial<ShapeLayer>): Layer | null {
+  // An id the catalogue no longer ships has no geometry left to draw, so the
+  // layer is dropped rather than left on the page as an invisible box that
+  // still answers to clicks.
+  const shapeId = str(v.shapeId, "");
+  const def = getShape(shapeId);
+  if (!def) return null;
+  return {
+    id: str(v.id, createId("shp")),
+    kind: "shape",
+    name: str(v.name, def.label),
+    x: num(v.x, 0),
+    y: num(v.y, 0),
+    width: Math.max(1, num(v.width, 100)),
+    height: Math.max(1, num(v.height, 100)),
+    rotation: num(v.rotation, 0),
+    opacity: clamp01(num(v.opacity, 1)),
+    locked: bool(v.locked, false),
+    visible: bool(v.visible, true),
+    shapeId,
+    color: colour(v.color, SHAPE_DEFAULTS.color),
+    strokeWidth: clamp(
+      num(v.strokeWidth, SHAPE_DEFAULTS.strokeWidth),
+      0,
+      MAX_SHAPE_STROKE
+    ),
+  };
+}
+
 function coerceLayer(value: unknown): Layer | null {
   const v = (value ?? {}) as Partial<Layer>;
   if (v.kind === "text") return coerceTextLayer(v as Partial<TextLayer>);
   if (v.kind === "image") return coerceImageLayer(v as Partial<ImageLayer>);
+  if (v.kind === "shape") return coerceShapeLayer(v as Partial<ShapeLayer>);
   return null;
 }
 
@@ -692,7 +789,8 @@ export function cloneDocument(doc: StudioDocument): StudioDocument {
 
 /** Deep enough that editing the copy can never reach the original's nested state. */
 export function cloneLayer(layer: Layer): Layer {
-  if (layer.kind === "text") return { ...layer };
+  // Only an image layer owns nested objects; everything else is flat.
+  if (layer.kind !== "image") return { ...layer };
   return {
     ...layer,
     crop: { ...layer.crop },

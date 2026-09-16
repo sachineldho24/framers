@@ -98,22 +98,23 @@ export async function POST(request: Request) {
     return err("not_found", "Frame not found.", 404);
   }
 
-  // Price = base + style + finish modifiers, all from the DB. Never trust the
-  // client's amount. Validate the chosen style/finish exist if provided.
-  let amountPaise = frame.price_paise;
+  // Flat pricing: the frame's own price, read from the DB. Never trust the
+  // client's amount, and never add a style or finish upcharge - the moulding
+  // and the glazing change how the frame is made, not what it costs. The
+  // chosen rows are still validated and still recorded on the order, because
+  // the bench builds the job from them (see migration 0011).
+  const amountPaise = frame.price_paise;
   let frameStyleId: string | null = null;
   let finishId: string | null = null;
 
   if (body.frameStyleId) {
     const style = await getFrameStyleById(body.frameStyleId);
     if (!style) return err("bad_request", "Invalid frame style.", 400);
-    amountPaise += style.price_modifier_paise;
     frameStyleId = style.id;
   }
   if (body.finishId) {
     const finish = await getFinishById(body.finishId);
     if (!finish) return err("bad_request", "Invalid finish.", 400);
-    amountPaise += finish.price_modifier_paise;
     finishId = finish.id;
   }
 

@@ -13,7 +13,7 @@ const MAX_BYTES = 30 * 1024 * 1024; // 30 MB
 /**
  * Step 2 — Upload. Split-screen: left copy + CTAs, right hard dashed drop-zone.
  * Preview is ephemeral (objectURL); the file is uploaded to Storage now so the
- * size/frame steps can reference a stable path, but nothing is ordered yet.
+ * size and review steps can reference a stable path, but nothing is ordered yet.
  *
  * Two ways in, because the photo isn't always what someone starts from. Upload
  * Image is the primary path and stays first. Open Studio skips ahead to the
@@ -161,7 +161,7 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
       </section>
 
       {/* Right — drop zone */}
-      <section className="flex items-center justify-center border-t-2 border-border-high-contrast bg-surface-muted px-margin-mobile py-16 md:border-l-2 md:border-t-0">
+      <section className="flex items-center justify-center bg-surface-muted px-margin-mobile py-16">
         <div
           onDragOver={(e) => {
             e.preventDefault();

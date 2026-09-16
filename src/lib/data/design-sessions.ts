@@ -6,6 +6,14 @@ export async function createDesignSession(input: {
   userId: string;
   designSource: DesignSource;
   frameId?: string | null;
+  /**
+   * The moulding and glazing the order will be built with. There is no step
+   * that asks for them, so the caller passes the house defaults (migration
+   * 0011 makes every style the same price); they are stored on the session so
+   * Review and the bench read one answer rather than each inventing one.
+   */
+  frameStyleId?: string | null;
+  finishId?: string | null;
 }): Promise<DesignSession> {
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -14,6 +22,8 @@ export async function createDesignSession(input: {
       user_id: input.userId,
       design_source: input.designSource,
       frame_id: input.frameId ?? null,
+      frame_style_id: input.frameStyleId ?? null,
+      finish_id: input.finishId ?? null,
     })
     .select("*")
     .single();

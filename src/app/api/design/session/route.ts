@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createDesignSession } from "@/lib/data/design-sessions";
+import { getActiveFrameStyles } from "@/lib/data/frame-styles";
+import { getActiveFinishes } from "@/lib/data/finishes";
 import { getFrameById } from "@/lib/data/frames";
 
 function err(code: string, message: string, status: number) {
@@ -32,10 +34,21 @@ export async function POST(request: Request) {
   }
 
   try {
+    // The house moulding and glazing, in catalogue order. Nothing asks the
+    // buyer for them - the style step is gone and 0011 made every style the
+    // same price - so they are decided here, once, and recorded on the session
+    // where Review and the framing bench both read them.
+    const [styles, finishes] = await Promise.all([
+      getActiveFrameStyles(),
+      getActiveFinishes(),
+    ]);
+
     const session = await createDesignSession({
       userId: user.id,
       designSource: "upload",
       frameId,
+      frameStyleId: styles[0]?.id ?? null,
+      finishId: finishes[0]?.id ?? null,
     });
     return NextResponse.json({ sessionId: session.id });
   } catch (e) {

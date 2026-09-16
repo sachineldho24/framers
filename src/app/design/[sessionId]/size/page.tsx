@@ -5,7 +5,6 @@ import { SizeStep } from "@/components/designer/SizeStep";
 import { getCurrentUser } from "@/lib/auth-server";
 import { getDesignSession } from "@/lib/data/design-sessions";
 import { getActiveFrames } from "@/lib/data/frames";
-import { getActiveFinishes } from "@/lib/data/finishes";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Size — Framers" };
@@ -22,10 +21,7 @@ export default async function SizeStepPage({
   const session = await getDesignSession(sessionId);
   if (!session || session.user_id !== user.id) notFound();
 
-  const [frames, finishes] = await Promise.all([
-    getActiveFrames(),
-    getActiveFinishes(),
-  ]);
+  const frames = await getActiveFrames();
 
   return (
     <>
@@ -33,7 +29,6 @@ export default async function SizeStepPage({
       <SizeStep
         sessionId={sessionId}
         frames={frames}
-        finishes={finishes}
       />
     </>
   );

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Frame, Finish } from "@/lib/supabase/types";
+import type { Frame } from "@/lib/supabase/types";
 import { formatPaise } from "@/lib/format";
 import { patchDesignerState } from "@/lib/designer-state";
 import { useDesignerState } from "@/lib/useDesignerState";
@@ -26,8 +27,6 @@ export function SizeStep({
 }: {
   sessionId: string;
   frames: Frame[];
-  /** Accepted so the route's props stay symmetric with the other steps. */
-  finishes?: Finish[];
 }) {
   const router = useRouter();
   const { imageSrc } = useDesignerImage(sessionId);
@@ -136,7 +135,8 @@ export function SizeStep({
     setSaving(true);
     setSaveError(null);
     try {
-      // Persist the chosen frame to the DB so the /frame page server-check passes.
+      // Persist the chosen frame before the editor opens: the editor and Review
+      // both read the size from the session row, not from this browser.
       const res = await fetch(`/api/design/session/${sessionId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -151,7 +151,7 @@ export function SizeStep({
       setSaving(false);
       return;
     }
-    router.push(`/design/${sessionId}/frame`);
+    router.push(`/design/${sessionId}/edit`);
   }
 
   return (
@@ -226,6 +226,31 @@ export function SizeStep({
                 {f.name}
               </button>
             ))}
+            <span className="group relative inline-flex">
+              <button
+                type="button"
+                className="border-2 border-dashed border-border-high-contrast bg-surface px-4 py-2 font-bold uppercase text-on-background transition-all group-hover:bg-black group-hover:text-white group-focus-within:bg-black group-focus-within:text-white"
+              >
+                Need custom frame
+              </button>
+              <div className="absolute left-0 top-full z-20 hidden w-64 max-w-[70vw] pt-2 group-hover:block group-focus-within:block">
+                <div className="brutalist-shadow border-2 border-border-high-contrast bg-surface p-4">
+                  <p className="label-caps text-on-surface-variant">
+                    Made to order
+                  </p>
+                  <p className="mt-2 text-[14px] text-on-surface-variant">
+                    Bigger, smaller or a different shape? We quote those by
+                    hand.
+                  </p>
+                  <Link
+                    href="/contact"
+                    className="brutalist-press label-caps mt-3 inline-flex bg-black px-4 py-2 text-white"
+                  >
+                    Contact us
+                  </Link>
+                </div>
+              </div>
+            </span>
           </div>
         </div>
 
@@ -291,12 +316,12 @@ export function SizeStep({
           disabled={saving}
           className="brutalist-shadow brutalist-press mt-10 w-full max-w-md bg-action-red py-5 font-bold uppercase tracking-widest text-white disabled:opacity-60"
         >
-          {saving ? "Saving…" : "Next: Pick a Frame"}
+          {saving ? "Saving…" : "Next: Design"}
         </button>
       </section>
 
       {/* Right — live preview */}
-      <section className="flex items-center justify-center border-t-2 border-border-high-contrast bg-surface-muted px-margin-mobile py-12 md:border-l-2 md:border-t-0">
+      <section className="flex items-center justify-center bg-surface-muted px-margin-mobile py-12">
         <div className="w-full max-w-sm">
           <FramePreview
             widthMm={frame.width_mm}

@@ -48,7 +48,7 @@ export function StudioRail({ panelId }: { panelId: string }) {
       role="tablist"
       aria-label="Studio panels"
       aria-orientation={compact ? "horizontal" : "vertical"}
-      className="studio-rail flex w-[85px] shrink-0 flex-col items-center gap-1 border-r border-[var(--studio-border)] bg-[var(--studio-chrome)] py-3"
+      className="studio-rail flex w-[85px] shrink-0 flex-col items-center gap-1 bg-[var(--studio-chrome)] py-3"
     >
       {entries.map((entry) => {
         const active = rail === entry.id;

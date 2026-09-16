@@ -80,7 +80,7 @@ export function StudioTopBar({
 
   return (
     <header
-      className="studio-topbar flex h-14 shrink-0 items-center gap-2 border-b border-[var(--studio-border)] bg-[var(--studio-chrome)] px-3"
+      className="studio-topbar flex h-14 shrink-0 items-center gap-2 bg-[var(--studio-chrome)] px-3"
       style={{ zIndex: 30 }}
     >
       <Link

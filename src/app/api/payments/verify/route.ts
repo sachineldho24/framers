@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { verifyPaymentSignature } from "@/lib/razorpay";
 import { getOrderByRazorpayId, markOrderPaid } from "@/lib/data/orders";
+import { sendNewOrderAlert } from "@/lib/notify/new-order-alert";
 
 function err(code: string, message: string, status: number) {
   return NextResponse.json({ error: { code, message } }, { status });
@@ -52,6 +53,14 @@ export async function POST(request: Request) {
     return err("not_found", "Order not found.", 404);
   }
 
-  await markOrderPaid(razorpay_order_id, razorpay_payment_id);
+  const paidOrderId = await markOrderPaid(
+    razorpay_order_id,
+    razorpay_payment_id
+  );
+  // The webhook may have settled this order first, in which case this is null
+  // and the alert has already gone out - stay quiet. Awaited rather than fired
+  // and forgotten: a serverless function can be frozen the moment it responds.
+  if (paidOrderId) await sendNewOrderAlert(paidOrderId);
+
   return NextResponse.json({ orderId: order.id });
 }

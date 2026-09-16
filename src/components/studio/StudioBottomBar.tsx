@@ -86,7 +86,7 @@ export function StudioBottomBar({
   }
 
   return (
-    <footer className="studio-bottom-bar flex h-11 shrink-0 items-center gap-1 border-t border-[var(--studio-border)] bg-[var(--studio-chrome)] px-3">
+    <footer className="studio-bottom-bar flex h-11 shrink-0 items-center gap-1 bg-[var(--studio-chrome)] px-3">
       <IconButton
         icon="remove"
         label="Zoom out"

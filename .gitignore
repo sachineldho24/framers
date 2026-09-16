@@ -43,6 +43,7 @@ next-env.d.ts
 
 .vercel
 .env*
+!.env.local.example
 
 # scratch / local tooling
 /tmp
@@ -63,6 +64,7 @@ rzp-key.csv
 /Animations_Sample
 /posterx_posters
 /download_posters.sh
+/public/hero-posters/
 
 # Local gallery authoring, downloaded references, and review output.
 # Only the optimized deployment assets in /public/gallery-assets are shipped.

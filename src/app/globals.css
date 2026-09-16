@@ -293,18 +293,32 @@ h3 {
  * specificity — (0,2,0) vs (0,0,0) — with both marked !important, so studio
  * components opt into a radius declaratively instead of each one needing its
  * own override rule.
+ *
+ * Chrome regions - top bar, rail, panels, bottom bar - butt straight onto the
+ * canvas: --studio-chrome against --studio-canvas-bg is the separation. None of
+ * them draws a rule against a neighbour.
  */
 .studio-root {
   --studio-accent: #7c5cff;
   --studio-accent-soft: #241b42;
   --studio-chrome: #000000;
   --studio-surface: #141414;
-  --studio-canvas-bg: #111111;
+  --studio-canvas-bg: #1a1a1a;
+  --studio-canvas-dot: #3a3a42;
   --studio-border: #3d3d43;
   --studio-ink: #f5f5f5;
   --studio-ink-muted: #aaaab4;
   font-family: var(--font-body);
   color: var(--studio-ink);
+}
+
+/* The workspace behind the page. A dot grid gives panning and zooming a fixed
+   reference frame: on a flat fill, a page dragged to a new spot looks exactly
+   like one that never moved. */
+.studio-canvas-grid {
+  background-color: var(--studio-canvas-bg);
+  background-image: radial-gradient(var(--studio-canvas-dot) 1px, transparent 1px);
+  background-size: 16px 16px;
 }
 
 .studio-root h1,
@@ -374,8 +388,6 @@ h3 {
     order: 1;
     width: 100%;
     height: min(32%, 320px);
-    border-right: 0;
-    border-top: 1px solid var(--studio-border);
   }
   .studio-panel-content { touch-action: pan-y; }
   .studio-rail {
@@ -384,8 +396,6 @@ h3 {
     width: 100%;
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    border-right: 0;
-    border-top: 1px solid var(--studio-border);
     padding: 4px 8px max(4px, env(safe-area-inset-bottom));
     gap: 2px;
     scrollbar-width: none;
@@ -422,7 +432,6 @@ h3 {
     gap: 8px;
     padding: 4px 8px;
     overflow-x: auto;
-    border-top: 1px solid var(--studio-border);
     background: var(--studio-chrome);
     scrollbar-width: none;
   }
@@ -458,7 +467,7 @@ h3 {
     grid-template-rows: minmax(0, 1fr) auto;
   }
   .studio-main { grid-column: 1; grid-row: 1; }
-  .studio-panel { grid-column: 2; grid-row: 1; height: 100%; border-top: 0; border-left: 1px solid var(--studio-border); }
+  .studio-panel { grid-column: 2; grid-row: 1; height: 100%; }
   .studio-rail { grid-column: 1 / -1; grid-row: 2; }
   .studio-workspace:not(:has(.studio-panel)) .studio-main,
   .studio-root[data-editing] .studio-main { grid-column: 1 / -1; }

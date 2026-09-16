@@ -278,7 +278,9 @@ function ShellInner({
       // put two layers with one id (or one shared crop) into the document.
       layer: {
         ...cloneLayer(source),
-        id: createId(source.kind === "text" ? "txt" : "img"),
+        id: createId(
+          source.kind === "text" ? "txt" : source.kind === "shape" ? "shp" : "img"
+        ),
         x: source.x + 16,
         y: source.y + 16,
       },

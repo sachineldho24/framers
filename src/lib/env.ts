@@ -60,9 +60,30 @@ export const serverEnv = {
   get emailFrom() {
     return required("EMAIL_FROM", process.env.EMAIL_FROM);
   },
+  /**
+   * Where new-order alerts land - the bench inbox that starts a framing job.
+   * Deliberately not defaulted to `EMAIL_FROM`: a sender identity and a
+   * mailbox an operator reads are different things, and silently mailing
+   * alerts to the From address is how they end up unread.
+   */
+  get orderNotificationEmail() {
+    return required(
+      "ORDER_NOTIFICATION_EMAIL",
+      process.env.ORDER_NOTIFICATION_EMAIL
+    );
+  },
 };
 
 /** True if a transactional email provider is wired up. */
 export function isEmailConfigured(): boolean {
   return Boolean(process.env.EMAIL_API_KEY && process.env.EMAIL_FROM);
+}
+
+/**
+ * True if the new-order alert can be sent. Distinct from `isEmailConfigured`
+ * because the alert additionally needs somewhere to go - customer-facing
+ * fulfilment mail does not.
+ */
+export function isOrderAlertConfigured(): boolean {
+  return isEmailConfigured() && Boolean(process.env.ORDER_NOTIFICATION_EMAIL);
 }

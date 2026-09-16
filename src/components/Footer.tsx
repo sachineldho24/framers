@@ -24,6 +24,9 @@ export function Footer() {
           <Link href="/terms" className="label-caps hover:text-neon-accent">
             Terms
           </Link>
+          <Link href="/contact" className="label-caps hover:text-neon-accent">
+            Contact
+          </Link>
         </div>
       </div>
     </footer>

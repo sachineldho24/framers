@@ -914,7 +914,7 @@ export function StudioCanvas({
   return (
     <div
       ref={wrapRef}
-      className="relative h-full w-full overflow-hidden bg-[var(--studio-canvas-bg)]"
+      className="studio-canvas-grid relative h-full w-full overflow-hidden"
     >
       <canvas
         ref={canvasRef}

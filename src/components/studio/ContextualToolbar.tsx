@@ -18,11 +18,19 @@
  * the eraser, which does the same job by hand.
  */
 
-import type { ImageLayer, Layer, TextLayer } from "@/lib/studio/document";
+import type {
+  ImageLayer,
+  Layer,
+  ShapeLayer,
+  TextLayer,
+} from "@/lib/studio/document";
+import { MAX_SHAPE_STROKE } from "@/lib/studio/document";
+import { getShape } from "@/lib/studio/shapes";
 import { useStudio } from "@/lib/studio/StudioContext";
 import { textLayerHeight } from "@/lib/studio/textMeasure";
 
 import { Icon } from "@/components/Icon";
+import { STUDIO_SWATCHES } from "./palette";
 import { cx } from "./ui";
 
 function Divider() {
@@ -54,6 +62,7 @@ export function ContextualToolbar({
   onBgRemover: () => void;
 }) {
   if (layer.kind === "text") return <TextToolbar layer={layer} />;
+  if (layer.kind === "shape") return <ShapeToolbar layer={layer} />;
   return <ImageToolbar layer={layer} onBgRemover={onBgRemover} />;
 }
 
@@ -203,6 +212,97 @@ function ImageToolbar({
         active={tool === "adjust"}
         onClick={() => setTool(tool === "adjust" ? "select" : "adjust")}
       />
+      <PillButton
+        icon="stacks"
+        label="Position"
+        active={tool === "layers"}
+        onClick={() => setTool(tool === "layers" ? "select" : "layers")}
+      />
+    </Pill>
+  );
+}
+
+/**
+ * A selected element.
+ *
+ * The swatches are the same palette the text tool offers, inline because a
+ * shape's colour is the one thing people change on it, and a whole panel for
+ * five colours would be a detour. Weight is only meaningful for an open shape -
+ * there is no stroke on a filled one to thicken - so those two buttons appear
+ * only for lines.
+ */
+function ShapeToolbar({ layer }: { layer: ShapeLayer }) {
+  const { apply, tool, setTool, setRail } = useStudio();
+  const def = getShape(layer.shapeId);
+  const open = def?.mode === "stroke";
+  const current = layer.color.toLowerCase();
+
+  const colour = (color: string) =>
+    apply({ type: "setShapeStyle", layerId: layer.id, patch: { color } });
+
+  const weigh = (factor: number) =>
+    apply({
+      type: "setShapeStyle",
+      layerId: layer.id,
+      patch: {
+        strokeWidth: Math.min(
+          MAX_SHAPE_STROKE,
+          Math.max(1, layer.strokeWidth * factor)
+        ),
+      },
+    });
+
+  return (
+    <Pill>
+      <button
+        type="button"
+        onClick={() => setRail("elements")}
+        data-r="full"
+        className="flex h-7 items-center gap-1 px-2 text-[12px] font-medium text-[var(--studio-ink)] transition-colors hover:bg-white/[0.055]"
+        title="Swap the element"
+      >
+        <Icon name="category" className="text-[15px]" />
+        Elements
+      </button>
+
+      <Divider />
+
+      {STUDIO_SWATCHES.slice(0, 5).map((swatch) => (
+        <button
+          key={swatch}
+          type="button"
+          data-r="full"
+          aria-label={`Use ${swatch}`}
+          aria-pressed={current === swatch}
+          onClick={() => colour(swatch)}
+          className={cx(
+            "mx-0.5 h-5 w-5 shrink-0 border transition-transform hover:scale-110",
+            current === swatch
+              ? "border-[var(--studio-accent)]"
+              : "border-[var(--studio-border)]"
+          )}
+          style={{ backgroundColor: swatch }}
+        />
+      ))}
+
+      {open && (
+        <>
+          <Divider />
+          <PillButton
+            icon="remove"
+            label="Thinner line"
+            onClick={() => weigh(0.8)}
+          />
+          <PillButton
+            icon="add"
+            label="Thicker line"
+            onClick={() => weigh(1.25)}
+          />
+        </>
+      )}
+
+      <Divider />
+
       <PillButton
         icon="stacks"
         label="Position"

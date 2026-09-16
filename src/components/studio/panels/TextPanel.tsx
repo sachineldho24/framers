@@ -45,6 +45,7 @@ import { textLayerHeight } from "@/lib/studio/textMeasure";
 import { TEXT_PRESETS, TEXT_PRESET_ORDER } from "@/lib/studio/textInsert";
 
 import { Icon } from "@/components/Icon";
+import { STUDIO_SWATCHES as SWATCHES } from "../palette";
 import {
   EmptyState,
   IconButton,
@@ -54,23 +55,6 @@ import {
   cx,
 } from "../ui";
 import { useInsertText } from "../useInsertText";
-
-/**
- * A poster palette rather than a colour wheel: the brand pair, the neutrals, and
- * a few hues that survive matte paper. The picker is still there for the rest.
- */
-const SWATCHES = [
-  "#111111",
-  "#ffffff",
-  "#ff0000",
-  "#ccff00",
-  "#f5c518",
-  "#1c5cff",
-  "#0f8a5f",
-  "#e6e0cf",
-  "#8a8a92",
-  "#6a2fd0",
-];
 
 export function TextPanel() {
   const { doc, selectedLayer, apply, endGesture, setEditingId, printSize } =

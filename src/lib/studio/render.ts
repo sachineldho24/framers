@@ -10,11 +10,12 @@
  *   4. composite the result onto the page at the layer's opacity
  */
 
-import type { ImageLayer, StudioDocument, TextLayer } from "./document";
+import type { ImageLayer, ShapeLayer, StudioDocument, TextLayer } from "./document";
 import { borderInsetPx } from "./document";
 import { buildFilterString } from "./filters";
 import { fontShorthand } from "./fonts";
 import { degToRad, type Viewport } from "./geometry";
+import { getShape, type ShapeCommand } from "./shapes";
 import {
   alignOffsetX,
   alignOffsetY,
@@ -352,6 +353,78 @@ function drawPageBorder(
   ctx.restore();
 }
 
+/* -------------------------------------------------------------------------- */
+/* Shapes                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Trace a shape's commands onto a context.
+ *
+ * Deliberately not `Path2D`: the print path runs the same commands through the
+ * same tracer, and `Path2D` doesn't exist in every canvas implementation the
+ * export code has to survive.
+ */
+function traceShapeCommands(
+  ctx: AnyCtx,
+  commands: readonly ShapeCommand[]
+): void {
+  ctx.beginPath();
+  for (const c of commands) {
+    if (c.c === "M") ctx.moveTo(c.x, c.y);
+    else if (c.c === "L") ctx.lineTo(c.x, c.y);
+    else if (c.c === "Q") ctx.quadraticCurveTo(c.x1, c.y1, c.x, c.y);
+    else if (c.c === "C") ctx.bezierCurveTo(c.x1, c.y1, c.x2, c.y2, c.x, c.y);
+    else ctx.closePath();
+  }
+}
+
+/**
+ * Draw a vector element into the layer's box.
+ *
+ * Filled and stroked shapes are different jobs, and only the *shape* knows
+ * which one it is: filling a polyline would paint a region the user never
+ * drew. Stroke width is stored in doc px, so it is scaled here rather than in
+ * the model - a line keeps its weight in the print at whatever size it is
+ * displayed.
+ */
+function drawShapeLayer(
+  ctx: AnyCtx,
+  layer: ShapeLayer,
+  destW: number,
+  destH: number,
+  scale: number
+): void {
+  const def = getShape(layer.shapeId);
+  if (!def) return;
+
+  const commands = def.path(destW, destH);
+  if (commands.length === 0) return;
+
+  ctx.save();
+
+  if (def.mode === "fill") {
+    ctx.fillStyle = layer.color;
+    traceShapeCommands(ctx, commands);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+
+  const width = Math.max(0.25, layer.strokeWidth * scale);
+  ctx.strokeStyle = layer.color;
+  ctx.lineWidth = width;
+  ctx.lineCap = def.lineCap ?? "round";
+  ctx.lineJoin = "round";
+  if (def.dash && def.dash.length > 0) {
+    // The pattern is in multiples of the stroke width, so it thickens with the
+    // line instead of turning into a solid stroke when the width grows.
+    ctx.setLineDash(def.dash.map((d) => d * width));
+  }
+  traceShapeCommands(ctx, commands);
+  ctx.stroke();
+  ctx.restore();
+}
+
 /** Draw the whole document. */
 export function drawDocument(
   ctx: AnyCtx,
@@ -422,6 +495,8 @@ export function drawDocument(
 
     if (layer.kind === "text") {
       drawTextLayer(ctx, layer, destW, destH, viewport.scale);
+    } else if (layer.kind === "shape") {
+      drawShapeLayer(ctx, layer, destW, destH, viewport.scale);
     } else if (image) {
       drawLayerContent(ctx, layer, image, destW, destH, options);
     }

@@ -21,7 +21,7 @@ export function MobileTextEditor({ layer }: { layer: TextLayer }) {
   };
 
   return (
-    <div className="studio-text-entry flex shrink-0 items-center gap-2 border-t border-[var(--studio-border)] bg-[var(--studio-chrome)] p-2">
+    <div className="studio-text-entry flex shrink-0 items-center gap-2 bg-[var(--studio-chrome)] p-2">
       <textarea
         ref={input}
         aria-label="Edit text"

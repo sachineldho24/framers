@@ -4,7 +4,7 @@ import Link from "next/link";
 
 import { Icon } from "@/components/Icon";
 
-export type DesignerStep = "upload" | "size" | "frame" | "edit" | "review";
+export type DesignerStep = "upload" | "size" | "edit" | "review";
 
 // `edit` is the studio. It renders full-screen without this chrome (it owns its
 // own top bar), but it still belongs in the breadcrumb so the other steps show
@@ -12,22 +12,22 @@ export type DesignerStep = "upload" | "size" | "frame" | "edit" | "review";
 const STEPS: { key: DesignerStep; label: string }[] = [
   { key: "upload", label: "Upload" },
   { key: "size", label: "Size" },
-  { key: "frame", label: "Frame" },
   { key: "edit", label: "Edit" },
   { key: "review", label: "Review" },
 ];
 
 /**
- * Fixed top bar for the designer flow: black background, contrasting bottom border
- * (DESIGN.md Nav rule), position + always-visible EXIT.
+ * Fixed top bar for the designer flow: black background, position +
+ * always-visible EXIT. No rule underneath it - the progress bar is the only
+ * line this header draws.
  *
  * Three things are load-bearing here:
  *
  * - The whole header is exactly 56px, because every step pads its own `<main>`
  *   with `pt-14` to clear it. The progress rail is therefore absolutely
- *   positioned *on* the bottom border rather than laid out below it.
- * - Five crumbs and four separators do not fit at 375px, so below `sm` the
- *   trail collapses to "Step 5 of 5 · Review" and the rail carries the
+ *   positioned on the header's bottom edge rather than laid out below it.
+ * - Four crumbs and three separators do not fit at 375px, so below `sm` the
+ *   trail collapses to "Step 4 of 4 · Review" and the rail carries the
  *   progress. A trail that wraps or scrolls sideways is worse than a readout.
  * - A readout is not navigation, though, and the crumbs were the flow's *only*
  *   way back — so below `sm` there is also a back arrow to the previous step.
@@ -51,7 +51,7 @@ export function DesignerChrome({
   const prev = currentIdx > 0 ? STEPS[currentIdx - 1] : null;
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-border-high-contrast bg-surface">
+    <header className="fixed inset-x-0 top-0 z-50 bg-surface">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-margin-mobile">
         {/* Compact position readout + the only way back — mobile only. */}
         <div className="flex items-center gap-1 sm:hidden">
@@ -124,7 +124,7 @@ export function DesignerChrome({
         </Link>
       </div>
 
-      {/* Progress rail, sitting on the header's own bottom border so the bar
+      {/* Progress rail, sitting on the header's own bottom edge so the bar
           stays 56px tall and every step's `pt-14` still clears it. */}
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-[3px]">
         <div className="h-full bg-action-red" style={{ width: `${pct}%` }} />

@@ -67,10 +67,9 @@ export function ReviewStep({
   const imageSrc = printUrl ?? upload.imageSrc;
   const edited = Boolean(printPath);
 
-  const total =
-    frame.price_paise +
-    (style?.price_modifier_paise ?? 0) +
-    (finish?.price_modifier_paise ?? 0);
+  // Flat pricing: the same figure the Size and Frame steps quoted, and the same
+  // one `create-order` will charge.
+  const total = frame.price_paise;
 
   const finalWIn = (frame.width_mm / MM_PER_INCH).toFixed(1);
   const finalHIn = (frame.height_mm / MM_PER_INCH).toFixed(1);
@@ -257,18 +256,6 @@ export function ReviewStep({
               question at exactly the wrong moment. */}
           <div className="mt-8 space-y-4 border-t-2 border-border-high-contrast pt-6">
             <PriceRow k={`Frame — ${frame.name}`} v={frame.price_paise} />
-            {style && style.price_modifier_paise > 0 && (
-              <PriceRow
-                k={`Style — ${style.name}`}
-                v={style.price_modifier_paise}
-              />
-            )}
-            {finish && finish.price_modifier_paise > 0 && (
-              <PriceRow
-                k={`Finish — ${finish.name}`}
-                v={finish.price_modifier_paise}
-              />
-            )}
             <div className="flex items-center justify-between">
               <span className="label-caps text-on-surface-variant">
                 Shipping

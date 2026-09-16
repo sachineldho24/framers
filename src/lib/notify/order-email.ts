@@ -1,34 +1,27 @@
 import "server-only";
 
 import { appendOrderEvent } from "@/lib/data/order-events";
-import { isEmailConfigured, publicEnv, serverEnv } from "@/lib/env";
+import { isEmailConfigured, publicEnv } from "@/lib/env";
 import { formatPaise, shortOrderId } from "@/lib/format";
+import { deliver, type Message } from "@/lib/notify/mailer";
 import type { OrderStatus, OrderWithFrame } from "@/lib/supabase/types";
 
 /**
- * Ship / deliver notifications.
+ * Ship / deliver notifications to the customer.
  *
- * The provider is **not yet provisioned** — that goes through the Vercel
- * Marketplace (`vercel integration discover --category messaging`), which needs
- * the CLI installed and this folder linked. Until `EMAIL_API_KEY` and
- * `EMAIL_FROM` exist, `sendFulfilmentEmail` composes the message, records that
- * it could not be sent on the order's timeline, and returns — the status change
- * itself has already been written and must not fail for want of an email.
- *
- * When the integration lands, `deliver()` is the only function that changes.
+ * Transport lives in `mailer.ts`; this module only decides what to say and when
+ * it is worth saying. Until `EMAIL_API_KEY` and `EMAIL_FROM` exist,
+ * `sendFulfilmentEmail` composes the message, records on the order's timeline
+ * that it could not be sent, and returns - the status change itself has already
+ * been written and must not fail for want of an email.
  */
 
-interface Composed {
-  subject: string;
-  text: string;
-}
-
-function compose(order: OrderWithFrame, status: OrderStatus): Composed {
+function compose(order: OrderWithFrame, status: OrderStatus): Message {
   const ref = order.short_ref ?? shortOrderId(order.id);
   const url = `${publicEnv.appUrl}/orders/${order.id}`;
   const consignment = [order.courier, order.tracking_number]
     .filter(Boolean)
-    .join(" · ");
+    .join(" | ");
 
   if (status === "shipped") {
     return {
@@ -41,8 +34,8 @@ function compose(order: OrderWithFrame, status: OrderStatus): Composed {
         "",
         `Track it here: ${url}`,
         "",
-        `Order #${ref} · ${formatPaise(order.amount_paise)}`,
-        "— Framers",
+        `Order #${ref} | ${formatPaise(order.amount_paise)}`,
+        "- Framers",
       ]
         .filter((line) => line !== "")
         .join("\n"),
@@ -50,7 +43,7 @@ function compose(order: OrderWithFrame, status: OrderStatus): Composed {
   }
 
   return {
-    subject: `Delivered — Framers order #${ref}`,
+    subject: `Delivered - Framers order #${ref}`,
     text: [
       `Hi ${order.customer_name.split(" ")[0]},`,
       "",
@@ -59,32 +52,8 @@ function compose(order: OrderWithFrame, status: OrderStatus): Composed {
       `Order details: ${url}`,
       "",
       `Order #${ref}`,
-      "— Framers",
+      "- Framers",
     ].join("\n"),
-  };
-}
-
-/**
- * Hand the composed message to the provider. Throws on a provider error so the
- * caller can log it; the caller never lets that failure reach the operator's
- * write.
- */
-async function deliver(
-  to: string,
-  message: Composed
-): Promise<{ sent: boolean; detail: string }> {
-  // Reading the getters proves the keys are really there before we claim to
-  // have sent anything. Replace the body below with the provider's SDK call
-  // once `vercel integration add` has run — `to` and `message` are the whole
-  // payload it will need, and are discarded rather than dropped from the
-  // signature so wiring the provider up is a one-function change.
-  void serverEnv.emailApiKey;
-  void serverEnv.emailFrom;
-  void to;
-  void message;
-  return {
-    sent: false,
-    detail: "Email provider not implemented yet (Marketplace integration pending).",
   };
 }
 
@@ -124,21 +93,12 @@ export async function sendFulfilmentEmail(
     return;
   }
 
-  try {
-    const result = await deliver(email, message);
-    await appendOrderEvent({
-      orderId: order.id,
-      kind: "note",
-      note: result.sent
-        ? `${status} email sent to ${email}.`
-        : `${status} email not sent: ${result.detail}`,
-    });
-  } catch (e) {
-    console.error("[order-email] send failed", e);
-    await appendOrderEvent({
-      orderId: order.id,
-      kind: "note",
-      note: `${status} email failed to send to ${email}.`,
-    });
-  }
+  const result = await deliver(email, message);
+  await appendOrderEvent({
+    orderId: order.id,
+    kind: "note",
+    note: result.sent
+      ? `${status} email sent to ${email}.`
+      : `${status} email not sent: ${result.detail}`,
+  });
 }

@@ -16,6 +16,7 @@ import {
   isImageLayer,
   layerIndex,
   MAX_BORDER,
+  MAX_SHAPE_STROKE,
   NO_ADJUSTMENTS,
   textLayerName,
   type Adjustments,
@@ -25,6 +26,7 @@ import {
   type Mask,
   type MaskKind,
   type PageBorder,
+  type ShapeLayer,
   type Stroke,
   type StudioDocument,
   type TextLayer,
@@ -134,7 +136,13 @@ export type StudioAction =
       layerId: string;
       patch: Partial<TextStylePatch>;
       height?: number;
-    };
+    }
+  | { type: "setShapeStyle"; layerId: string; patch: Partial<ShapeStylePatch> };
+
+export interface ShapeStylePatch {
+  color: string;
+  strokeWidth: number;
+}
 
 function clamp01(n: number): number {
   return clamp(n, 0, 1);
@@ -189,6 +197,17 @@ function mapTextLayer(
 ): StudioDocument {
   return mapLayer(doc, layerId, (layer) =>
     layer.kind === "text" && !layer.locked ? fn(layer) : null
+  );
+}
+
+/** Shape styling is a locked-layer refusal, exactly like a text style edit. */
+function mapShapeLayer(
+  doc: StudioDocument,
+  layerId: string,
+  fn: (layer: ShapeLayer) => Layer | null
+): StudioDocument {
+  return mapLayer(doc, layerId, (layer) =>
+    layer.kind === "shape" && !layer.locked ? fn(layer) : null
   );
 }
 
@@ -292,7 +311,9 @@ export function studioReducer(
       const offset = action.offset ?? Math.round(Math.min(doc.width, doc.height) * 0.03);
       const copy: Layer = {
         ...cloneLayer(source),
-        id: createId(source.kind === "text" ? "txt" : "img"),
+        id: createId(
+          source.kind === "text" ? "txt" : source.kind === "shape" ? "shp" : "img"
+        ),
         name: `${source.name} copy`,
         x: source.x + offset,
         y: source.y + offset,
@@ -585,6 +606,21 @@ export function studioReducer(
         layers.unshift(updated);
         return { ...doc, layers };
       })();
+
+    case "setShapeStyle":
+      return mapShapeLayer(doc, action.layerId, (l) => {
+        const p = action.patch;
+        const next: ShapeLayer = {
+          ...l,
+          color: p.color ?? l.color,
+          strokeWidth: clamp(p.strokeWidth ?? l.strokeWidth, 0, MAX_SHAPE_STROKE),
+        };
+        // Same colour, same weight: report "nothing changed" so a re-render
+        // does not push an identical document onto the undo stack.
+        return next.color === l.color && next.strokeWidth === l.strokeWidth
+          ? null
+          : next;
+      });
 
     case "setText":
       return mapTextLayer(doc, action.layerId, (l) => {

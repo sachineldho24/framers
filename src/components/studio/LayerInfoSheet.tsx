@@ -13,7 +13,14 @@
  * 300 would report a printed size several inches smaller than the wall will show.
  */
 
-import type { ImageLayer, Layer, StudioDocument, TextLayer } from "@/lib/studio/document";
+import type {
+  ImageLayer,
+  Layer,
+  ShapeLayer,
+  StudioDocument,
+  TextLayer,
+} from "@/lib/studio/document";
+import { getShape } from "@/lib/studio/shapes";
 import { FILTER_PRESETS } from "@/lib/studio/filters";
 import { getFont, CATEGORY_LABELS } from "@/lib/studio/fonts";
 import {
@@ -78,6 +85,8 @@ export function LayerInfoSheet({
         <dl className="divide-y divide-[var(--studio-border)]">
           {layer.kind === "image" ? (
             <ImageRows layer={layer} dpi={dpi} />
+          ) : layer.kind === "shape" ? (
+            <ShapeRows layer={layer} />
           ) : (
             <TextRows layer={layer} dpi={dpi} />
           )}
@@ -154,6 +163,30 @@ function ImageRows({ layer, dpi }: { layer: ImageLayer; dpi: number }) {
           .filter(Boolean)
           .join(" · ") || "None"}
       />
+    </>
+  );
+}
+
+/**
+ * An element has no resolution to report and no type to measure: it is vector
+ * geometry that prints sharp at any size. What is worth stating is which
+ * element it is and what it is filled with.
+ */
+function ShapeRows({ layer }: { layer: ShapeLayer }) {
+  const def = getShape(layer.shapeId);
+  return (
+    <>
+      <Row label="Element" value={def?.label ?? layer.shapeId} />
+      <Row label="Kind" value={def?.mode === "stroke" ? "Line" : "Shape"} />
+      <Row
+        label={def?.mode === "stroke" ? "Line colour" : "Fill"}
+        value={layer.color.toUpperCase()}
+      />
+      {def?.mode === "stroke" && (
+        <Row label="Weight" value={`${Math.round(layer.strokeWidth)} px`} />
+      )}
+      <Row label="Rotation" value={`${Math.round(layer.rotation)} deg`} />
+      <Row label="Opacity" value={`${Math.round(layer.opacity * 100)}%`} />
     </>
   );
 }
