@@ -18,7 +18,6 @@ export type Work = {
   category: WorkCategory;
   image: string;
   fullImage: string;
-  source: string;
   alt: string;
   width: number;
   height: number;

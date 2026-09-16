@@ -6,7 +6,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-gypsy-blakox-brothers-1.webp",
     "fullImage": "/work-images/full/cars-suzuki-gypsy-blakox-brothers-1.webp",
-    "source": "/posterx/cars-suzuki-gypsy-blakox-brothers-1.png",
     "alt": "Illustrated green Gypsy, driver portrait and BLAKOX BROTHERS lettering.",
     "width": 778,
     "height": 1100
@@ -17,7 +16,6 @@ export const WORK_ITEMS = [
     "category": "anniversary",
     "image": "/work-images/previews/anniversary-25th-wedding-anniversary-1.webp",
     "fullImage": "/work-images/full/anniversary-25th-wedding-anniversary-1.webp",
-    "source": "/posterx/anniversary-25th-wedding-anniversary-1.png",
     "alt": "Couple portrait on an ivory background with gold 25th wedding anniversary lettering.",
     "width": 778,
     "height": 1100
@@ -28,7 +26,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-volkswagen-polo-itachi-anime-1.webp",
     "fullImage": "/work-images/full/cars-volkswagen-polo-itachi-anime-1.webp",
-    "source": "/posterx/cars-volkswagen-polo-itachi-anime-1.png",
     "alt": "Red Polo surrounded by Itachi anime artwork and red light effects.",
     "width": 800,
     "height": 1000
@@ -39,7 +36,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-audi-rs4-2.webp",
     "fullImage": "/work-images/full/cars-audi-rs4-2.webp",
-    "source": "/posterx/cars-audi-rs4-2.png",
     "alt": "Red Audi collage with tall red block lettering and overhead car.",
     "width": 778,
     "height": 1100
@@ -50,7 +46,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-audi-rs4-4.webp",
     "fullImage": "/work-images/full/cars-audi-rs4-4.webp",
-    "source": "/posterx/cars-audi-rs4-4.png",
     "alt": "Front-facing red Audi with block lettering, greener ground and alternate framing.",
     "width": 778,
     "height": 1100
@@ -61,7 +56,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-audi-rs4-8.webp",
     "fullImage": "/work-images/full/cars-audi-rs4-8.webp",
-    "source": "/posterx/cars-audi-rs4-8.png",
     "alt": "Red Audi overhead composition with white lettering and stronger red glow.",
     "width": 778,
     "height": 1100
@@ -72,7 +66,6 @@ export const WORK_ITEMS = [
     "category": "birthday",
     "image": "/work-images/previews/birthday-ruha-abrin-photo-collage-1.webp",
     "fullImage": "/work-images/full/birthday-ruha-abrin-photo-collage-1.webp",
-    "source": "/posterx/birthday-ruha-abrin-photo-collage-1.png",
     "alt": "Child portrait in front of a monochrome collage; HAPPY BIRTHDAY RUHA ABRIN.",
     "width": 778,
     "height": 1100
@@ -83,7 +76,6 @@ export const WORK_ITEMS = [
     "category": "birthday",
     "image": "/work-images/previews/birthday-jobin-xavier-photo-collage-2.webp",
     "fullImage": "/work-images/full/birthday-jobin-xavier-photo-collage-2.webp",
-    "source": "/posterx/birthday-jobin-xavier-photo-collage-2.png",
     "alt": "Alternate birthday collage with larger portrait and brighter lower photos.",
     "width": 778,
     "height": 1100
@@ -94,7 +86,6 @@ export const WORK_ITEMS = [
     "category": "birthday",
     "image": "/work-images/previews/birthday-shan-mothalali-photo-collage-1.webp",
     "fullImage": "/work-images/full/birthday-shan-mothalali-photo-collage-1.webp",
-    "source": "/posterx/birthday-shan-mothalali-photo-collage-1.png",
     "alt": "Blue-shirt portrait beside a car, monochrome collage and birthday message.",
     "width": 778,
     "height": 1100
@@ -105,7 +96,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-baleno-2.webp",
     "fullImage": "/work-images/full/cars-suzuki-baleno-2.webp",
-    "source": "/posterx/cars-suzuki-baleno-2.png",
     "alt": "Blue Baleno with solid silver model lettering.",
     "width": 778,
     "height": 1100
@@ -116,7 +106,6 @@ export const WORK_ITEMS = [
     "category": "portraits",
     "image": "/work-images/previews/portraits-mithra-photo-collage-2.webp",
     "fullImage": "/work-images/full/portraits-mithra-photo-collage-2.webp",
-    "source": "/posterx/portraits-mithra-photo-collage-2.png",
     "alt": "Alternate bouquet portrait collage with MITHRA lettering.",
     "width": 778,
     "height": 1100
@@ -127,7 +116,6 @@ export const WORK_ITEMS = [
     "category": "birthday",
     "image": "/work-images/previews/birthday-sister-photo-collage-1.webp",
     "fullImage": "/work-images/full/birthday-sister-photo-collage-1.webp",
-    "source": "/posterx/birthday-sister-photo-collage-1.png",
     "alt": "Birthday collage with a central pair portrait and colorful family photos.",
     "width": 778,
     "height": 1100
@@ -138,7 +126,6 @@ export const WORK_ITEMS = [
     "category": "birthday",
     "image": "/work-images/previews/birthday-sister-photo-collage-2.webp",
     "fullImage": "/work-images/full/birthday-sister-photo-collage-2.webp",
-    "source": "/posterx/birthday-sister-photo-collage-2.png",
     "alt": "Birthday collage with yellow text, central pair portrait and darker monochrome photos.",
     "width": 778,
     "height": 1100
@@ -149,7 +136,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-mercedes-benz-green-sedan-1.webp",
     "fullImage": "/work-images/full/cars-mercedes-benz-green-sedan-1.webp",
-    "source": "/posterx/cars-mercedes-benz-green-sedan-1.png",
     "alt": "Lime-green Mercedes sedan with four round headlights, grille backdrop and MERC lettering.",
     "width": 778,
     "height": 1100
@@ -160,7 +146,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-rc-390-insane-2.webp",
     "fullImage": "/work-images/full/bikes-ktm-rc-390-insane-2.webp",
-    "source": "/posterx/bikes-ktm-rc-390-insane-2.png",
     "alt": "Turquoise KTM and cyan ring with grey/green background lettering.",
     "width": 778,
     "height": 1100
@@ -171,7 +156,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-bmw-520d-1.webp",
     "fullImage": "/work-images/full/cars-bmw-520d-1.webp",
-    "source": "/posterx/cars-bmw-520d-1.png",
     "alt": "Silver BMW front view with illuminated headlights, rear-view backdrop and white script.",
     "width": 778,
     "height": 1100
@@ -182,7 +166,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-bmw-520d-2.webp",
     "fullImage": "/work-images/full/cars-bmw-520d-2.webp",
-    "source": "/posterx/cars-bmw-520d-2.png",
     "alt": "White BMW on grass with tall orange BMW lettering and 520D label.",
     "width": 778,
     "height": 1100
@@ -193,7 +176,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-bmw-320d-green-2.webp",
     "fullImage": "/work-images/full/cars-bmw-320d-green-2.webp",
-    "source": "/posterx/cars-bmw-320d-green-2.png",
     "alt": "Alternate green BMW composition with different lighting and car placement.",
     "width": 778,
     "height": 1100
@@ -204,7 +186,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-bmw-m3-yellow-1.webp",
     "fullImage": "/work-images/full/cars-bmw-m3-yellow-1.webp",
-    "source": "/posterx/cars-bmw-m3-yellow-1.png",
     "alt": "Yellow BMW M3 beneath enlarged kidney grille and lime-gradient BMW lettering.",
     "width": 778,
     "height": 1100
@@ -215,7 +196,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-bajaj-chetak-bravo-1.webp",
     "fullImage": "/work-images/full/bikes-bajaj-chetak-bravo-1.webp",
-    "source": "/posterx/bikes-bajaj-chetak-bravo-1.png",
     "alt": "Blue vintage Bajaj Chetak scooter with BRAVO lettering and illustrated face backdrop.",
     "width": 778,
     "height": 1100
@@ -226,7 +206,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-burnout-crew-car-club-1.webp",
     "fullImage": "/work-images/full/cars-burnout-crew-car-club-1.webp",
-    "source": "/posterx/cars-burnout-crew-car-club-1.png",
     "alt": "Luxury car lineup with outlined BURN OUT background lettering and red club name.",
     "width": 778,
     "height": 1100
@@ -237,7 +216,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-burnout-crew-car-club-4.webp",
     "fullImage": "/work-images/full/cars-burnout-crew-car-club-4.webp",
-    "source": "/posterx/cars-burnout-crew-car-club-4.png",
     "alt": "Luxury car lineup with red triangle, smaller vehicles and more ground space.",
     "width": 778,
     "height": 1100
@@ -248,7 +226,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-teal-1.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-teal-1.webp",
-    "source": "/posterx/cars-suzuki-swift-teal-1.png",
     "alt": "Teal Swift with white wheels, tilted model lettering and pale glow.",
     "width": 778,
     "height": 1100
@@ -259,7 +236,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-civic-gold-1.webp",
     "fullImage": "/work-images/full/cars-honda-civic-gold-1.webp",
-    "source": "/posterx/cars-honda-civic-gold-1.png",
     "alt": "Gold modified Civic with KIDDO lettering and golden light ring.",
     "width": 778,
     "height": 1100
@@ -270,7 +246,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-civic-gold-2.webp",
     "fullImage": "/work-images/full/cars-honda-civic-gold-2.webp",
-    "source": "/posterx/cars-honda-civic-gold-2.png",
     "alt": "Gold modified Civic with CIVIC lettering and golden light ring.",
     "width": 778,
     "height": 1100
@@ -281,7 +256,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-civic-purple-1.webp",
     "fullImage": "/work-images/full/cars-honda-civic-purple-1.webp",
-    "source": "/posterx/cars-honda-civic-purple-1.png",
     "alt": "Purple Civic sedan with tall purple lettering and magenta light streak.",
     "width": 778,
     "height": 1100
@@ -292,7 +266,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-honda-cbr-250r-rider-1.webp",
     "fullImage": "/work-images/full/bikes-honda-cbr-250r-rider-1.webp",
-    "source": "/posterx/bikes-honda-cbr-250r-rider-1.png",
     "alt": "Helmeted rider with orange visor, orange HONDA title and CBR250R label.",
     "width": 778,
     "height": 1100
@@ -303,7 +276,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-land-rover-defender-1.webp",
     "fullImage": "/work-images/full/cars-land-rover-defender-1.webp",
-    "source": "/posterx/cars-land-rover-defender-1.png",
     "alt": "Black Defender on wet sand with solid white DEFENDER lettering.",
     "width": 778,
     "height": 1100
@@ -314,7 +286,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-accord-turquoise-1.webp",
     "fullImage": "/work-images/full/cars-honda-accord-turquoise-1.webp",
-    "source": "/posterx/cars-honda-accord-turquoise-1.png",
     "alt": "Landscape Accordzilla poster with turquoise modified Accord and cyan neon triangle.",
     "width": 800,
     "height": 474
@@ -325,7 +296,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-silver-1.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-silver-1.webp",
-    "source": "/posterx/cars-suzuki-swift-silver-1.png",
     "alt": "Silver Swift with black/slate model lettering and double headlight backdrop.",
     "width": 778,
     "height": 1100
@@ -336,7 +306,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-christy-1.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-christy-1.webp",
-    "source": "/posterx/cars-suzuki-swift-christy-1.png",
     "alt": "Dark grey modified Swift with large CHRISTY lettering and rear-car background.",
     "width": 778,
     "height": 1100
@@ -347,7 +316,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-ford-mustang-green-1.webp",
     "fullImage": "/work-images/full/cars-ford-mustang-green-1.webp",
-    "source": "/posterx/cars-ford-mustang-green-1.png",
     "alt": "Lime-green Mustang front view, matching title and rear-view backdrop.",
     "width": 778,
     "height": 1100
@@ -358,7 +326,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-audi-rs4-9.webp",
     "fullImage": "/work-images/full/cars-audi-rs4-9.webp",
-    "source": "/posterx/cars-audi-rs4-9.jpg",
     "alt": "Red Audi side/front composition with white script and enlarged bonnet backdrop.",
     "width": 777,
     "height": 1100
@@ -369,7 +336,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-yamaha-r6-gear-up-1.webp",
     "fullImage": "/work-images/full/bikes-yamaha-r6-gear-up-1.webp",
-    "source": "/posterx/bikes-yamaha-r6-gear-up-1.png",
     "alt": "Rider on a grey Yamaha R6 with red/white GEAR UP lettering and red light ring.",
     "width": 778,
     "height": 1100
@@ -380,7 +346,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-gypsy-blakox-brothers-3.webp",
     "fullImage": "/work-images/full/cars-suzuki-gypsy-blakox-brothers-3.webp",
-    "source": "/posterx/cars-suzuki-gypsy-blakox-brothers-3.png",
     "alt": "Alternate green Gypsy photo collage with shifted title and vehicle placement.",
     "width": 778,
     "height": 1100
@@ -391,7 +356,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-yamaha-r15-purple-1.webp",
     "fullImage": "/work-images/full/bikes-yamaha-r15-purple-1.webp",
-    "source": "/posterx/bikes-yamaha-r15-purple-1.png",
     "alt": "Purple Yamaha R15 with purple gothic lettering and matching light ring.",
     "width": 778,
     "height": 1100
@@ -402,7 +366,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-moto-maniac-motorcycle-duo-1.webp",
     "fullImage": "/work-images/full/bikes-moto-maniac-motorcycle-duo-1.webp",
-    "source": "/posterx/bikes-moto-maniac-motorcycle-duo-1.png",
     "alt": "Vertical night poster with two sport motorcycles, KTM 250 fairing and red MOTO MANIAC text.",
     "width": 619,
     "height": 1100
@@ -413,7 +376,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-toyota-hilux-white-1.webp",
     "fullImage": "/work-images/full/cars-toyota-hilux-white-1.webp",
-    "source": "/posterx/cars-toyota-hilux-white-1.png",
     "alt": "White Toyota Hilux pickup with orange HILUX lettering and orange light ring.",
     "width": 778,
     "height": 1100
@@ -424,7 +386,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-city-grey-1.webp",
     "fullImage": "/work-images/full/cars-honda-city-grey-1.webp",
-    "source": "/posterx/cars-honda-city-grey-1.png",
     "alt": "Grey Honda City on grass with green HONDA script, yellow streak and rear-view backdrop.",
     "width": 778,
     "height": 1100
@@ -435,7 +396,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-accord-turquoise-2.webp",
     "fullImage": "/work-images/full/cars-honda-accord-turquoise-2.webp",
-    "source": "/posterx/cars-honda-accord-turquoise-2.png",
     "alt": "Turquoise modified Accord with blue-gradient ACCORD title and cyan ring.",
     "width": 800,
     "height": 1079
@@ -446,7 +406,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-accord-turquoise-4.webp",
     "fullImage": "/work-images/full/cars-honda-accord-turquoise-4.webp",
-    "source": "/posterx/cars-honda-accord-turquoise-4.png",
     "alt": "Turquoise Accord with red title and tall cyan neon triangle.",
     "width": 800,
     "height": 1079
@@ -457,7 +416,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-accord-turquoise-5.webp",
     "fullImage": "/work-images/full/cars-honda-accord-turquoise-5.webp",
-    "source": "/posterx/cars-honda-accord-turquoise-5.png",
     "alt": "Turquoise Accord with red ACCORDZILLA lettering and cyan triangle.",
     "width": 800,
     "height": 1079
@@ -468,7 +426,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-honda-cbr-1000rr-repsol-3.webp",
     "fullImage": "/work-images/full/bikes-honda-cbr-1000rr-repsol-3.webp",
-    "source": "/posterx/bikes-honda-cbr-1000rr-repsol-3.png",
     "alt": "Repsol Honda composition with ATK CBRR branding above bottom specification text.",
     "width": 778,
     "height": 1100
@@ -479,7 +436,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-honda-cbr-1000rr-repsol-4.webp",
     "fullImage": "/work-images/full/bikes-honda-cbr-1000rr-repsol-4.webp",
-    "source": "/posterx/bikes-honda-cbr-1000rr-repsol-4.png",
     "alt": "Repsol Honda with helmet portrait backdrop instead of riding photo.",
     "width": 778,
     "height": 1100
@@ -490,7 +446,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-city-anjana-3.webp",
     "fullImage": "/work-images/full/cars-honda-city-anjana-3.webp",
-    "source": "/posterx/cars-honda-city-anjana-3.png",
     "alt": "Dark Honda City and owner portrait with purple HONDA lettering and ring.",
     "width": 778,
     "height": 1100
@@ -501,7 +456,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-city-anjana-4.webp",
     "fullImage": "/work-images/full/cars-honda-city-anjana-4.webp",
-    "source": "/posterx/cars-honda-city-anjana-4.png",
     "alt": "Dark Honda City and owner portrait with red ANJANA lettering and lower inset photos.",
     "width": 778,
     "height": 1100
@@ -512,7 +466,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-jimny-black-1.webp",
     "fullImage": "/work-images/full/cars-suzuki-jimny-black-1.webp",
-    "source": "/posterx/cars-suzuki-jimny-black-1.png",
     "alt": "Black Suzuki Jimny on sand with orange JIMNY title and yellow light ring.",
     "width": 778,
     "height": 1100
@@ -523,7 +476,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-duke-namzil-1.webp",
     "fullImage": "/work-images/full/bikes-ktm-duke-namzil-1.webp",
-    "source": "/posterx/bikes-ktm-duke-namzil-1.png",
     "alt": "Helmeted rider on a black KTM Duke, purple DUKE lettering and purple ring.",
     "width": 778,
     "height": 1100
@@ -534,7 +486,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-duke-390-red-1.webp",
     "fullImage": "/work-images/full/bikes-ktm-duke-390-red-1.webp",
-    "source": "/posterx/bikes-ktm-duke-390-red-1.png",
     "alt": "White-shirt rider on a red KTM Duke with cream custom lettering and orange outline.",
     "width": 778,
     "height": 1100
@@ -545,7 +496,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-duke-390-red-2.webp",
     "fullImage": "/work-images/full/bikes-ktm-duke-390-red-2.webp",
-    "source": "/posterx/bikes-ktm-duke-390-red-2.png",
     "alt": "White-shirt rider on a red KTM Duke with large cream KTM title.",
     "width": 778,
     "height": 1100
@@ -556,7 +506,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-duke-250-toxie-1.webp",
     "fullImage": "/work-images/full/bikes-ktm-duke-250-toxie-1.webp",
-    "source": "/posterx/bikes-ktm-duke-250-toxie-1.png",
     "alt": "KTM Duke rider with orange TOXIE block lettering and enlarged LED-headlight backdrop.",
     "width": 778,
     "height": 1100
@@ -567,7 +516,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-duke-250-toxie-3.webp",
     "fullImage": "/work-images/full/bikes-ktm-duke-250-toxie-3.webp",
-    "source": "/posterx/bikes-ktm-duke-250-toxie-3.png",
     "alt": "KTM Duke rider with orange TOXIE gothic lettering and white glow.",
     "width": 778,
     "height": 1100
@@ -578,7 +526,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-duke-250-toxie-4.webp",
     "fullImage": "/work-images/full/bikes-ktm-duke-250-toxie-4.webp",
-    "source": "/posterx/bikes-ktm-duke-250-toxie-4.png",
     "alt": "KTM Duke rider with orange DUKE title and motorcycle side-view backdrop.",
     "width": 778,
     "height": 1100
@@ -589,7 +536,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-duke-390-monochrome-1.webp",
     "fullImage": "/work-images/full/bikes-ktm-duke-390-monochrome-1.webp",
-    "source": "/posterx/bikes-ktm-duke-390-monochrome-1.png",
     "alt": "Black KTM Duke poster with monochrome motorcycle collage and curved DUKE lettering.",
     "width": 778,
     "height": 1100
@@ -600,7 +546,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-duke-namzil-2.webp",
     "fullImage": "/work-images/full/bikes-ktm-duke-namzil-2.webp",
-    "source": "/posterx/bikes-ktm-duke-namzil-2.png",
     "alt": "Helmeted rider beside green-accented KTM Duke with bright green KTM lettering.",
     "width": 778,
     "height": 1100
@@ -611,7 +556,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-duke-namzil-3.webp",
     "fullImage": "/work-images/full/bikes-ktm-duke-namzil-3.webp",
-    "source": "/posterx/bikes-ktm-duke-namzil-3.png",
     "alt": "White-shirt rider on a blue-accented KTM Duke with purple NAMZIL lettering.",
     "width": 778,
     "height": 1100
@@ -622,7 +566,6 @@ export const WORK_ITEMS = [
     "category": "buses",
     "image": "/work-images/previews/buses-lexus-the-brothers-1.webp",
     "fullImage": "/work-images/full/buses-lexus-the-brothers-1.webp",
-    "source": "/posterx/buses-lexus-the-brothers-1.png",
     "alt": "Two decorated Lexus tourist buses beneath trees with THE BROTHERS lettering.",
     "width": 778,
     "height": 1100
@@ -633,7 +576,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-lexus-ls-silver-1.webp",
     "fullImage": "/work-images/full/cars-lexus-ls-silver-1.webp",
-    "source": "/posterx/cars-lexus-ls-silver-1.png",
     "alt": "Lowered silver Lexus LS sedan; LS400 lettering, grille backdrop and orange light ring.",
     "width": 778,
     "height": 1100
@@ -644,7 +586,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-lexus-ls-silver-2.webp",
     "fullImage": "/work-images/full/cars-lexus-ls-silver-2.webp",
-    "source": "/posterx/cars-lexus-ls-silver-2.png",
     "alt": "Same silver classic Lexus sedan composition, with LS430 printed title and street backdrop.",
     "width": 778,
     "height": 1100
@@ -655,7 +596,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-lexus-black-sedan-1.webp",
     "fullImage": "/work-images/full/cars-lexus-black-sedan-1.webp",
-    "source": "/posterx/cars-lexus-black-sedan-1.png",
     "alt": "Black Lexus sedan with spindle grille, large 250 lettering and red light effects.",
     "width": 778,
     "height": 1100
@@ -666,7 +606,6 @@ export const WORK_ITEMS = [
     "category": "buses",
     "image": "/work-images/previews/buses-lexus-holidays-2.webp",
     "fullImage": "/work-images/full/buses-lexus-holidays-2.webp",
-    "source": "/posterx/buses-lexus-holidays-2.png",
     "alt": "White Lexus Holidays coach with bright golden light ring around the bus.",
     "width": 778,
     "height": 1100
@@ -677,7 +616,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-volkswagen-polo-solo-leveling-anime-2.webp",
     "fullImage": "/work-images/full/cars-volkswagen-polo-solo-leveling-anime-2.webp",
-    "source": "/posterx/cars-volkswagen-polo-solo-leveling-anime-2.png",
     "alt": "Alternate Solo Leveling Polo composition with different car scale and lighting.",
     "width": 778,
     "height": 1100
@@ -688,7 +626,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-volkswagen-polo-solo-leveling-anime-3.webp",
     "fullImage": "/work-images/full/cars-volkswagen-polo-solo-leveling-anime-3.webp",
-    "source": "/posterx/cars-volkswagen-polo-solo-leveling-anime-3.png",
     "alt": "Wrapped Polo with purple title and car-photo backdrop without foreground anime characters.",
     "width": 778,
     "height": 1100
@@ -699,7 +636,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-qureeshi-1.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-qureeshi-1.webp",
-    "source": "/posterx/cars-suzuki-swift-qureeshi-1.png",
     "alt": "White Swift and owner portrait with red QUREESHI text and a close vehicle crop.",
     "width": 778,
     "height": 1100
@@ -710,7 +646,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-qureeshi-2.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-qureeshi-2.webp",
-    "source": "/posterx/cars-suzuki-swift-qureeshi-2.png",
     "alt": "White Swift and owner portrait with white QUREESHI text, red triangle and light ring.",
     "width": 778,
     "height": 1100
@@ -721,7 +656,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-city-grey-2.webp",
     "fullImage": "/work-images/full/cars-honda-city-grey-2.webp",
-    "source": "/posterx/cars-honda-city-grey-2.png",
     "alt": "Grey Honda City on grass with tall white HONDA lettering and inset photos.",
     "width": 778,
     "height": 1100
@@ -732,7 +666,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-toyota-innova-gear-shifter-2.webp",
     "fullImage": "/work-images/full/cars-toyota-innova-gear-shifter-2.webp",
-    "source": "/posterx/cars-toyota-innova-gear-shifter-2.png",
     "alt": "Beige Innova front view with orange INNOVA title and yellow light ring.",
     "width": 778,
     "height": 1100
@@ -743,7 +676,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-toyota-innova-gear-shifter-3.webp",
     "fullImage": "/work-images/full/cars-toyota-innova-gear-shifter-3.webp",
-    "source": "/posterx/cars-toyota-innova-gear-shifter-3.png",
     "alt": "Beige Innova angled view with purple INNOVA title and cyan ring.",
     "width": 778,
     "height": 1100
@@ -754,7 +686,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-maruti-800-devilboy-1.webp",
     "fullImage": "/work-images/full/cars-maruti-800-devilboy-1.webp",
-    "source": "/posterx/cars-maruti-800-devilboy-1.png",
     "alt": "White Maruti 800 with red DEVILBOY gothic lettering and angular outlines.",
     "width": 778,
     "height": 1100
@@ -765,7 +696,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-accord-turquoise-6.webp",
     "fullImage": "/work-images/full/cars-honda-accord-turquoise-6.webp",
-    "source": "/posterx/cars-honda-accord-turquoise-6.png",
     "alt": "Landscape Accordzilla poster with red corner accents and trees behind the car.",
     "width": 800,
     "height": 474
@@ -776,7 +706,6 @@ export const WORK_ITEMS = [
     "category": "portraits",
     "image": "/work-images/previews/portraits-sana-rose-photo-collage-1.webp",
     "fullImage": "/work-images/full/portraits-sana-rose-photo-collage-1.webp",
-    "source": "/posterx/portraits-sana-rose-photo-collage-1.png",
     "alt": "Woman in a black/red sari against monochrome childhood photos; SANA ROSE lettering.",
     "width": 778,
     "height": 1100
@@ -787,7 +716,6 @@ export const WORK_ITEMS = [
     "category": "buses",
     "image": "/work-images/previews/buses-bluff-college-trip-ad-1.webp",
     "fullImage": "/work-images/full/buses-bluff-college-trip-ad-1.webp",
-    "source": "/posterx/buses-bluff-college-trip-ad-1.png",
     "alt": "Bluff tourist-bus advertisement with Kerala, Goa, Delhi and Manali destination tiles.",
     "width": 800,
     "height": 1000
@@ -798,7 +726,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-bajaj-pulsar-ns200-alora-1.webp",
     "fullImage": "/work-images/full/bikes-bajaj-pulsar-ns200-alora-1.webp",
-    "source": "/posterx/bikes-bajaj-pulsar-ns200-alora-1.png",
     "alt": "Grey Pulsar NS200 with red ALORA lettering and red light ring.",
     "width": 778,
     "height": 1100
@@ -809,7 +736,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-toyota-celica-red-3.webp",
     "fullImage": "/work-images/full/cars-toyota-celica-red-3.webp",
-    "source": "/posterx/cars-toyota-celica-red-3.png",
     "alt": "Red Toyota Celica with PETROLHEAD_OFFICIAL masthead and tighter composition.",
     "width": 778,
     "height": 1100
@@ -820,7 +746,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-toyota-innova-gear-shifter-4.webp",
     "fullImage": "/work-images/full/cars-toyota-innova-gear-shifter-4.webp",
-    "source": "/posterx/cars-toyota-innova-gear-shifter-4.png",
     "alt": "Beige Innova and owner portrait, with Toyota Innova script above the red GEAR SHIFTER title.",
     "width": 734,
     "height": 1100
@@ -831,7 +756,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-volkswagen-polo-red-1.webp",
     "fullImage": "/work-images/full/cars-volkswagen-polo-red-1.webp",
-    "source": "/posterx/cars-volkswagen-polo-red-1.png",
     "alt": "Red Polo on a marked road with large diagonal white POLO lettering.",
     "width": 800,
     "height": 886
@@ -842,7 +766,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-volkswagen-polo-owner-portrait-1.webp",
     "fullImage": "/work-images/full/cars-volkswagen-polo-owner-portrait-1.webp",
-    "source": "/posterx/cars-volkswagen-polo-owner-portrait-1.png",
     "alt": "Red Polo and owner portrait with graffiti lettering and enlarged headlight backdrop.",
     "width": 800,
     "height": 1000
@@ -853,7 +776,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-volkswagen-polo-gokzon-yellow-1.webp",
     "fullImage": "/work-images/full/cars-volkswagen-polo-gokzon-yellow-1.webp",
-    "source": "/posterx/cars-volkswagen-polo-gokzon-yellow-1.png",
     "alt": "Yellow and black graphic-wrapped Polo, GOKZON lettering and reflective ground.",
     "width": 778,
     "height": 1100
@@ -864,7 +786,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-volkswagen-polo-red-3.webp",
     "fullImage": "/work-images/full/cars-volkswagen-polo-red-3.webp",
-    "source": "/posterx/cars-volkswagen-polo-red-3.png",
     "alt": "Alternate red Polo and KASSIM AFSAL layout with motorsport-style top labels.",
     "width": 778,
     "height": 1100
@@ -875,7 +796,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-volkswagen-polo-red-5.webp",
     "fullImage": "/work-images/full/cars-volkswagen-polo-red-5.webp",
-    "source": "/posterx/cars-volkswagen-polo-red-5.png",
     "alt": "Alternate night Polo composition with adjusted title, spacing and specifications.",
     "width": 778,
     "height": 1100
@@ -886,7 +806,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-volkswagen-polo-red-6.webp",
     "fullImage": "/work-images/full/cars-volkswagen-polo-red-6.webp",
-    "source": "/posterx/cars-volkswagen-polo-red-6.png",
     "alt": "Red Polo GT on grass with white italic title and NIDAVELLIR header.",
     "width": 778,
     "height": 1100
@@ -897,7 +816,6 @@ export const WORK_ITEMS = [
     "category": "buses",
     "image": "/work-images/previews/buses-bluff-college-trip-ad-2.webp",
     "fullImage": "/work-images/full/buses-bluff-college-trip-ad-2.webp",
-    "source": "/posterx/buses-bluff-college-trip-ad-2.png",
     "alt": "Bluff tourist-bus advertisement with Kerala, Goa, Delhi and Hampi destination tiles.",
     "width": 800,
     "height": 1000
@@ -908,7 +826,6 @@ export const WORK_ITEMS = [
     "category": "buses",
     "image": "/work-images/previews/buses-prado-travelmate-fleet-2.webp",
     "fullImage": "/work-images/full/buses-prado-travelmate-fleet-2.webp",
-    "source": "/posterx/buses-prado-travelmate-fleet-2.png",
     "alt": "Prado fleet with large stylized white PRADO TRAVELMATE logo and twin bus backdrop.",
     "width": 778,
     "height": 1100
@@ -919,7 +836,6 @@ export const WORK_ITEMS = [
     "category": "buses",
     "image": "/work-images/previews/buses-prado-travelmate-fleet-4.webp",
     "fullImage": "/work-images/full/buses-prado-travelmate-fleet-4.webp",
-    "source": "/posterx/buses-prado-travelmate-fleet-4.png",
     "alt": "Prado fleet with red title and red-tinted twin bus backdrop.",
     "width": 778,
     "height": 1100
@@ -930,7 +846,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-civic-redbee-2.webp",
     "fullImage": "/work-images/full/cars-honda-civic-redbee-2.webp",
-    "source": "/posterx/cars-honda-civic-redbee-2.png",
     "alt": "Alternate Redbee Civic composition with adjusted crop and less red ground tint.",
     "width": 778,
     "height": 1100
@@ -941,7 +856,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-yamaha-r15-redex-3.webp",
     "fullImage": "/work-images/full/bikes-yamaha-r15-redex-3.webp",
-    "source": "/posterx/bikes-yamaha-r15-redex-3.png",
     "alt": "Alternate yellow R15 composition with brighter ring and adjusted title scale.",
     "width": 778,
     "height": 1100
@@ -952,7 +866,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-ktm-rc-390-revkid-2.webp",
     "fullImage": "/work-images/full/bikes-ktm-rc-390-revkid-2.webp",
-    "source": "/posterx/bikes-ktm-rc-390-revkid-2.png",
     "alt": "Turquoise KTM RC with cyan light streak and ring added around the bike.",
     "width": 778,
     "height": 1100
@@ -963,7 +876,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-yamaha-rx100-2.webp",
     "fullImage": "/work-images/full/bikes-yamaha-rx100-2.webp",
-    "source": "/posterx/bikes-yamaha-rx100-2.png",
     "alt": "Black Yamaha RX100 with added red light streak and ring.",
     "width": 778,
     "height": 1100
@@ -974,7 +886,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-city-grey-3.webp",
     "fullImage": "/work-images/full/cars-honda-city-grey-3.webp",
-    "source": "/posterx/cars-honda-city-grey-3.png",
     "alt": "Grey Honda City with diagonal white HONDA lettering and dark front-view backdrop.",
     "width": 778,
     "height": 1100
@@ -985,7 +896,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-city-owner-photo-2.webp",
     "fullImage": "/work-images/full/cars-honda-city-owner-photo-2.webp",
-    "source": "/posterx/cars-honda-city-owner-photo-2.jpg",
     "alt": "Night source photograph of an owner facing away beside a dark Honda City.",
     "width": 800,
     "height": 1067
@@ -996,7 +906,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-city-owner-photo-3.webp",
     "fullImage": "/work-images/full/cars-honda-city-owner-photo-3.webp",
-    "source": "/posterx/cars-honda-city-owner-photo-3.jpg",
     "alt": "Closer source-photo crop of a dark Honda City and owner beside a green field.",
     "width": 800,
     "height": 1004
@@ -1007,7 +916,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-kia-seltos-black-1.webp",
     "fullImage": "/work-images/full/cars-kia-seltos-black-1.webp",
-    "source": "/posterx/cars-kia-seltos-black-1.png",
     "alt": "Black Kia Seltos with white model lettering and red rear-view backdrop; larger print export.",
     "width": 733,
     "height": 1100
@@ -1018,7 +926,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-triumph-speed-400-2.webp",
     "fullImage": "/work-images/full/bikes-triumph-speed-400-2.webp",
-    "source": "/posterx/bikes-triumph-speed-400-2.png",
     "alt": "Alternate black Triumph Speed 400 composition with a closer motorcycle crop.",
     "width": 778,
     "height": 1100
@@ -1029,7 +936,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-hero-splendor-purple-1.webp",
     "fullImage": "/work-images/full/bikes-hero-splendor-purple-1.webp",
-    "source": "/posterx/bikes-hero-splendor-purple-1.png",
     "alt": "Purple Hero Splendor with purple gothic lettering, headlight backdrop and yellow ring.",
     "width": 778,
     "height": 1100
@@ -1040,7 +946,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-teal-4.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-teal-4.webp",
-    "source": "/posterx/cars-suzuki-swift-teal-4.png",
     "alt": "Teal Swift with green script, green light ring and angled headlight backdrop.",
     "width": 778,
     "height": 1100
@@ -1051,7 +956,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-teal-6.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-teal-6.webp",
-    "source": "/posterx/cars-suzuki-swift-teal-6.png",
     "alt": "Alternate teal Swift green-title composition with softer glow and ground shading.",
     "width": 778,
     "height": 1100
@@ -1062,7 +966,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-white-1.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-white-1.webp",
-    "source": "/posterx/cars-suzuki-swift-white-1.png",
     "alt": "White Swift with yellow script, rear-view collage and GAMBINO header.",
     "width": 778,
     "height": 1100
@@ -1073,7 +976,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-red-3.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-red-3.webp",
-    "source": "/posterx/cars-suzuki-swift-red-3.png",
     "alt": "Alternate red Swift block-title poster with stronger white glow.",
     "width": 778,
     "height": 1100
@@ -1084,7 +986,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-red-4.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-red-4.webp",
-    "source": "/posterx/cars-suzuki-swift-red-4.png",
     "alt": "Red Swift with white cursive Swift title and red outline.",
     "width": 778,
     "height": 1100
@@ -1095,7 +996,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-christy-5.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-christy-5.webp",
-    "source": "/posterx/cars-suzuki-swift-christy-5.png",
     "alt": "Dark grey Swift with tall white SWIFT title and red glow.",
     "width": 778,
     "height": 1100
@@ -1106,7 +1006,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-christy-6.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-christy-6.webp",
-    "source": "/posterx/cars-suzuki-swift-christy-6.png",
     "alt": "Dark grey Swift with curved white SWIFT lettering outlined in black.",
     "width": 778,
     "height": 1100
@@ -1117,7 +1016,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-christy-7.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-christy-7.webp",
-    "source": "/posterx/cars-suzuki-swift-christy-7.png",
     "alt": "Dark grey Swift with white brush CHRISTY lettering and specification strip.",
     "width": 778,
     "height": 1100
@@ -1128,7 +1026,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-christy-8.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-christy-8.webp",
-    "source": "/posterx/cars-suzuki-swift-christy-8.png",
     "alt": "Dark grey Swift with red-outlined white graffiti SWIFT lettering.",
     "width": 778,
     "height": 1100
@@ -1139,7 +1036,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-grey-1.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-grey-1.webp",
-    "source": "/posterx/cars-suzuki-swift-grey-1.png",
     "alt": "Grey Swift with black block title, red glow and AKHIL SANTHOSH footer.",
     "width": 778,
     "height": 1100
@@ -1150,7 +1046,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-grey-3.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-grey-3.webp",
-    "source": "/posterx/cars-suzuki-swift-grey-3.png",
     "alt": "Grey Swift with red gothic SWIFT lettering and white outlines.",
     "width": 778,
     "height": 1100
@@ -1161,7 +1056,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-red-6.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-red-6.webp",
-    "source": "/posterx/cars-suzuki-swift-red-6.png",
     "alt": "Red Swift with white graffiti title and enlarged rear-side backdrop.",
     "width": 778,
     "height": 1100
@@ -1172,7 +1066,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-red-7.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-red-7.webp",
-    "source": "/posterx/cars-suzuki-swift-red-7.png",
     "alt": "Alternate red modified Swift side-graphic composition and gothic title.",
     "width": 778,
     "height": 1100
@@ -1183,7 +1076,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-mahindra-thar-1.webp",
     "fullImage": "/work-images/full/cars-mahindra-thar-1.webp",
-    "source": "/posterx/cars-mahindra-thar-1.png",
     "alt": "Dark Mahindra Thar on pavement with tall white THAR lettering and yellow ring.",
     "width": 778,
     "height": 1100
@@ -1194,7 +1086,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-mahindra-thar-2.webp",
     "fullImage": "/work-images/full/cars-mahindra-thar-2.webp",
-    "source": "/posterx/cars-mahindra-thar-2.png",
     "alt": "Mahindra Thar on an off-road slope with illuminated round headlights and yellow ring.",
     "width": 778,
     "height": 1100
@@ -1205,7 +1096,6 @@ export const WORK_ITEMS = [
     "category": "mockups",
     "image": "/work-images/previews/mockups-yamaha-rx100-wall-1.webp",
     "fullImage": "/work-images/full/mockups-yamaha-rx100-wall-1.webp",
-    "source": "/posterx/mockups-yamaha-rx100-wall-1.png",
     "alt": "RX100 poster displayed as a square presentation mockup on a white wall with shadow.",
     "width": 800,
     "height": 800
@@ -1216,7 +1106,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-motokeeper-1.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-motokeeper-1.webp",
-    "source": "/posterx/cars-suzuki-swift-motokeeper-1.png",
     "alt": "White Swift with black side graphics, green gothic title and MOTOKEEPER footer.",
     "width": 778,
     "height": 1100
@@ -1227,7 +1116,6 @@ export const WORK_ITEMS = [
     "category": "mockups",
     "image": "/work-images/previews/mockups-toyota-celica-rock-display-1.webp",
     "fullImage": "/work-images/full/mockups-toyota-celica-rock-display-1.webp",
-    "source": "/posterx/mockups-toyota-celica-rock-display-1.png",
     "alt": "Landscape mockup of a red Celica poster between rocks and vertical white lights.",
     "width": 800,
     "height": 450
@@ -1238,7 +1126,6 @@ export const WORK_ITEMS = [
     "category": "vans",
     "image": "/work-images/previews/vans-force-traveller-varoor-3.webp",
     "fullImage": "/work-images/full/vans-force-traveller-varoor-3.webp",
-    "source": "/posterx/vans-force-traveller-varoor-3.png",
     "alt": "White Force Traveller with pink script, inset photo and VAROOR_TRAVELHUB_OFFICIAL header.",
     "width": 778,
     "height": 1100
@@ -1249,7 +1136,6 @@ export const WORK_ITEMS = [
     "category": "vans",
     "image": "/work-images/previews/vans-force-traveller-varoor-4.webp",
     "fullImage": "/work-images/full/vans-force-traveller-varoor-4.webp",
-    "source": "/posterx/vans-force-traveller-varoor-4.png",
     "alt": "White Force Traveller with tall pink block VAROOR lettering.",
     "width": 778,
     "height": 1100
@@ -1260,7 +1146,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-hyundai-venue-white-1.webp",
     "fullImage": "/work-images/full/cars-hyundai-venue-white-1.webp",
-    "source": "/posterx/cars-hyundai-venue-white-1.png",
     "alt": "White Hyundai Venue on a wet road with white/blue VENUE lettering and grille backdrop.",
     "width": 778,
     "height": 1100
@@ -1271,7 +1156,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-hyundai-venue-white-2.webp",
     "fullImage": "/work-images/full/cars-hyundai-venue-white-2.webp",
-    "source": "/posterx/cars-hyundai-venue-white-2.png",
     "alt": "White Hyundai Venue driving through rain with tall red VENUE lettering.",
     "width": 778,
     "height": 1100
@@ -1282,7 +1166,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-city-grey-4.webp",
     "fullImage": "/work-images/full/cars-honda-city-grey-4.webp",
-    "source": "/posterx/cars-honda-city-grey-4.png",
     "alt": "Grey Honda City with white diagonal title and alternate bonnet/background photo.",
     "width": 778,
     "height": 1100
@@ -1293,7 +1176,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-civic-viper-collection-1.webp",
     "fullImage": "/work-images/full/cars-honda-civic-viper-collection-1.webp",
-    "source": "/posterx/cars-honda-civic-viper-collection-1.png",
     "alt": "Red Honda Civic, owner portrait and two red sport motorcycles beneath VIPER lettering.",
     "width": 778,
     "height": 1100
@@ -1304,7 +1186,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-honda-civic-viper-collection-2.webp",
     "fullImage": "/work-images/full/cars-honda-civic-viper-collection-2.webp",
-    "source": "/posterx/cars-honda-civic-viper-collection-2.png",
     "alt": "Red Honda Civic and sport-motorcycle lineup without owner portrait, with VIPER lettering.",
     "width": 778,
     "height": 1100
@@ -1315,7 +1196,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-wagon-r-white-2.webp",
     "fullImage": "/work-images/full/cars-suzuki-wagon-r-white-2.webp",
-    "source": "/posterx/cars-suzuki-wagon-r-white-2.png",
     "alt": "White Wagon R with yellow script and enlarged foreground vehicle.",
     "width": 778,
     "height": 1100
@@ -1326,7 +1206,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-yamaha-r6-red-rider-1.webp",
     "fullImage": "/work-images/full/bikes-yamaha-r6-red-rider-1.webp",
-    "source": "/posterx/bikes-yamaha-r6-red-rider-1.png",
     "alt": "Rider on a red Yamaha R6 with red YAMAHA lettering and enlarged R6 fairing backdrop.",
     "width": 778,
     "height": 1100
@@ -1337,7 +1216,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-yamaha-r6-red-rider-2.webp",
     "fullImage": "/work-images/full/bikes-yamaha-r6-red-rider-2.webp",
-    "source": "/posterx/bikes-yamaha-r6-red-rider-2.png",
     "alt": "Red Yamaha R6 rider composition with building/trees background instead of fairing close-up.",
     "width": 778,
     "height": 1100
@@ -1348,7 +1226,6 @@ export const WORK_ITEMS = [
     "category": "bikes",
     "image": "/work-images/previews/bikes-yamaha-r15-austrian-1.webp",
     "fullImage": "/work-images/full/bikes-yamaha-r15-austrian-1.webp",
-    "source": "/posterx/bikes-yamaha-r15-austrian-1.png",
     "alt": "Rider on a dark Yamaha R15 with purple AUSTRIAN lettering and purple light ring.",
     "width": 778,
     "height": 1100
@@ -1359,7 +1236,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-bmw-yellow-black-1.webp",
     "fullImage": "/work-images/full/cars-bmw-yellow-black-1.webp",
-    "source": "/posterx/cars-bmw-yellow-black-1.png",
     "alt": "BMW sedan with split yellow/black paint, white lightning graphics and yellow BMW title.",
     "width": 733,
     "height": 1100
@@ -1370,7 +1246,6 @@ export const WORK_ITEMS = [
     "category": "cars",
     "image": "/work-images/previews/cars-suzuki-swift-white-graphic-wrap-1.webp",
     "fullImage": "/work-images/full/cars-suzuki-swift-white-graphic-wrap-1.webp",
-    "source": "/posterx/cars-suzuki-swift-white-graphic-wrap-1.png",
     "alt": "White modified Swift with black/orange graphics, front splitter and vertical East Asian lettering.",
     "width": 778,
     "height": 1100
