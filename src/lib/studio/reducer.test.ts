@@ -6,6 +6,7 @@ import {
   cloneDocument,
   createDocument,
   createImageLayer,
+  createTextLayer,
   docSizeForFrame,
   findLayer,
   MAX_BORDER,
@@ -192,6 +193,7 @@ test("flip inverts the crop on one axis and is its own inverse", () => {
     axis: "horizontal",
   });
   assert.ok(Math.abs(layerA(once).crop.x - 0.4) < 1e-9);
+  assert.equal(layerA(once).flipX, true);
 
   const twice = studioReducer(once, {
     type: "flipLayer",
@@ -199,6 +201,47 @@ test("flip inverts the crop on one axis and is its own inverse", () => {
     axis: "horizontal",
   });
   assert.ok(Math.abs(layerA(twice).crop.x - 0.1) < 1e-9);
+  assert.equal(layerA(twice).flipX, false);
+});
+
+test("flip mirrors an uncropped image rather than doing nothing", () => {
+  const base = seed();
+  const id = base.layers[0].id;
+  const once = studioReducer(base, { type: "flipLayer", layerId: id, axis: "vertical" });
+  assert.equal(layerA(once).flipY, true);
+  assert.deepEqual(layerA(once).crop, layerA(base).crop);
+});
+
+test("replaceLayerImage swaps the source and covers the existing box, not stretches into it", () => {
+  const base = seed();
+  const id = base.layers[0].id;
+  const before = layerA(base);
+  assert.equal(before.width / before.height, 2); // 400x200 box
+
+  const out = studioReducer(base, {
+    type: "replaceLayerImage",
+    layerId: id,
+    src: "c.png",
+    naturalWidth: 100,
+    naturalHeight: 200, // portrait photo into a landscape box
+  });
+  const after = layerA(out);
+
+  assert.equal(after.src, "c.png");
+  assert.equal(after.naturalWidth, 100);
+  assert.equal(after.naturalHeight, 200);
+  // Box, position and everything else about the layer is untouched.
+  assert.equal(after.x, before.x);
+  assert.equal(after.y, before.y);
+  assert.equal(after.width, before.width);
+  assert.equal(after.height, before.height);
+  assert.deepEqual(after.mask, before.mask);
+
+  // The cropped source's own pixel aspect matches the box's, so the new photo
+  // covers the frame instead of distorting into its shape.
+  const pixelAspect =
+    (after.crop.w * after.naturalWidth) / (after.crop.h * after.naturalHeight);
+  assert.ok(Math.abs(pixelAspect - after.width / after.height) < 1e-9);
 });
 
 test("adjustments and opacity clamp to their ranges", () => {
@@ -544,4 +587,48 @@ test("cloneDocument copies the border rather than sharing it", () => {
   const copy = cloneDocument(doc);
   copy.border.width = 0.2;
   assert.equal(doc.border.width, 0.05);
+});
+
+test("an image border is set, clamped, and never grows the photo's box", () => {
+  const base = seed();
+  const id = base.layers[0].id;
+  const before = layerA(base);
+  const doc = studioReducer(base, {
+    type: "setImageOutline",
+    layerId: id,
+    outline: { width: 12, color: "#ff0000", style: "dashed" },
+  });
+  assert.deepEqual(layerA(doc).outline, { width: 12, color: "#ff0000", style: "dashed" });
+  assert.equal(layerA(doc).width, before.width);
+
+  const clamped = studioReducer(doc, { type: "setImageOutline", layerId: id, outline: { width: -5 } });
+  assert.equal(layerA(clamped).outline?.width, 0);
+  assert.equal(layerA(clamped).outline?.style, "dashed");
+});
+
+test("an uploaded font is stored once and applied to text in the same step", () => {
+  const base = studioReducer(seed(), {
+    type: "addLayer",
+    layer: createTextLayer({ text: "Hello", x: 0, y: 0, width: 300, height: 80, fontSize: 48 }),
+  });
+  const text = base.layers[base.layers.length - 1];
+  const font = { id: "custom-f1", name: "Brand Sans", src: "user/fonts/f1.ttf" };
+  const once = studioReducer(base, { type: "addCustomFont", font, applyToLayerId: text.id });
+  const twice = studioReducer(once, { type: "addCustomFont", font });
+  assert.deepEqual(twice.fonts, [font]);
+  const applied = twice.layers.find((l) => l.id === text.id);
+  assert.equal(applied?.kind === "text" && applied.fontId, "custom-f1");
+});
+
+test("a saved document keeps its uploaded fonts and the text set in them", () => {
+  const doc = migrateDocument({
+    ...seed(),
+    fonts: [{ id: "custom-f1", name: "Brand Sans", src: "user/fonts/f1.ttf" }, { id: "anton", src: "x" }],
+    layers: [
+      { ...createTextLayer({ text: "Hi", x: 0, y: 0, width: 100, height: 40, fontSize: 32 }), fontId: "custom-f1" },
+    ],
+  });
+  assert.deepEqual(doc?.fonts?.map((f) => f.id), ["custom-f1"]);
+  const layer = doc?.layers[0];
+  assert.equal(layer?.kind === "text" && layer.fontId, "custom-f1");
 });

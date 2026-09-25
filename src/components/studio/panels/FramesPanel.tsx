@@ -1,18 +1,30 @@
 "use client";
 
 /**
- * Frames: circle and rounded-rectangle masks.
+ * Frames: clip a photo to a circle, a rounded rectangle, or any closed element
+ * from the shape library (heart, star, arch…) — Canva's Frames. A template's
+ * custom outline (`mask.kind === "path"`) shows as its own option so picking
+ * something else is reversible with undo, not a one-way loss.
+ *
+ * Admins also mark a photo as a customer photo slot here: the picture becomes a
+ * sample the customer must replace before checkout.
  *
  * The mask is document state — applying one is an undoable edit. The radius
  * slider below the rounded option lives under a transient gesture like the
  * adjust sliders, so dragging it is a single undo step.
  */
 
+import { SHAPE_CATALOG, shapePathD } from "@/lib/studio/shapes";
 import { useStudio } from "@/lib/studio/StudioContext";
 
 import { EmptyState, PanelSection, Slider, StudioButton, cx } from "../ui";
 
-export function FramesPanel() {
+/** Closed outlines only: a line can't enclose a photo. */
+const FRAME_SHAPES = SHAPE_CATALOG.filter(
+  (s) => s.mode === "fill" && s.id !== "square" && s.id !== "circle" && s.id !== "table-cell"
+);
+
+export function FramesPanel({ isAdmin = false }: { isAdmin?: boolean }) {
   const { selectedLayer, apply, endGesture } = useStudio();
 
   if (!selectedLayer || selectedLayer.kind !== "image") {
@@ -56,6 +68,26 @@ export function FramesPanel() {
           </ShapeOption>
         </div>
 
+        <div className="mt-3 grid grid-cols-4 gap-1.5">
+          {mask.kind === "path" && (
+            <ShapeOption label="Template" active onSelect={() => {}}>
+              <FrameThumb d={mask.path?.d ?? ""} viewBox={mask.path?.viewBox.join(" ") ?? "0 0 1 1"} />
+            </ShapeOption>
+          )}
+          {FRAME_SHAPES.map((shape) => (
+            <ShapeOption
+              key={shape.id}
+              label={shape.label}
+              active={mask.kind === "shape" && mask.shapeId === shape.id}
+              onSelect={() =>
+                apply({ type: "setMask", layerId: id, mask: { kind: "shape", shapeId: shape.id } })
+              }
+            >
+              <FrameThumb d={shapePathD(shape, 48, 48)} viewBox="0 0 48 48" />
+            </ShapeOption>
+          ))}
+        </div>
+
         {mask.kind === "rounded" && (
           <div className="mt-3">
             <Slider
@@ -78,6 +110,32 @@ export function FramesPanel() {
           </div>
         )}
       </PanelSection>
+
+      {isAdmin && (
+        <PanelSection title="Template">
+          <label className="flex cursor-pointer items-start gap-2.5 px-1 text-[13px] text-[var(--studio-ink)]">
+            <input
+              type="checkbox"
+              className="mt-0.5 accent-[var(--studio-accent)]"
+              checked={layer.role === "placeholder"}
+              onChange={(e) =>
+                apply({
+                  type: "setLayerRole",
+                  layerId: id,
+                  role: e.target.checked ? "placeholder" : "decor",
+                })
+              }
+            />
+            <span>
+              Customer photo slot
+              <span className="mt-0.5 block text-[12px] leading-relaxed text-[var(--studio-ink-muted)]">
+                This picture is a sample. Customers must drop in their own photo
+                before checkout; it stays replaceable even when locked.
+              </span>
+            </span>
+          </label>
+        </PanelSection>
+      )}
 
       <PanelSection title="Fit the box">
         <p className="mb-2 px-1 text-[12px] leading-relaxed text-[var(--studio-ink-muted)]">
@@ -120,6 +178,14 @@ export function FramesPanel() {
         </div>
       </PanelSection>
     </div>
+  );
+}
+
+function FrameThumb({ d, viewBox }: { d: string; viewBox: string }) {
+  return (
+    <svg viewBox={viewBox} preserveAspectRatio="none" aria-hidden className="mx-auto block h-12 w-12">
+      <path d={d} fill="var(--studio-ink-muted)" opacity={0.55} />
+    </svg>
   );
 }
 

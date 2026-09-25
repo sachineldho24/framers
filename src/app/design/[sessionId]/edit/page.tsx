@@ -21,6 +21,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { StudioLoader } from "@/components/studio/StudioLoader";
+import { isAdmin } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/auth-server";
 import { getDesignSession } from "@/lib/data/design-sessions";
 import { getActiveFrames, getFrameById } from "@/lib/data/frames";
@@ -83,6 +84,7 @@ export default async function StudioPage({
       uploadPath={session.upload_path}
       uploadUrl={uploadUrl}
       userInitial={initial}
+      isAdmin={isAdmin(user)}
       sizes={sizes}
       currentSizeId={frame?.id ?? null}
     />

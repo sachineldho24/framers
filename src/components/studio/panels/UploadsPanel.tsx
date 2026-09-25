@@ -5,6 +5,9 @@
  *
  * Clicking a thumbnail adds another layer using that same source — the image is
  * already uploaded and signed, so a second copy costs nothing but a layer.
+ *
+ * The list is the user's photo library, not just this design's: anything they
+ * have uploaded before is here to reuse without uploading again.
  */
 
 import Image from "next/image";
@@ -13,7 +16,10 @@ import { createImageLayer } from "@/lib/studio/document";
 import { containBox } from "@/lib/studio/geometry";
 import { useStudio } from "@/lib/studio/StudioContext";
 
-import { EmptyState, StudioButton } from "../ui";
+import { EmptyState, IconButton, StudioButton } from "../ui";
+
+/** Drag payload from an upload thumbnail: the upload's storage path. */
+export const UPLOAD_DRAG_MIME = "application/x-framers-upload";
 
 export interface UploadEntry {
   /** Storage path, stored on the layer. */
@@ -28,11 +34,14 @@ export interface UploadEntry {
 export function UploadsPanel({
   uploads,
   onAddImage,
+  onRemove,
   uploading = false,
   error,
 }: {
   uploads: UploadEntry[];
   onAddImage: () => void;
+  /** Take a photo out of the library. Absent = no remove control. */
+  onRemove?: (src: string) => void;
   uploading?: boolean;
   error?: string | null;
 }) {
@@ -76,18 +85,23 @@ export function UploadsPanel({
         <EmptyState
           icon="image"
           title="No images yet"
-          body="Upload a photo or artwork to place it on the page."
+          body="Upload a photo or artwork to place it on the page. It stays in your uploads for your next design too."
         />
       ) : (
         <ul className="grid grid-cols-2 gap-2">
           {uploads.map((entry) => (
-            <li key={entry.src}>
+            <li key={entry.src} className="group/upl relative">
               <button
                 type="button"
                 onClick={() => addLayer(entry)}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "copy";
+                  e.dataTransfer.setData(UPLOAD_DRAG_MIME, entry.src);
+                }}
                 data-r="md"
                 className="group relative block w-full overflow-hidden border border-[var(--studio-border)] bg-[var(--studio-canvas-bg)] transition-shadow hover:shadow-md"
-                title={`Add ${entry.name} to the page`}
+                title={`Add ${entry.name} to the page, or drag it onto a photo to replace it`}
               >
                 <span className="relative block aspect-square">
                   <Image
@@ -101,6 +115,21 @@ export function UploadsPanel({
                 </span>
                 <span className="sr-only">Add {entry.name} to the page</span>
               </button>
+              {onRemove && (
+                // Positioned by this wrapper: IconButton lives inside its
+                // Tooltip's element, which an `absolute` on the button would
+                // anchor to instead of the thumbnail.
+                <div className="absolute right-1 top-1 opacity-0 transition-opacity group-hover/upl:opacity-100 group-focus-within/upl:opacity-100 [@media(hover:none)]:opacity-100">
+                  <IconButton
+                    icon="close"
+                    label={`Remove ${entry.name} from your uploads`}
+                    size="sm"
+                    tooltipSide="top"
+                    onClick={() => onRemove(entry.src)}
+                    className="bg-black/65 text-white shadow-sm backdrop-blur-sm hover:bg-black/80"
+                  />
+                </div>
+              )}
             </li>
           ))}
         </ul>

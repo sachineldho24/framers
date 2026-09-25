@@ -10,19 +10,28 @@
 import {
   clampFontSize,
   cloneDocument,
+  asFreshCopy,
   cloneLayer,
+  coerceMask,
   createId,
   FULL_CROP,
+  idPrefixFor,
   isImageLayer,
   layerIndex,
   MAX_BORDER,
+  MAX_CUSTOM_FONTS,
+  MAX_OUTLINE,
   MAX_SHAPE_STROKE,
+  NO_OUTLINE,
   NO_ADJUSTMENTS,
   textLayerName,
   type Adjustments,
   type CropRect,
+  type CustomFont,
+  type ImageOutline,
   type ImageLayer,
   type Layer,
+  type LayerRole,
   type Mask,
   type MaskKind,
   type PageBorder,
@@ -33,8 +42,10 @@ import {
 } from "./document";
 import type { FilterId } from "./filters";
 import { DEFAULT_FILTER } from "./filters";
-import { fitToAspect } from "./crop";
+import { fitToAspect, ratioRect } from "./crop";
 import { getFont, nearestWeight } from "./fonts";
+import { coerceTextEffect, type TextEffect } from "./textEffects";
+import type { ListStyle } from "./text";
 import {
   MAX_LETTER_SPACING,
   MAX_LINE_HEIGHT,
@@ -68,11 +79,22 @@ export interface TextStylePatch {
   uppercase: boolean;
   strokeColor: string;
   strokeWidth: number;
+  underline: boolean;
+  strike: boolean;
+  list: ListStyle;
+  /** `null` removes the effect. */
+  effect: TextEffect | null;
 }
 
 export type StudioAction =
   | { type: "replaceDocument"; doc: StudioDocument }
   | { type: "setTitle"; title: string }
+  /**
+   * Add an uploaded font to the design (no-op if it's already there), and
+   * optionally set a text layer in it — one commit, so one undo removes both and
+   * no layer is ever left naming a font the document no longer carries.
+   */
+  | { type: "addCustomFont"; font: CustomFont; applyToLayerId?: string; height?: number }
   | { type: "setBackground"; color: string }
   | { type: "setPageBorder"; patch: Partial<PageBorder> }
   | {
@@ -88,7 +110,12 @@ export type StudioAction =
     }
   | { type: "addLayer"; layer: Layer; at?: number }
   | { type: "removeLayer"; layerId: string }
-  | { type: "duplicateLayer"; layerId: string; offset?: number }
+  /** Swap a layer for a new version of itself (same id) — a stroke being drawn. */
+  | { type: "replaceLayer"; layer: Layer }
+  /** Group these layers under one id, or ungroup them with `null`. */
+  | { type: "setGroup"; layerIds: string[]; groupId: string | null }
+  /** `newId` lets the caller select the copy it is about to create. */
+  | { type: "duplicateLayer"; layerId: string; offset?: number; newId?: string }
   | { type: "renameLayer"; layerId: string; name: string }
   | {
       type: "setLayerBox";
@@ -104,6 +131,11 @@ export type StudioAction =
   | { type: "nudgeLayer"; layerId: string; dx: number; dy: number }
   | { type: "setLayerOpacity"; layerId: string; opacity: number }
   | { type: "setLayerLocked"; layerId: string; locked: boolean }
+  /**
+   * Template intent. Making an image a `placeholder` marks its current picture
+   * as a sample the customer must replace; any other role clears that.
+   */
+  | { type: "setLayerRole"; layerId: string; role: LayerRole }
   | { type: "setLayerVisible"; layerId: string; visible: boolean }
   | { type: "reorderLayer"; layerId: string; to: number }
   | { type: "moveLayerBy"; layerId: string; delta: number }
@@ -111,6 +143,13 @@ export type StudioAction =
   | { type: "sendToBack"; layerId: string }
   | { type: "setCrop"; layerId: string; crop: Partial<CropRect> }
   | { type: "resetCrop"; layerId: string }
+  | {
+      type: "replaceLayerImage";
+      layerId: string;
+      src: string;
+      naturalWidth: number;
+      naturalHeight: number;
+    }
   /**
    * Reshape an image to a ratio. Box *and* crop, in one action: they have to
    * agree or the photo is stretched, and undo should step over the pair.
@@ -121,6 +160,7 @@ export type StudioAction =
   | { type: "setFilter"; layerId: string; filter: FilterId; strength?: number }
   | { type: "setFilterStrength"; layerId: string; strength: number }
   | { type: "setMask"; layerId: string; mask: Partial<Mask> }
+  | { type: "setImageOutline"; layerId: string; outline: Partial<ImageOutline> }
   | { type: "addStroke"; layerId: string; stroke: Stroke }
   | { type: "updateStroke"; layerId: string; stroke: Stroke }
   | { type: "removeStroke"; layerId: string; strokeId: string }
@@ -137,7 +177,8 @@ export type StudioAction =
       patch: Partial<TextStylePatch>;
       height?: number;
     }
-  | { type: "setShapeStyle"; layerId: string; patch: Partial<ShapeStylePatch> };
+  | { type: "setShapeStyle"; layerId: string; patch: Partial<ShapeStylePatch> }
+  | { type: "setDrawStyle"; layerId: string; patch: { color?: string; strokeWidth?: number } };
 
 export interface ShapeStylePatch {
   color: string;
@@ -304,25 +345,46 @@ export function studioReducer(
       return layers.length === doc.layers.length ? doc : { ...doc, layers };
     }
 
+    case "replaceLayer": {
+      const index = layerIndex(doc, action.layer.id);
+      if (index < 0) return doc;
+      const layers = doc.layers.slice();
+      layers[index] = cloneLayer(action.layer);
+      return { ...doc, layers };
+    }
+
+    case "setGroup": {
+      const ids = new Set(action.layerIds);
+      // A group of one is no group: ungroup rather than leave a stray id.
+      const groupId = action.groupId && ids.size > 1 ? action.groupId : null;
+      let changed = false;
+      const layers = doc.layers.map((layer) => {
+        if (!ids.has(layer.id)) return layer;
+        changed = true;
+        if (groupId) return { ...layer, groupId };
+        const rest = { ...layer };
+        delete rest.groupId;
+        return rest;
+      });
+      return changed ? { ...doc, layers } : doc;
+    }
+
     case "duplicateLayer": {
       const index = layerIndex(doc, action.layerId);
       if (index < 0) return doc;
       const source = doc.layers[index];
       const offset = action.offset ?? Math.round(Math.min(doc.width, doc.height) * 0.03);
+      const id =
+        action.newId && layerIndex(doc, action.newId) < 0
+          ? action.newId
+          : createId(idPrefixFor(source.kind));
       const copy: Layer = {
-        ...cloneLayer(source),
-        id: createId(
-          source.kind === "text" ? "txt" : source.kind === "shape" ? "shp" : "img"
-        ),
+        ...asFreshCopy(source),
+        id,
         name: `${source.name} copy`,
         x: source.x + offset,
         y: source.y + offset,
       };
-      // Strokes carry ids of their own, and two layers sharing them would make
-      // "remove this stroke" ambiguous.
-      if (copy.kind === "image") {
-        copy.strokes = copy.strokes.map((s) => ({ ...s, id: createId("s") }));
-      }
       const layers = doc.layers.slice();
       layers.splice(index + 1, 0, copy);
       return { ...doc, layers };
@@ -364,6 +426,17 @@ export function studioReducer(
         ...l,
         opacity: clamp01(action.opacity),
       }));
+
+    case "setLayerRole":
+      return mapLayer(doc, action.layerId, (l) => {
+        const { role: _prev, ...rest } = l;
+        void _prev;
+        const next = (action.role === "decor" ? rest : { ...rest, role: action.role }) as Layer;
+        if (next.kind !== "image") return next;
+        const { sample: _s, ...image } = next;
+        void _s;
+        return action.role === "placeholder" ? { ...image, sample: true } : image;
+      });
 
     case "setLayerLocked":
       return mapLayer(doc, action.layerId, (l) => ({
@@ -426,6 +499,40 @@ export function studioReducer(
         action.layerId,
         (l) => ({ ...l, crop: { ...FULL_CROP } }),
         true
+      );
+
+    /**
+     * Swap the picture without moving anything: same box, same mask, same
+     * filters — only `src`/natural size change. The crop is recomputed so the
+     * new photo covers the existing box instead of stretching into its shape,
+     * the same "largest centred rect" maths `setLayerAspect` uses, just from a
+     * fresh full-source crop rather than the old photo's.
+     */
+    case "replaceLayerImage":
+      return mapImageLayer(
+        doc,
+        action.layerId,
+        (l) => {
+          // A locked photo slot still takes the customer's photo — that is the
+          // one edit a template locks everything *around*. Any other locked
+          // picture refuses, as before.
+          if (l.locked && l.role !== "placeholder") return null;
+          const { sample: _sample, ...rest } = l;
+          void _sample;
+          return {
+          ...rest,
+          src: action.src,
+          naturalWidth: action.naturalWidth,
+          naturalHeight: action.naturalHeight,
+          crop: normaliseCrop(
+            ratioRect(
+              ((l.width / l.height) * action.naturalHeight) /
+                action.naturalWidth,
+              FULL_CROP
+            )
+          ),
+          };
+        }
       );
 
     case "setLayerAspect":
@@ -506,11 +613,46 @@ export function studioReducer(
     case "setMask":
       return mapImageLayer(doc, action.layerId, (l) => ({
         ...l,
-        mask: {
+        mask: coerceMask({
+          ...l.mask,
+          ...action.mask,
           kind: (action.mask.kind ?? l.mask.kind) as MaskKind,
           radius: clamp(action.mask.radius ?? l.mask.radius, 0, 0.5),
-        },
+        }),
       }));
+
+    case "addCustomFont": {
+      const fonts = doc.fonts ?? [];
+      const known = fonts.some((f) => f.id === action.font.id);
+      if (!known && fonts.length >= MAX_CUSTOM_FONTS) return doc;
+      const next = known ? doc : { ...doc, fonts: [...fonts, { ...action.font }] };
+      return action.applyToLayerId
+        ? studioReducer(next, {
+            type: "setTextStyle",
+            layerId: action.applyToLayerId,
+            patch: { fontId: action.font.id },
+            height: action.height,
+          })
+        : next;
+    }
+
+    case "setImageOutline":
+      return mapImageLayer(
+        doc,
+        action.layerId,
+        (l) => {
+          const current = l.outline ?? NO_OUTLINE;
+          return {
+            ...l,
+            outline: {
+              ...current,
+              ...action.outline,
+              width: clamp(action.outline.width ?? current.width, 0, MAX_OUTLINE),
+            },
+          };
+        },
+        true
+      );
 
     case "addStroke":
       return mapImageLayer(
@@ -554,18 +696,16 @@ export function studioReducer(
       );
 
     case "flipLayer":
-      // Flip is expressed as a crop inversion so it composes with cropping and
-      // needs no extra state on the layer. Text has no crop, so it has no flip.
+      // The mirror is a flag the renderer applies. The crop is kept in display
+      // space, so it is mirrored too — the same pixels stay in view, flipped.
+      // Text has no pixels to mirror, so it has no flip.
       return mapImageLayer(
         doc,
         action.layerId,
-        (l) => ({
-          ...l,
-          crop:
-            action.axis === "horizontal"
-              ? { ...l.crop, x: 1 - l.crop.x - l.crop.w, w: l.crop.w }
-              : { ...l.crop, y: 1 - l.crop.y - l.crop.h, h: l.crop.h },
-        }),
+        (l) =>
+          action.axis === "horizontal"
+            ? { ...l, flipX: !l.flipX, crop: { ...l.crop, x: 1 - l.crop.x - l.crop.w } }
+            : { ...l, flipY: !l.flipY, crop: { ...l.crop, y: 1 - l.crop.y - l.crop.h } },
         true
       );
 
@@ -606,6 +746,17 @@ export function studioReducer(
         layers.unshift(updated);
         return { ...doc, layers };
       })();
+
+    case "setDrawStyle":
+      return mapLayer(doc, action.layerId, (l) =>
+        l.kind !== "draw" || l.locked
+          ? null
+          : {
+              ...l,
+              color: action.patch.color ?? l.color,
+              strokeWidth: Math.max(0.5, action.patch.strokeWidth ?? l.strokeWidth),
+            }
+      );
 
     case "setShapeStyle":
       return mapShapeLayer(doc, action.layerId, (l) => {
@@ -668,6 +819,10 @@ export function studioReducer(
           uppercase: p.uppercase ?? l.uppercase,
           strokeColor: p.strokeColor ?? l.strokeColor,
           strokeWidth: clamp(p.strokeWidth ?? l.strokeWidth, 0, MAX_STROKE_WIDTH),
+          underline: p.underline ?? l.underline,
+          strike: p.strike ?? l.strike,
+          list: p.list ?? l.list,
+          effect: p.effect === undefined ? l.effect : (coerceTextEffect(p.effect) ?? undefined),
           height:
             action.height !== undefined
               ? Math.max(MIN_LAYER_SIZE, action.height)

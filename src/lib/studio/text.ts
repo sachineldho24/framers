@@ -14,6 +14,28 @@
  */
 
 export type TextAlign = "left" | "center" | "right";
+
+/** Paragraph markers. Absent / "none" = plain paragraphs. */
+export type ListStyle = "none" | "bullet" | "number";
+
+/**
+ * Prefix each non-empty paragraph with its marker. Applied before wrapping, in
+ * layout, so the canvas, the measurement and the print all agree on it; the
+ * stored text stays clean, and typing never has to manage the markers.
+ */
+export function applyListMarkers(text: string, list: ListStyle | undefined): string {
+  if (!list || list === "none") return text;
+  let n = 0;
+  return text
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((p) => {
+      if (p.trim() === "") return p;
+      n += 1;
+      return list === "bullet" ? `\u2022 ${p}` : `${n}. ${p}`;
+    })
+    .join("\n");
+}
 export type VerticalAlign = "top" | "middle" | "bottom";
 
 /** Width of a string *as it will be drawn*, including any letter-spacing. */
@@ -128,6 +150,7 @@ export interface LayoutTextParams {
   lineHeight: number;
   uppercase: boolean;
   measure: MeasureText;
+  list?: ListStyle;
 }
 
 /** Lay text out inside a box of `maxWidth`. Honours explicit newlines. */
@@ -137,7 +160,7 @@ export function layoutText(params: LayoutTextParams): TextLayout {
   const fontSize = Math.max(1, params.fontSize);
   const lineHeightPx = fontSize * Math.max(MIN_LINE_HEIGHT, params.lineHeight);
 
-  const source = transformText(params.text, uppercase);
+  const source = transformText(applyListMarkers(params.text, params.list), uppercase);
   // Normalise line endings first so a document authored on Windows and one
   // authored on macOS lay out identically.
   const paragraphs = source.replace(/\r\n?/g, "\n").split("\n");

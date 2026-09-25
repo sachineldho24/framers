@@ -19,6 +19,7 @@ import { documentDpi, printedMm, RABBET_MM } from "@/lib/studio/print";
 
 import { Icon } from "@/components/Icon";
 import { PanelSection, Slider, cx } from "../ui";
+import { PhotoColourSwatches } from "../StudioAssets";
 
 /**
  * Widths people actually order, as fractions of the short edge. "Gallery" is the
@@ -158,6 +159,14 @@ export function BorderPanel() {
             />
           </label>
         </div>
+        <PhotoColourSwatches
+          className="mt-3"
+          value={doc.border.color}
+          onPick={(colour) => {
+            setBorder({ color: colour });
+            endGesture();
+          }}
+        />
       </PanelSection>
     </div>
   );

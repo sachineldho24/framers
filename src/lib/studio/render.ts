@@ -10,12 +10,21 @@
  *   4. composite the result onto the page at the layer's opacity
  */
 
-import type { ImageLayer, ShapeLayer, StudioDocument, TextLayer } from "./document";
+import type { DrawLayer, ImageLayer, ShapeLayer, StudioDocument, TextLayer } from "./document";
+import { HIGHLIGHTER_ALPHA } from "./drawing";
 import { borderInsetPx } from "./document";
 import { buildFilterString } from "./filters";
 import { fontShorthand } from "./fonts";
 import { degToRad, type Viewport } from "./geometry";
 import { getShape, type ShapeCommand } from "./shapes";
+import {
+  effectAlpha,
+  effectBlurPx,
+  effectOffsetPx,
+  effectThicknessPx,
+  GLITCH_PAIRS,
+  withAlpha,
+} from "./textEffects";
 import {
   alignOffsetX,
   alignOffsetY,
@@ -26,6 +35,7 @@ import {
 import {
   buildLayerMask,
   maskCacheKey,
+  traceMaskPath,
   type AnyCanvas,
   type AnyCtx,
 } from "./strokes";
@@ -112,10 +122,24 @@ function drawLayerContent(
 
   // Crop is normalised, so it survives the source being a different pixel size
   // than when the crop was made (e.g. a signed URL serving a resized variant).
-  const sx = layer.crop.x * natural.w;
-  const sy = layer.crop.y * natural.h;
+  // The crop is in display space; under a mirror, the source rect is its
+  // reflection.
+  const cropX = layer.flipX ? 1 - layer.crop.x - layer.crop.w : layer.crop.x;
+  const cropY = layer.flipY ? 1 - layer.crop.y - layer.crop.h : layer.crop.y;
+  const sx = cropX * natural.w;
+  const sy = cropY * natural.h;
   const sw = Math.max(1, layer.crop.w * natural.w);
   const sh = Math.max(1, layer.crop.h * natural.h);
+  /** Draw the source into `target`, mirrored as the layer asks. */
+  const drawSource = (target: AnyCtx) => {
+    target.save();
+    if (layer.flipX || layer.flipY) {
+      target.translate(layer.flipX ? destW : 0, layer.flipY ? destH : 0);
+      target.scale(layer.flipX ? -1 : 1, layer.flipY ? -1 : 1);
+    }
+    target.drawImage(image, sx, sy, sw, sh, 0, 0, destW, destH);
+    target.restore();
+  };
 
   const filter = buildFilterString(layer.filter, layer.filterStrength, layer.adjust);
   const mask = resolveMask(layer, destW, destH, options);
@@ -124,7 +148,7 @@ function drawLayerContent(
     // Fast path: straight to the target, no intermediate surface.
     ctx.save();
     if (filter !== "none") ctx.filter = filter;
-    ctx.drawImage(image, sx, sy, sw, sh, 0, 0, destW, destH);
+    drawSource(ctx);
     ctx.restore();
     return;
   }
@@ -137,7 +161,7 @@ function drawLayerContent(
   if (!sctx) return;
 
   if (filter !== "none") sctx.filter = filter;
-  sctx.drawImage(image, sx, sy, sw, sh, 0, 0, destW, destH);
+  drawSource(sctx);
   sctx.filter = "none";
 
   sctx.globalCompositeOperation = "destination-in";
@@ -145,6 +169,39 @@ function drawLayerContent(
   sctx.globalCompositeOperation = "source-over";
 
   ctx.drawImage(scratch as unknown as ImageLike, 0, 0, destW, destH);
+}
+
+/**
+ * The photo's border, inside its edge and following the frame shape. Stroked at
+ * twice the weight and clipped to the shape, which puts the whole line inside
+ * — the photo's footprint on the page doesn't grow when a border is added.
+ */
+function drawImageOutline(
+  ctx: AnyCtx,
+  layer: ImageLayer,
+  destW: number,
+  destH: number,
+  scale: number
+): void {
+  const outline = layer.outline;
+  if (!outline || outline.width <= 0) return;
+  const w = outline.width * scale;
+  ctx.save();
+  traceMaskPath(ctx, layer.mask, destW, destH);
+  ctx.clip();
+  traceMaskPath(ctx, layer.mask, destW, destH);
+  ctx.lineWidth = w * 2;
+  ctx.strokeStyle = outline.color;
+  if (outline.style === "dashed") {
+    ctx.setLineDash([w * 3, w * 2]);
+  } else if (outline.style === "dotted") {
+    // Round caps on a zero-length dash draw dots one weight across.
+    ctx.lineCap = "round";
+    ctx.setLineDash([0, w * 2.5]);
+    ctx.lineWidth = w * 2;
+  }
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** Build (or reuse) the layer's alpha mask at the drawn size. */
@@ -253,7 +310,8 @@ function drawLine(
  * The layout is recomputed here at the drawn scale rather than cached in the
  * document, because that is what makes the preview and the print identical: the
  * export runs the same wrap at its own font size, so a line that broke on
- * screen breaks in the same place on paper.
+ * screen breaks in the same place on paper. Effects are sized from the font
+ * size for the same reason (see `textEffects.ts`).
  */
 function drawTextLayer(
   ctx: AnyCtx,
@@ -286,42 +344,176 @@ function drawTextLayer(
     fontSize: fontSizePx,
     lineHeight: layer.lineHeight,
     uppercase: layer.uppercase,
+    list: layer.list,
     measure: makeMeasure(ctx, spacingPx, mode),
   });
 
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillStyle = layer.color;
-
-  const strokePx = layer.strokeWidth * fontSizePx;
-  if (strokePx > 0) {
-    ctx.strokeStyle = layer.strokeColor;
-    // Doubled because canvas centres a stroke on the outline: half of it is
-    // hidden under the fill, so an outline of N px reads as N/2.
-    ctx.lineWidth = strokePx * 2;
-    ctx.lineJoin = "round";
-    // Without this, a sharp corner on a heavy display face throws a spike.
-    ctx.miterLimit = 2;
-  }
+  ctx.lineJoin = "round";
+  // Without this, a sharp corner on a heavy display face throws a spike.
+  ctx.miterLimit = 2;
 
   const blockTop = alignOffsetY(layout.totalHeight, destH, layer.verticalAlign);
+  const placed = layout.lines
+    .map((line, index) => ({
+      text: line.text,
+      width: line.width,
+      x: alignOffsetX(line.width, destW, layer.align),
+      y: blockTop + lineTop(index, layout.lineHeightPx, fontSizePx),
+    }))
+    .filter((line) => line.text !== "");
 
-  layout.lines.forEach((line, index) => {
-    if (line.text === "") return;
-    const x = alignOffsetX(line.width, destW, layer.align);
-    const y = blockTop + lineTop(index, layout.lineHeightPx, fontSizePx);
-    // Stroke first so the fill sits on top of it and the glyph keeps its shape.
-    if (strokePx > 0) {
-      drawLine(ctx, line.text, x, y, spacingPx, mode, true);
+  /** Paint every line once: fill, or stroke at `strokePx` (centred, so doubled). */
+  const paint = (
+    fill: string | null,
+    stroke: { color: string; px: number } | null,
+    dx = 0,
+    dy = 0
+  ) => {
+    if (stroke) {
+      ctx.strokeStyle = stroke.color;
+      ctx.lineWidth = stroke.px * 2;
     }
-    drawLine(ctx, line.text, x, y, spacingPx, mode, false);
-  });
+    if (fill) ctx.fillStyle = fill;
+    for (const line of placed) {
+      if (stroke) drawLine(ctx, line.text, line.x + dx, line.y + dy, spacingPx, mode, true);
+      if (fill) drawLine(ctx, line.text, line.x + dx, line.y + dy, spacingPx, mode, false);
+    }
+  };
+
+  const outlinePx = layer.strokeWidth * fontSizePx;
+  const outline = outlinePx > 0 ? { color: layer.strokeColor, px: outlinePx } : null;
+  const effect = layer.effect;
+
+  /**
+   * Canvas shadows are specified in *device* space and ignore the transform, so
+   * a rotated layer's shadow would point the wrong way. Map the layer-space
+   * offset through the current matrix instead.
+   */
+  const setShadow = (color: string, blurPx: number, dx: number, dy: number) => {
+    const m = ctx.getTransform();
+    const unit = Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) || 1;
+    ctx.shadowColor = color;
+    ctx.shadowBlur = blurPx * unit;
+    ctx.shadowOffsetX = m.a * dx + m.c * dy;
+    ctx.shadowOffsetY = m.b * dx + m.d * dy;
+  };
+  const clearShadow = () => {
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+  };
+
+  // Main pass by default: outline first, so the fill sits on top of it.
+  let mainFill: string | null = layer.color;
+  let mainStroke = outline;
+
+  if (effect && effect.kind !== "none") {
+    const { dx, dy } = effectOffsetPx(effect, fontSizePx);
+    ctx.save();
+    switch (effect.kind) {
+      case "shadow":
+        setShadow(withAlpha(effect.color, effectAlpha(effect)), effectBlurPx(effect, fontSizePx), dx, dy);
+        paint(layer.color, outline);
+        break;
+      case "lift": {
+        // A soft shadow straight down, darker and wider with intensity.
+        const k = effect.intensity / 100;
+        setShadow(`rgba(0, 0, 0, ${0.15 + 0.45 * k})`, fontSizePx * (0.1 + 0.4 * k), 0, fontSizePx * (0.02 + 0.08 * k));
+        paint(layer.color, outline);
+        break;
+      }
+      case "hollow":
+        mainFill = null;
+        mainStroke = { color: layer.color, px: effectThicknessPx(effect, fontSizePx) / 2 };
+        break;
+      case "splice":
+        paint(effect.color, null, dx, dy);
+        mainFill = null;
+        mainStroke = { color: layer.color, px: effectThicknessPx(effect, fontSizePx) / 2 };
+        break;
+      case "echo":
+        // Two trailing copies, fading, behind the words.
+        ctx.globalAlpha *= 0.25;
+        paint(effect.color, null, dx * 2, dy * 2);
+        ctx.globalAlpha /= 0.25;
+        ctx.globalAlpha *= 0.5;
+        paint(effect.color, null, dx, dy);
+        break;
+      case "glitch": {
+        const [a, b] = GLITCH_PAIRS[effect.glitchPair];
+        const gx = dy === 0 && dx === 0 ? fontSizePx * 0.03 : dx * 0.5;
+        const gy = dy * 0.5;
+        paint(a, null, -gx, -gy);
+        paint(b, null, gx, gy);
+        break;
+      }
+      case "neon": {
+        // Glow in the text's own colour, built from a few blurred passes; the
+        // core is lightened so it reads as a tube, not as coloured type.
+        const k = effect.intensity / 100;
+        for (const blur of [0.5, 0.25, 0.1]) {
+          setShadow(layer.color, fontSizePx * blur * (0.3 + k), 0, 0);
+          paint(layer.color, null);
+        }
+        mainFill = mixWithWhite(layer.color, 0.55 + 0.25 * k);
+        break;
+      }
+      case "background": {
+        // One rounded plate behind the whole block, padded by Spread.
+        const pad = (effect.spread / 100) * fontSizePx * 0.6;
+        const left = Math.min(...placed.map((l) => l.x)) - pad;
+        const right = Math.max(...placed.map((l) => l.x + l.width)) + pad;
+        const top = blockTop - pad;
+        const bottom = blockTop + layout.totalHeight + pad;
+        const w = right - left;
+        const h = bottom - top;
+        const r = (effect.roundness / 100) * Math.min(w, h) / 2;
+        ctx.fillStyle = withAlpha(effect.color, effectAlpha(effect));
+        ctx.beginPath();
+        if (typeof (ctx as CanvasRenderingContext2D).roundRect === "function") {
+          (ctx as CanvasRenderingContext2D).roundRect(left, top, w, h, r);
+        } else {
+          ctx.rect(left, top, w, h);
+        }
+        ctx.fill();
+        break;
+      }
+    }
+    clearShadow();
+    ctx.restore();
+  }
+
+  paint(mainFill, mainStroke);
+
+  // Underline and strike-through, in the text colour, under/through each line.
+  if (layer.underline || layer.strike) {
+    const thickness = Math.max(1, fontSizePx * 0.055);
+    ctx.fillStyle = layer.color;
+    for (const line of placed) {
+      const metrics = ctx.measureText(line.text);
+      const ascent = metrics.fontBoundingBoxAscent || fontSizePx * 0.8;
+      const baseline = line.y + ascent;
+      if (layer.underline) ctx.fillRect(line.x, baseline + fontSizePx * 0.08, line.width, thickness);
+      if (layer.strike) ctx.fillRect(line.x, baseline - fontSizePx * 0.3, line.width, thickness);
+    }
+  }
 
   if (mode === "native") {
     // The context is restored by the caller, but `letterSpacing` is not part of
     // the save/restore state in every engine — reset it explicitly.
     (ctx as CanvasRenderingContext2D).letterSpacing = "0px";
   }
+}
+
+/** Blend a hex colour toward white by `amount` (0–1). */
+function mixWithWhite(hex: string, amount: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  if (!/^#[0-9a-f]{6}$/i.test(hex) || Number.isNaN(n)) return hex;
+  const mix = (c: number) => Math.round(c + (255 - c) * amount);
+  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 }
 
 /**
@@ -497,8 +689,11 @@ export function drawDocument(
       drawTextLayer(ctx, layer, destW, destH, viewport.scale);
     } else if (layer.kind === "shape") {
       drawShapeLayer(ctx, layer, destW, destH, viewport.scale);
+    } else if (layer.kind === "draw") {
+      drawDrawLayer(ctx, layer, destW, destH, viewport.scale);
     } else if (image) {
       drawLayerContent(ctx, layer, image, destW, destH, options);
+      drawImageOutline(ctx, layer, destW, destH, viewport.scale);
     }
     ctx.restore();
   }
@@ -510,6 +705,49 @@ export function drawDocument(
     drawPageBorder(ctx, doc, pageX, pageY, pageW, pageH, viewport.scale);
   }
 
+  ctx.restore();
+}
+
+/**
+ * A freehand stroke, smoothed through the midpoints of its samples so a quick
+ * scribble reads as a pen line rather than a polyline. The highlighter is
+ * see-through and square-ended, like a real one.
+ */
+function drawDrawLayer(
+  ctx: AnyCtx,
+  layer: DrawLayer,
+  destW: number,
+  destH: number,
+  scale: number
+): void {
+  const pts = layer.points.map(([x, y]) => [x * destW, y * destH] as const);
+  if (pts.length === 0) return;
+  const highlighter = layer.pen === "highlighter";
+  ctx.save();
+  if (highlighter) ctx.globalAlpha *= HIGHLIGHTER_ALPHA;
+  ctx.strokeStyle = layer.color;
+  ctx.fillStyle = layer.color;
+  ctx.lineWidth = Math.max(0.5, layer.strokeWidth * scale);
+  ctx.lineCap = highlighter ? "square" : "round";
+  ctx.lineJoin = "round";
+  if (pts.length === 1) {
+    // A tap is a dot.
+    ctx.beginPath();
+    ctx.arc(pts[0][0], pts[0][1], ctx.lineWidth / 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+  ctx.beginPath();
+  ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length - 1; i += 1) {
+    const mx = (pts[i][0] + pts[i + 1][0]) / 2;
+    const my = (pts[i][1] + pts[i + 1][1]) / 2;
+    ctx.quadraticCurveTo(pts[i][0], pts[i][1], mx, my);
+  }
+  const last = pts[pts.length - 1];
+  ctx.lineTo(last[0], last[1]);
+  ctx.stroke();
   ctx.restore();
 }
 

@@ -3,17 +3,17 @@
 /**
  * "Add image" from the Uploads panel.
  *
- * Uploads straight from the browser to Storage (the same path shape and RLS
- * folder rule as `UploadStep`), then hands back both the stored path — which is
- * what the layer keeps, so it survives a reload — and the in-memory object URL,
- * so the first paint doesn't wait on a signing round-trip.
+ * Saves into the user's photo library (`uploadLibrary.ts`): a file already
+ * there is not uploaded again, and anything new is listed in every later
+ * design. Hands back both the stored path — which is what the layer keeps, so
+ * it survives a reload — and the in-memory object URL, so the first paint
+ * doesn't wait on a signing round-trip.
  *
  * The object URL is deliberately not revoked: it stays alive for the session and
  * `useStudioImages` holds a decoded image from it. It dies with the page.
  */
 
-import { createClient } from "@/lib/supabase/client";
-import { DESIGN_BUCKET } from "@/lib/storage-shared";
+import { LibraryError, saveToLibrary } from "@/lib/uploadLibrary";
 
 import type { StudioShellUpload } from "./StudioShell";
 
@@ -56,9 +56,7 @@ export class UploadError extends Error {}
  * Pick, validate, upload. Returns null when the user cancels; throws
  * `UploadError` with a message worth showing when something actually fails.
  */
-export async function pickAndUploadImage(
-  sessionId: string
-): Promise<StudioShellUpload | null> {
+export async function pickAndUploadImage(): Promise<StudioShellUpload | null> {
   const file = await pickFile();
   if (!file) return null;
 
@@ -81,32 +79,16 @@ export async function pickAndUploadImage(
   }
 
   try {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new UploadError("Please sign in again to add images.");
-
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
-  const uploadId = crypto.randomUUID();
-  // First segment must be the user id — that's what the storage RLS policy keys
-  // on. Nested under the session so a design's images stay together.
-  const path = `${user.id}/sessions/${sessionId}/${uploadId}.${ext}`;
-
-  const { error } = await supabase.storage
-    .from(DESIGN_BUCKET)
-    .upload(path, file, { contentType: file.type, upsert: false });
-  if (error) throw new UploadError(`Upload failed: ${error.message}`);
-
-  return {
-    src: path,
-    name: file.name.replace(/\.[^.]+$/, "") || "Image",
-    url,
-    naturalWidth: natural.width,
-    naturalHeight: natural.height,
-  };
+    const saved = await saveToLibrary(file, natural);
+    return {
+      src: saved.path,
+      name: saved.name,
+      url,
+      naturalWidth: saved.width,
+      naturalHeight: saved.height,
+    };
   } catch (error) {
     URL.revokeObjectURL(url);
-    throw error;
+    throw error instanceof LibraryError ? new UploadError(error.message) : error;
   }
 }

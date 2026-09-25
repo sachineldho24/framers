@@ -32,6 +32,7 @@ import { useStudio } from "@/lib/studio/StudioContext";
 
 import { Icon } from "@/components/Icon";
 import { STUDIO_SWATCHES } from "../palette";
+import { PhotoColourSwatches } from "../StudioAssets";
 import { EmptyState, PanelSection, Slider, cx } from "../ui";
 
 type Filter = ShapeCategoryId | "all";
@@ -223,6 +224,11 @@ function ShapeStyleControls({ layer }: { layer: ShapeLayer }) {
           />
           {layer.color.toUpperCase()}
         </label>
+        <PhotoColourSwatches
+          className="mt-3"
+          value={layer.color}
+          onPick={(colour) => set({ color: colour })}
+        />
       </PanelSection>
 
       {open && (

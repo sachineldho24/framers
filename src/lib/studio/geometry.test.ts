@@ -122,12 +122,12 @@ test("resizing from the centre grows symmetrically", () => {
   near(next.y + next.height / 2, 150);
 });
 
-test("rotationFromPointer measures from the top of the box", () => {
-  // The angle is measured to the rotate grip, which hangs below the box, so
-  // "pointer directly below the centre" means the box is upright: 0°.
-  near(normaliseAngle(rotationFromPointer(box, { x: 200, y: 400 })), 0);
-  // Dragging the grip above the centre turns the box upside down: 180°.
-  near(normaliseAngle(rotationFromPointer(box, { x: 200, y: -100 })), 180);
+test("rotationFromPointer measures from the right of the box", () => {
+  // The angle is measured to the rotate grip, which sits right of the box, so
+  // "pointer directly right of the centre" means the box is upright: 0°.
+  near(normaliseAngle(rotationFromPointer(box, { x: 500, y: 150 })), 0);
+  // Dragging the grip left of the centre turns the box upside down: 180°.
+  near(normaliseAngle(rotationFromPointer(box, { x: -100, y: 150 })), 180);
 });
 
 test("snapRotation nudges onto right angles and steps by 15 when forced", () => {
@@ -152,7 +152,7 @@ test("boundingRect grows to contain a rotated box", () => {
 });
 
 test("hitTestTargets prefers the rotate grip, then handles, then the body", () => {
-  const rotateGrip = { x: 200, y: 230 };
+  const rotateGrip = { x: 330, y: 150 };
   assert.equal(hitTestTargets(box, rotateGrip, 10, 30), "rotate");
   assert.equal(hitTestTargets(box, { x: 100, y: 100 }, 10, 30), "nw");
   assert.equal(hitTestTargets(box, { x: 200, y: 150 }, 10, 30), "body");

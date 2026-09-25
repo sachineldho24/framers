@@ -10,9 +10,12 @@
 
 import type { FilterId } from "./filters";
 import { DEFAULT_FILTER } from "./filters";
-import { DEFAULT_FONT_ID, getFont, nearestWeight } from "./fonts";
+import { DEFAULT_FONT_ID, getFont, isCustomFontId, nearestWeight } from "./fonts";
 import { containBox, coverBox } from "./geometry";
 import { getShape } from "./shapes";
+import { parseSvgPath } from "./svgPath";
+import { coerceTextEffect, type TextEffect } from "./textEffects";
+import type { ListStyle } from "./text";
 import {
   DEFAULT_LINE_HEIGHT,
   MAX_FONT_SIZE,
@@ -46,7 +49,12 @@ export const MM_PER_INCH = 25.4;
 /** Hard ceiling on either edge — beyond this, browsers start failing canvases. */
 export const MAX_DOC_EDGE = 4096;
 
-export type MaskKind = "none" | "circle" | "rounded";
+/**
+ * `shape` clips to a closed element from the `shapes.ts` catalogue (Canva's
+ * Frames: heart, star, arch…); `path` clips to an arbitrary SVG outline, which
+ * is how an imported template's photo slot keeps its exact polygon.
+ */
+export type MaskKind = "none" | "circle" | "rounded" | "shape" | "path";
 export type StrokeMode = "erase" | "restore";
 
 export interface Point {
@@ -80,11 +88,31 @@ export interface CropRect {
   h: number;
 }
 
+export interface MaskPath {
+  /** SVG path data, in `viewBox` space; stretched to the layer box when drawn. */
+  d: string;
+  viewBox: [number, number, number, number];
+}
+
 export interface Mask {
   kind: MaskKind;
   /** Corner radius as a fraction (0–0.5) of the shorter edge, for "rounded". */
   radius: number;
+  /** A closed `shapes.ts` id, for "shape". */
+  shapeId?: string;
+  /** For "path". */
+  path?: MaskPath;
 }
+
+/**
+ * What a template expects the customer to do with a layer.
+ *
+ * - `decor`: part of the design; left alone. The default, so absent = decor.
+ * - `editable`: expected to change (a caption, a name).
+ * - `placeholder`: MUST be filled before checkout — a photo slot. On an image
+ *   layer the picture is a sample (`ImageLayer.sample`) until it is replaced.
+ */
+export type LayerRole = "decor" | "editable" | "placeholder";
 
 interface LayerBase {
   id: string;
@@ -99,6 +127,13 @@ interface LayerBase {
   opacity: number;
   locked: boolean;
   visible: boolean;
+  /**
+   * Layers sharing a group id select, move and scale together — Canva's Group.
+   * A font combination is inserted as one. Absent = not grouped.
+   */
+  groupId?: string;
+  /** Template intent. Absent = "decor". */
+  role?: LayerRole;
 }
 
 export interface ImageLayer extends LayerBase {
@@ -114,9 +149,53 @@ export interface ImageLayer extends LayerBase {
   filterStrength: number;
   mask: Mask;
   strokes: Stroke[];
+  /**
+   * Mirrored on that axis. `crop` stays in display space — the rect as seen
+   * after the mirror — so the crop window and the pixels under it agree.
+   */
+  flipX?: boolean;
+  flipY?: boolean;
+  /**
+   * Canva's "Border style" on a photo: a line drawn *inside* the edge, following
+   * the frame shape (so a circle frame gets a round border). Not the page's
+   * printed border, which is `StudioDocument.border`.
+   */
+  outline?: ImageOutline;
+  /**
+   * The picture is a template's stand-in, not the customer's photo. Set when a
+   * layer becomes a photo slot; cleared the moment a real photo replaces it.
+   */
+  sample?: boolean;
 }
 
-export type Layer = ImageLayer | TextLayer | ShapeLayer;
+export type OutlineStyle = "solid" | "dashed" | "dotted";
+
+export interface ImageOutline {
+  /** Doc px. 0 = no border. Kept in px so resizing the photo keeps the weight. */
+  width: number;
+  color: string;
+  style: OutlineStyle;
+}
+
+export const NO_OUTLINE: ImageOutline = { width: 0, color: "#111111", style: "solid" };
+export const MAX_OUTLINE = 200;
+
+export type Layer = ImageLayer | TextLayer | ShapeLayer | DrawLayer;
+
+/**
+ * A freehand stroke — Canva's Draw tool, and the signature pad. See
+ * `drawing.ts`. Points are normalised to the box, so resizing reshapes the
+ * stroke; its weight is doc px and does not scale.
+ */
+export interface DrawLayer extends LayerBase {
+  kind: "draw";
+  /** [x, y] pairs, 0–1 of the box. */
+  points: [number, number][];
+  color: string;
+  /** Doc px. */
+  strokeWidth: number;
+  pen: "pen" | "marker" | "highlighter";
+}
 
 /**
  * A text layer.
@@ -150,6 +229,13 @@ export interface TextLayer extends LayerBase {
   strokeColor: string;
   /** Fraction of `fontSize`. 0 = no outline. */
   strokeWidth: number;
+  /** Absent = off. Optional so older documents need no migration. */
+  underline?: boolean;
+  strike?: boolean;
+  /** Bullet or numbered paragraphs. */
+  list?: ListStyle;
+  /** Canva-style effect (shadow, neon, …). Absent = none. */
+  effect?: TextEffect;
 }
 
 /**
@@ -215,6 +301,40 @@ export interface StudioDocument {
   printMm?: { widthMm: number; heightMm: number };
   /** Index 0 is the bottom of the stack. */
   layers: Layer[];
+  /**
+   * Fonts the user uploaded into this design. Stored with the document — not
+   * only in the user's library — so the design renders the same after a reload,
+   * on another device, and in the print file.
+   */
+  fonts?: CustomFont[];
+}
+
+export interface CustomFont {
+  /** `custom-…`; what text layers store in `fontId`. */
+  id: string;
+  /** Shown in the picker — the file's name, tidied. */
+  name: string;
+  /** Storage path of the font file (or a blob:/data: URL before upload). */
+  src: string;
+}
+
+/** Most uploaded fonts one design keeps. */
+export const MAX_CUSTOM_FONTS = 20;
+
+function coerceFonts(value: unknown): { fonts?: CustomFont[] } {
+  if (!Array.isArray(value)) return {};
+  const seen = new Set<string>();
+  const fonts: CustomFont[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+    const f = entry as Partial<CustomFont>;
+    if (typeof f.id !== "string" || !isCustomFontId(f.id) || seen.has(f.id)) continue;
+    if (typeof f.src !== "string" || f.src.length === 0) continue;
+    seen.add(f.id);
+    fonts.push({ id: f.id, name: str(f.name, "Uploaded font").slice(0, 80), src: f.src });
+    if (fonts.length >= MAX_CUSTOM_FONTS) break;
+  }
+  return fonts.length ? { fonts } : {};
 }
 
 /**
@@ -583,6 +703,10 @@ function coerceTextLayer(v: Partial<TextLayer>): TextLayer | null {
     uppercase: bool(v.uppercase, false),
     strokeColor: colour(v.strokeColor, TEXT_DEFAULTS.strokeColor),
     strokeWidth: clamp(num(v.strokeWidth, 0), 0, MAX_STROKE_WIDTH),
+    ...(v.underline === true ? { underline: true } : {}),
+    ...(v.strike === true ? { strike: true } : {}),
+    ...(v.list === "bullet" || v.list === "number" ? { list: v.list } : {}),
+    ...(coerceTextEffect(v.effect) ? { effect: coerceTextEffect(v.effect) } : {}),
   };
 }
 
@@ -611,17 +735,52 @@ function coerceImageLayer(v: Partial<ImageLayer>): Layer | null {
     },
     filter: str(v.filter, DEFAULT_FILTER) as FilterId,
     filterStrength: clamp01(num(v.filterStrength, 1)),
-    mask: {
-      kind:
-        v.mask?.kind === "circle" || v.mask?.kind === "rounded"
-          ? v.mask.kind
-          : "none",
-      radius: clamp01(num(v.mask?.radius, NO_MASK.radius)),
-    },
+    mask: coerceMask(v.mask),
     strokes: Array.isArray(v.strokes)
       ? v.strokes.map(coerceStroke).filter((s): s is Stroke => s !== null)
       : [],
+    flipX: bool(v.flipX, false),
+    flipY: bool(v.flipY, false),
+    ...(v.sample === true ? { sample: true } : {}),
+    outline: {
+      width: Math.min(MAX_OUTLINE, Math.max(0, num(v.outline?.width, 0))),
+      color: str(v.outline?.color, NO_OUTLINE.color),
+      style:
+        v.outline?.style === "dashed" || v.outline?.style === "dotted"
+          ? v.outline.style
+          : "solid",
+    },
   };
+}
+
+function coerceDrawLayer(v: Partial<DrawLayer>): Layer | null {
+  if (!Array.isArray(v.points)) return null;
+  const points = v.points
+    .filter((p): p is [number, number] => Array.isArray(p) && Number.isFinite(p[0]) && Number.isFinite(p[1]))
+    .map(([x, y]) => [clamp01(x), clamp01(y)] as [number, number]);
+  if (points.length === 0) return null;
+  return {
+    id: str(v.id, createId("drw")),
+    kind: "draw",
+    name: str(v.name, "Drawing"),
+    x: num(v.x, 0),
+    y: num(v.y, 0),
+    width: Math.max(1, num(v.width, 1)),
+    height: Math.max(1, num(v.height, 1)),
+    rotation: num(v.rotation, 0),
+    opacity: clamp01(num(v.opacity, 1)),
+    locked: bool(v.locked, false),
+    visible: bool(v.visible, true),
+    points,
+    color: colour(v.color, "#111111"),
+    strokeWidth: Math.max(0.5, num(v.strokeWidth, 4)),
+    pen: v.pen === "marker" || v.pen === "highlighter" ? v.pen : "pen",
+  };
+}
+
+/** Id prefix per layer kind, for fresh copies. */
+export function idPrefixFor(kind: Layer["kind"]): string {
+  return kind === "text" ? "txt" : kind === "shape" ? "shp" : kind === "draw" ? "drw" : "img";
 }
 
 function coerceShapeLayer(v: Partial<ShapeLayer>): Layer | null {
@@ -653,12 +812,85 @@ function coerceShapeLayer(v: Partial<ShapeLayer>): Layer | null {
   };
 }
 
+/**
+ * A mask we can trace. A shape id the catalogue no longer ships, or a path the
+ * parser can't read, degrades to the plain box — the photo stays, unclipped.
+ */
+export function coerceMask(value: unknown): Mask {
+  const v = (value ?? {}) as Partial<Mask>;
+  const radius = clamp01(num(v.radius, NO_MASK.radius));
+  if (v.kind === "circle" || v.kind === "rounded") return { kind: v.kind, radius };
+  if (v.kind === "shape" && typeof v.shapeId === "string") {
+    const def = getShape(v.shapeId);
+    if (def && def.mode === "fill") return { kind: "shape", radius, shapeId: def.id };
+  }
+  if (v.kind === "path" && v.path && typeof v.path === "object") {
+    const d = str(v.path.d, "");
+    const vb = v.path.viewBox;
+    if (
+      parseSvgPath(d) &&
+      Array.isArray(vb) &&
+      vb.length === 4 &&
+      vb.every((n) => typeof n === "number" && Number.isFinite(n)) &&
+      vb[2] > 0 &&
+      vb[3] > 0
+    ) {
+      return { kind: "path", radius, path: { d, viewBox: [vb[0], vb[1], vb[2], vb[3]] } };
+    }
+  }
+  return { kind: "none", radius };
+}
+
+function coerceRole(value: unknown): { role?: LayerRole } {
+  return value === "editable" || value === "placeholder" ? { role: value } : {};
+}
+
+/**
+ * What a duplicate or a paste becomes: a new thing the user just made, so it is
+ * theirs to move and delete. It drops the source's lock, its group, and any
+ * template role — a copy of a locked photo slot must not arrive locked (it
+ * could never be deleted) nor as a second required slot (it would block
+ * checkout until filled). Ids are the caller's business.
+ */
+export function asFreshCopy(layer: Layer): Layer {
+  const copy = { ...cloneLayer(layer), locked: false } as Layer & { sample?: boolean };
+  delete copy.groupId;
+  delete copy.role;
+  delete copy.sample;
+  if (copy.kind === "image") {
+    // Strokes carry ids of their own, and two layers sharing them would make
+    // "remove this stroke" ambiguous.
+    copy.strokes = copy.strokes.map((s) => ({ ...s, id: createId("s") }));
+  }
+  return copy;
+}
+
+/** Photo slots a customer still has to fill, bottom to top. */
+export function unfilledSlots(doc: StudioDocument): ImageLayer[] {
+  return doc.layers.filter(
+    (l): l is ImageLayer =>
+      isImageLayer(l) && l.role === "placeholder" && l.sample === true && l.visible
+  );
+}
+
 function coerceLayer(value: unknown): Layer | null {
   const v = (value ?? {}) as Partial<Layer>;
-  if (v.kind === "text") return coerceTextLayer(v as Partial<TextLayer>);
-  if (v.kind === "image") return coerceImageLayer(v as Partial<ImageLayer>);
-  if (v.kind === "shape") return coerceShapeLayer(v as Partial<ShapeLayer>);
-  return null;
+  const layer =
+    v.kind === "text"
+      ? coerceTextLayer(v as Partial<TextLayer>)
+      : v.kind === "image"
+        ? coerceImageLayer(v as Partial<ImageLayer>)
+        : v.kind === "shape"
+          ? coerceShapeLayer(v as Partial<ShapeLayer>)
+          : v.kind === "draw"
+            ? coerceDrawLayer(v as Partial<DrawLayer>)
+            : null;
+  if (!layer) return null;
+  const withRole = { ...layer, ...coerceRole(v.role) } as Layer;
+  if (typeof v.groupId === "string" && v.groupId.length > 0) {
+    return { ...withRole, groupId: v.groupId.slice(0, 64) };
+  }
+  return withRole;
 }
 
 /** Tolerance in document px when comparing a stored box against a computed one. */
@@ -749,6 +981,7 @@ export function migrateDocument(input: unknown): StudioDocument | null {
     title: str(v.title, "Untitled design"),
     border: coerceBorder(v.border),
     ...coercePrintMm(v.printMm),
+    ...coerceFonts(v.fonts),
     layers,
   };
   return from < 4 ? repairSeededLetterbox(doc) : doc;
@@ -783,19 +1016,26 @@ export function cloneDocument(doc: StudioDocument): StudioDocument {
     ...doc,
     border: { ...doc.border },
     ...(doc.printMm ? { printMm: { ...doc.printMm } } : {}),
+    ...(doc.fonts ? { fonts: doc.fonts.map((f) => ({ ...f })) } : {}),
     layers: doc.layers.map(cloneLayer),
   };
 }
 
 /** Deep enough that editing the copy can never reach the original's nested state. */
 export function cloneLayer(layer: Layer): Layer {
+  if (layer.kind === "draw") return { ...layer, points: layer.points.map((p) => [p[0], p[1]]) };
   // Only an image layer owns nested objects; everything else is flat.
   if (layer.kind !== "image") return { ...layer };
   return {
     ...layer,
     crop: { ...layer.crop },
     adjust: { ...layer.adjust },
-    mask: { ...layer.mask },
+    mask: {
+      ...layer.mask,
+      ...(layer.mask.path
+        ? { path: { d: layer.mask.path.d, viewBox: [...layer.mask.path.viewBox] as MaskPath["viewBox"] } }
+        : {}),
+    },
     strokes: layer.strokes.map((s) => ({
       ...s,
       points: s.points.map((p) => ({ ...p })),

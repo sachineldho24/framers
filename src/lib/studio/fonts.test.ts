@@ -178,3 +178,22 @@ test("fontShorthand guards against sizes canvas would reject", () => {
     assert.ok(Number.isFinite(size) && size >= 1, `size ${sizePx} → ${shorthand}`);
   }
 });
+
+test("an uploaded font's id never falls back to the default", () => {
+  const font = getFont("custom-abc123");
+  assert.equal(font.id, "custom-abc123");
+  assert.equal(font.custom, true);
+  assert.equal(font.category, "custom");
+  // A private family, so an upload named "Arial" can't shadow the real one.
+  assert.match(font.family, /^Framers Custom /);
+});
+
+test("uploaded fonts never produce a Google stylesheet request", () => {
+  assert.equal(fontCssUrlFor([]), null);
+  assert.ok(!FONT_CATALOGUE.some((f) => f.custom));
+});
+
+test("the catalogue offers script and handwritten faces", () => {
+  assert.ok(fontsByCategory("script").length >= 10);
+  assert.ok(fontsByCategory("handwriting").length >= 8);
+});

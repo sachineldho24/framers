@@ -1,8 +1,9 @@
 "use client";
 
 /**
- * Selection chrome: the purple box, eight resize handles, the rotate grip and
- * the per-object toolbar.
+ * Selection chrome: the outline, eight resize handles, the rotate grip and the
+ * small lock/duplicate row above the box. The quick-actions pill below the
+ * selection is the shell's, so it is not repeated here.
  *
  * DOM rather than canvas-drawn, so cursors, hover states, tooltips and keyboard
  * focus are the browser's job rather than ours. It's `pointer-events-none` as a
@@ -19,16 +20,19 @@
  * handles sit correctly on a rotated layer without any per-handle trigonometry.
  */
 
+import { useState } from "react";
+
 import {
+  boundingRect,
   handleCursor,
   ROTATE_GRIP_OFFSET,
   type HandleId,
   type Viewport,
 } from "@/lib/studio/geometry";
 import type { Layer } from "@/lib/studio/document";
-import { useStudio } from "@/lib/studio/StudioContext";
+import { keepsObjectToolbars, useStudio } from "@/lib/studio/StudioContext";
 
-import { ObjectToolbar } from "./ObjectToolbar";
+import { IconButton } from "./ui";
 
 const CORNERS: HandleId[] = ["nw", "ne", "se", "sw"];
 const EDGES: HandleId[] = ["n", "e", "s", "w"];
@@ -66,25 +70,48 @@ export function SelectionOverlay({
   onHandleMove: (e: React.PointerEvent<Element>) => void;
   onHandleUp: (e: React.PointerEvent<Element>) => void;
 }) {
-  const { selectedId } = useStudio();
+  const { selectedId, apply, duplicate, tool } = useStudio();
+  // Whether the rotate grip is being dragged — the grip captures the pointer,
+  // so its own down/up bracket the whole gesture.
+  const [rotating, setRotating] = useState(false);
 
   const w = layer.width * viewport.scale;
   const h = layer.height * viewport.scale;
   const left = viewport.offsetX + layer.x * viewport.scale;
   const top = viewport.offsetY + layer.y * viewport.scale;
   const edges = layer.kind === "text" ? TEXT_EDGES : EDGES;
+  // The quick row sits above the rotated shape's bounds, not its unrotated top.
+  const bounds = boundingRect(layer);
+  const boundsTop = viewport.offsetY + bounds.y * viewport.scale;
 
-  // Chrome scales with zoom only within reason — handles stay grabbable when
-  // zoomed way out and don't become slabs when zoomed in.
-  const accent = "var(--studio-accent)";
+  // A locked layer keeps a quiet outline: it is selected, but not editable.
+  const accent = layer.locked ? "#52525b" : "var(--studio-accent)";
 
   /** Every grab handle behaves identically once it knows which one it is. */
   const grip = (target: HandleId | "rotate") => ({
-    onPointerDown: (e: React.PointerEvent<Element>) => onHandleDown(target, e),
+    onPointerDown: (e: React.PointerEvent<Element>) => {
+      if (target === "rotate") setRotating(true);
+      onHandleDown(target, e);
+    },
     onPointerMove: onHandleMove,
-    onPointerUp: onHandleUp,
-    onPointerCancel: onHandleUp,
+    onPointerUp: (e: React.PointerEvent<Element>) => {
+      setRotating(false);
+      onHandleUp(e);
+    },
+    onPointerCancel: (e: React.PointerEvent<Element>) => {
+      setRotating(false);
+      onHandleUp(e);
+    },
   });
+
+  // The angle readout, signed so a small turn left reads -5°, not 355°. It
+  // sits just past the grip, which orbits the centre as the layer turns.
+  const signed = ((((layer.rotation % 360) + 540) % 360) - 180);
+  const degrees = Math.round(signed) === -180 ? 180 : Math.round(signed);
+  const rad = (layer.rotation * Math.PI) / 180;
+  const reach = w / 2 + ROTATE_GRIP_OFFSET + 34;
+  const badgeX = left + w / 2 + Math.cos(rad) * reach;
+  const badgeY = top + h / 2 + Math.sin(rad) * reach;
 
   return (
     <div className="pointer-events-none absolute inset-0 z-10">
@@ -100,118 +127,101 @@ export function SelectionOverlay({
           transformOrigin: "center",
         }}
       >
-        {/* Outline. 1px hairline regardless of zoom. */}
         <div
           className="absolute inset-0"
           style={{ outline: `1.5px solid ${accent}`, outlineOffset: 0 }}
         />
 
-        {layer.locked ? (
-          <span
-            data-r="full"
-            className="absolute -top-3 -right-3 inline-flex h-6 w-6 items-center justify-center bg-white text-black text-[13px] shadow"
-            style={{ color: accent }}
-          >
-            <span className="material-symbols-outlined text-[15px]">lock</span>
-          </span>
-        ) : (
-          <>
-            {CORNERS.map((id) => {
-              const { fx, fy } = handleFraction(id);
-              return (
-                <span
-                  key={id}
-                  data-handle={id}
-                  data-r="full"
-                  {...grip(id)}
-                  className="pointer-events-auto absolute h-3 w-3 border-2 bg-white"
-                  style={{
-                    left: `${fx * 100}%`,
-                    top: `${fy * 100}%`,
-                    marginLeft: -6,
-                    marginTop: -6,
-                    borderColor: accent,
-                    cursor: handleCursor(id, layer.rotation),
-                    boxShadow: "0 1px 3px rgb(16 16 26 / .25)",
-                    // Otherwise a drag on a handle is also a touch scroll.
-                    touchAction: "none",
-                  }}
-                />
-              );
-            })}
-
-            {edges.map((id) => {
-              const { fx, fy } = handleFraction(id);
-              const horizontal = id === "n" || id === "s";
-              // Pill on the long axis, matching the mockup's edge grips.
-              const length = 18;
-              const thickness = 6;
-              return (
-                <span
-                  key={id}
-                  data-handle={id}
-                  data-r="full"
-                  {...grip(id)}
-                  className="pointer-events-auto absolute border-2 bg-white"
-                  style={{
-                    left: `${fx * 100}%`,
-                    top: `${fy * 100}%`,
-                    width: horizontal ? length : thickness,
-                    height: horizontal ? thickness : length,
-                    marginLeft: horizontal ? -length / 2 : -thickness / 2,
-                    marginTop: horizontal ? -thickness / 2 : -length / 2,
-                    borderColor: accent,
-                    cursor: handleCursor(id, layer.rotation),
-                    boxShadow: "0 1px 3px rgb(16 16 26 / .25)",
-                    touchAction: "none",
-                  }}
-                />
-              );
-            })}
-
-            {/* Rotate grip, hanging below the box on the same axis the
-                geometry module measures rotation against. */}
-            <span
-              data-handle="rotate"
-              data-r="full"
-              {...grip("rotate")}
-              className="pointer-events-auto absolute inline-flex items-center justify-center bg-white"
-              style={{
-                left: "50%",
-                top: "100%",
-                width: 24,
-                height: 24,
-                marginLeft: -12,
-                marginTop: ROTATE_GRIP_OFFSET - 12,
-                border: `1.5px solid ${accent}`,
-                cursor: "grab",
-                boxShadow: "0 1px 4px rgb(16 16 26 / .25)",
-                touchAction: "none",
-              }}
-            >
+        {!layer.locked &&
+          [...CORNERS, ...edges].map((id) => {
+            const { fx, fy } = handleFraction(id);
+            return (
               <span
-                className="material-symbols-outlined text-[15px]"
-                style={{ color: accent }}
-              >
-                rotate_right
-              </span>
-            </span>
-          </>
+                key={id}
+                data-handle={id}
+                {...grip(id)}
+                className="studio-handle pointer-events-auto absolute h-2 w-2 bg-white"
+                style={{
+                  left: `${fx * 100}%`,
+                  top: `${fy * 100}%`,
+                  marginLeft: -4,
+                  marginTop: -4,
+                  border: `1.5px solid ${accent}`,
+                  cursor: handleCursor(id, layer.rotation),
+                  boxShadow: "0 1px 3px rgb(0 0 0 / .35)",
+                  // Otherwise a drag on a handle is also a touch scroll.
+                  touchAction: "none",
+                }}
+              />
+            );
+          })}
+
+        {/* Rotate grip, beside the box on the same axis the geometry module
+            measures rotation against. */}
+        {!layer.locked && (
+          <span
+            data-handle="rotate"
+            data-r="full"
+            {...grip("rotate")}
+            className="pointer-events-auto absolute inline-flex items-center justify-center border border-[#2e2e2e] bg-[var(--studio-elevated)] text-white"
+            style={{
+              left: "100%",
+              top: "50%",
+              width: 24,
+              height: 24,
+              marginLeft: ROTATE_GRIP_OFFSET - 12,
+              marginTop: -12,
+              cursor: "grab",
+              boxShadow: "0 2px 8px rgb(0 0 0 / .5)",
+              touchAction: "none",
+            }}
+          >
+            <span className="material-symbols-outlined text-[14px]">sync</span>
+          </span>
         )}
       </div>
 
-      {/* Object toolbar sits in unrotated screen space so it stays readable
-          however the layer is turned. */}
-      {selectedId === layer.id && (
+      {rotating && (
         <div
-          className="studio-floating-object pointer-events-auto absolute"
+          role="status"
+          aria-live="polite"
+          data-r="sm"
+          className="studio-shadow-sm absolute bg-[#1e1e22] px-2 py-1 text-[12px] font-semibold tabular-nums text-white"
+          style={{ left: badgeX, top: badgeY, transform: "translate(-50%, -50%)" }}
+        >
+          {degrees}°
+        </div>
+      )}
+
+      {/* Lock and duplicate, above the selection in unrotated screen space so
+          they stay readable however the layer is turned. */}
+      {selectedId === layer.id && keepsObjectToolbars(tool) && (
+        <div
+          className="studio-floating-object pointer-events-auto absolute flex gap-1"
           style={{
             left: left + w / 2,
-            top: top + h + ROTATE_GRIP_OFFSET + 28,
+            top: boundsTop - 32,
             transform: "translateX(-50%)",
           }}
         >
-          <ObjectToolbar layer={layer} />
+          <IconButton
+            icon={layer.locked ? "lock" : "lock_open"}
+            label={layer.locked ? "Unlock" : "Lock"}
+            size="sm"
+            tooltipSide="top"
+            className={layer.locked ? "!h-6 !w-6 text-[var(--studio-accent)]" : "!h-6 !w-6 text-[var(--studio-ink-muted)]"}
+            onClick={() =>
+              apply({ type: "setLayerLocked", layerId: layer.id, locked: !layer.locked })
+            }
+          />
+          <IconButton
+            icon="library_add"
+            label="Duplicate"
+            size="sm"
+            tooltipSide="top"
+            className="!h-6 !w-6 text-[var(--studio-ink-muted)]"
+            onClick={() => duplicate(layer.id)}
+          />
         </div>
       )}
     </div>

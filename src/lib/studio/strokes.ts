@@ -13,6 +13,8 @@
 
 import type { Point, Stroke, StrokeMode } from "./document";
 import { createId } from "./document";
+import { getShape, type ShapeCommand } from "./shapes";
+import { parseSvgPathCached, pathFingerprint, scaleCommands } from "./svgPath";
 
 /** Anything we can draw into: HTMLCanvasElement or OffscreenCanvas. */
 export type AnyCanvas = HTMLCanvasElement | OffscreenCanvas;
@@ -128,9 +130,32 @@ function replayStroke(
 }
 
 export interface MaskShape {
-  kind: "none" | "circle" | "rounded";
+  kind: "none" | "circle" | "rounded" | "shape" | "path";
   /** Fraction (0–0.5) of the shorter edge. */
   radius: number;
+  shapeId?: string;
+  path?: { d: string; viewBox: [number, number, number, number] };
+}
+
+/**
+ * The outline a `shape` or `path` mask clips to, in px inside a `width` ×
+ * `height` box — or null when there is nothing traceable, which callers treat
+ * as the plain box.
+ */
+export function maskCommands(
+  shape: MaskShape,
+  width: number,
+  height: number
+): ShapeCommand[] | null {
+  if (shape.kind === "shape" && shape.shapeId) {
+    const def = getShape(shape.shapeId);
+    return def && def.mode === "fill" ? def.path(width, height) : null;
+  }
+  if (shape.kind === "path" && shape.path) {
+    const parsed = parseSvgPathCached(shape.path.d);
+    return parsed ? scaleCommands(parsed, shape.path.viewBox, width, height) : null;
+  }
+  return null;
 }
 
 /** Trace a mask shape as a path on `ctx`, without filling it. */
@@ -141,6 +166,17 @@ export function traceMaskPath(
   height: number
 ): void {
   ctx.beginPath();
+  const commands = maskCommands(shape, width, height);
+  if (commands) {
+    for (const c of commands) {
+      if (c.c === "M") ctx.moveTo(c.x, c.y);
+      else if (c.c === "L") ctx.lineTo(c.x, c.y);
+      else if (c.c === "Q") ctx.quadraticCurveTo(c.x1, c.y1, c.x, c.y);
+      else if (c.c === "C") ctx.bezierCurveTo(c.x1, c.y1, c.x2, c.y2, c.x, c.y);
+      else ctx.closePath();
+    }
+    return;
+  }
   if (shape.kind === "circle") {
     const cx = width / 2;
     const cy = height / 2;
@@ -241,5 +277,11 @@ export function maskCacheKey(
   const strokePart = strokes
     .map((s) => `${s.id}:${s.points.length}:${s.size}:${s.feather}:${s.mode}`)
     .join(",");
-  return `${Math.round(width)}x${Math.round(height)}|${shape.kind}:${shape.radius}|${strokePart}`;
+  const outline =
+    shape.kind === "shape"
+      ? shape.shapeId ?? ""
+      : shape.kind === "path" && shape.path
+        ? `${pathFingerprint(shape.path.d)}@${shape.path.viewBox.join(",")}`
+        : "";
+  return `${Math.round(width)}x${Math.round(height)}|${shape.kind}:${shape.radius}:${outline}|${strokePart}`;
 }

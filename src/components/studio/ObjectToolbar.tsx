@@ -14,7 +14,7 @@ import type { Layer } from "@/lib/studio/document";
 import { IconButton, Menu, MenuItem, MenuSeparator } from "./ui";
 
 export function ObjectToolbar({ layer }: { layer: Layer }) {
-  const { apply, select, setEditingId, doc } = useStudio();
+  const { apply, select, duplicate, setEditingId, doc } = useStudio();
   const index = doc.layers.findIndex((l) => l.id === layer.id);
   const isFront = index === doc.layers.length - 1;
   const isBack = index === 0;
@@ -25,8 +25,8 @@ export function ObjectToolbar({ layer }: { layer: Layer }) {
 
   return (
     <div
-      data-r="md"
-      className="studio-shadow flex items-center gap-0.5 border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-1"
+      data-r="full"
+      className="studio-shadow flex items-center gap-0.5 border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] px-1.5 py-[3px]"
     >
       {layer.kind === "text" && !layer.locked && (
         <IconButton
@@ -38,17 +38,11 @@ export function ObjectToolbar({ layer }: { layer: Layer }) {
         />
       )}
       <IconButton
-        icon="content_copy"
-        label="Duplicate"
-        size="sm"
-        tooltipSide="top"
-        onClick={() => apply({ type: "duplicateLayer", layerId: layer.id })}
-      />
-      <IconButton
         icon={layer.locked ? "lock" : "lock_open"}
         label={layer.locked ? "Unlock" : "Lock"}
         size="sm"
         tooltipSide="top"
+        className={layer.locked ? "text-[var(--studio-accent)]" : undefined}
         onClick={() =>
           apply({
             type: "setLayerLocked",
@@ -58,22 +52,27 @@ export function ObjectToolbar({ layer }: { layer: Layer }) {
         }
       />
       <IconButton
+        icon="library_add"
+        label="Duplicate"
+        size="sm"
+        tooltipSide="top"
+        onClick={() => duplicate(layer.id)}
+      />
+      {/* A locked layer can't be deleted from here — unlock it first, same as
+          the keyboard. */}
+      <IconButton
         icon="delete"
         label="Delete"
         size="sm"
         tooltipSide="top"
+        disabled={layer.locked}
         onClick={() => {
           apply({ type: "removeLayer", layerId: layer.id });
           select(null);
         }}
       />
 
-      <span
-        className="mx-0.5 h-5 w-px bg-[var(--studio-border)]"
-        aria-hidden="true"
-      />
-
-      <Menu ariaLabel="More object options" icon="more_horiz" align="end">
+      <Menu ariaLabel="More object options" icon="more_horiz" align="end" side="top" className="!h-7 !w-7">
         {(close) => (
           <>
             <MenuItem

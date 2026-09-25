@@ -28,7 +28,7 @@ import {
 } from "react";
 
 import type { Layer, StudioDocument } from "./document";
-import { findLayer } from "./document";
+import { createId, findLayer, idPrefixFor } from "./document";
 import {
   canRedo as canRedoOf,
   canUndo as canUndoOf,
@@ -42,10 +42,16 @@ import {
   type HistoryState,
 } from "./history";
 import type { StudioAction } from "./reducer";
+import { DEFAULT_PEN_SETTINGS, type PenSettings } from "./drawing";
 import { fitViewport, type Viewport } from "./geometry";
 import { printGuides, type PrintGuideSet, type PrintSize } from "./print";
 
 export type ToolId =
+  | "effects"
+  /** Freehand drawing on the page — Tools → Draw. */
+  | "pen"
+  /** Rubs out whole drawn strokes. */
+  | "pen-eraser"
   | "select"
   | "draw"
   | "eraser"
@@ -54,6 +60,23 @@ export type ToolId =
   | "adjust"
   | "border"
   | "layers";
+
+/**
+ * Tools that only open a side panel. The canvas still selects, moves and resizes
+ * while they're open, so the object toolbars stay up too — as in Canva, where
+ * Position or Adjust sits beside the selection rather than replacing it. Crop,
+ * erase and restore take over the pointer, so they hide the toolbars.
+ */
+export function keepsObjectToolbars(tool: ToolId): boolean {
+  return (
+    tool === "select" ||
+    tool === "layers" ||
+    tool === "adjust" ||
+    tool === "frames" ||
+    tool === "border" ||
+    tool === "effects"
+  );
+}
 
 /** Which rail entry is open. `null` = flyout closed. */
 export type RailId =
@@ -115,8 +138,15 @@ function historyReducer(
 
 export interface StudioContextValue {
   doc: StudioDocument;
+  /** The one selected layer. `null` when nothing — or several — are selected. */
   selectedId: string | null;
   selectedLayer: Layer | null;
+  /**
+   * Everything selected, bottom-first: one layer, several (a marquee, shift-
+   * clicks, a group), or none. Two or more is a multi-selection, and the
+   * single-layer UI (`selectedLayer`) stands down for it.
+   */
+  selectedLayers: Layer[];
   /**
    * The text layer whose words are being typed, if any. View state like the
    * selection: the canvas skips drawing this layer (the `<textarea>` overlay is
@@ -147,6 +177,17 @@ export interface StudioContextValue {
   showGuides: boolean;
   setShowGuides: (show: boolean) => void;
 
+  /**
+   * Canva's "Copy style" (the paint roller): the layer whose style is waiting to
+   * be pasted onto the next layer the user clicks. View state, not document.
+   */
+  styleSource: Layer | null;
+  setStyleSource: (layer: Layer | null) => void;
+
+  /** The Draw tool's pen, colours and thicknesses. */
+  pen: PenSettings;
+  setPen: (patch: Partial<PenSettings>) => void;
+
   /** Apply an action. Pass `{ transient, label }` for in-flight gestures. */
   apply: (action: StudioAction, options?: CommitOptions) => void;
   endGesture: () => void;
@@ -155,6 +196,13 @@ export interface StudioContextValue {
   replaceDocument: (doc: StudioDocument) => void;
 
   select: (layerId: string | null) => void;
+  /**
+   * Duplicate a layer and select the copy — as every editor does. Leaving the
+   * original selected meant Delete removed the layer *under* the copy.
+   */
+  duplicate: (layerId: string, offset?: number) => void;
+  /** Select several layers at once. One id is an ordinary selection. */
+  selectMany: (layerIds: string[]) => void;
   /** Start (or, with `null`, stop) editing a text layer in place. */
   setEditingId: (layerId: string | null) => void;
   setTool: (tool: ToolId) => void;
@@ -205,6 +253,7 @@ export function StudioProvider({
     createHistory
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [multiIds, setMultiIds] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [tool, setToolState] = useState<ToolId>("select");
   const [rail, setRail] = useState<RailId | null>("tools");
@@ -226,6 +275,9 @@ export function StudioProvider({
   // lip is still a fact about the print, so the bottom bar's toggle and the
   // stray-text warning's "Show guides" both turn it on the moment it matters.
   const [showGuides, setShowGuides] = useState(false);
+  const [styleSource, setStyleSource] = useState<Layer | null>(null);
+  const [pen, setPenState] = useState<PenSettings>(DEFAULT_PEN_SETTINGS);
+  const setPen = useCallback((patch: Partial<PenSettings>) => setPenState((p) => ({ ...p, ...patch })), []);
 
   const doc = history.present;
 
@@ -275,6 +327,7 @@ export function StudioProvider({
 
   const select = useCallback((layerId: string | null) => {
     setSelectedId(layerId);
+    setMultiIds([]);
     // Selecting anything else ends the text edit — otherwise the textarea would
     // hang over the canvas belonging to a layer that is no longer selected.
     setEditingId((editing) => (editing === layerId ? editing : null));
@@ -288,6 +341,33 @@ export function StudioProvider({
       );
     }
   }, []);
+
+  const duplicate = useCallback(
+    (layerId: string, offset?: number) => {
+      const source = docRef.current.layers.find((l) => l.id === layerId);
+      if (!source) return;
+      const newId = createId(idPrefixFor(source.kind));
+      apply({ type: "duplicateLayer", layerId, offset, newId });
+      select(newId);
+    },
+    [apply, select]
+  );
+
+  const selectMany = useCallback(
+    (layerIds: string[]) => {
+      const ids = [...new Set(layerIds)];
+      if (ids.length <= 1) {
+        select(ids[0] ?? null);
+        return;
+      }
+      setSelectedId(null);
+      setMultiIds(ids);
+      setEditingId(null);
+      // Crop and the brushes act on one layer; they have nothing to do here.
+      setToolState((t) => (t === "crop" || t === "eraser" || t === "draw" ? "select" : t));
+    },
+    [select]
+  );
 
   const setTool = useCallback((next: ToolId) => {
     setToolState(next);
@@ -326,7 +406,19 @@ export function StudioProvider({
   // A selection pointing at a deleted layer must read as "nothing selected",
   // not as a stale id — undo can also bring the layer back, and then it should
   // simply be selected again.
-  const selectedLayer = selectedId ? (findLayer(doc, selectedId) ?? null) : null;
+  // Members can be deleted (or undone away) under a multi-selection too; what
+  // is left decides whether it is still one — a single survivor is simply the
+  // selection.
+  const multiLayers = useMemo(
+    () => doc.layers.filter((layer) => multiIds.includes(layer.id)),
+    [doc.layers, multiIds]
+  );
+  const singleId = multiLayers.length === 1 ? multiLayers[0].id : multiIds.length ? null : selectedId;
+  const selectedLayer = singleId ? (findLayer(doc, singleId) ?? null) : null;
+  const selectedLayers = useMemo(
+    () => (multiLayers.length > 1 ? multiLayers : selectedLayer ? [selectedLayer] : []),
+    [multiLayers, selectedLayer]
+  );
 
   // Derived rather than trusted, for the same reason: undo can remove the layer
   // being typed into, and a lock can arrive from the layers panel mid-edit. Both
@@ -342,8 +434,9 @@ export function StudioProvider({
   const value = useMemo<StudioContextValue>(
     () => ({
       doc,
-      selectedId: selectedLayer ? selectedId : null,
+      selectedId: selectedLayer ? selectedLayer.id : null,
       selectedLayer,
+      selectedLayers,
       editingId: editing,
       tool,
       rail,
@@ -356,12 +449,18 @@ export function StudioProvider({
       guides,
       showGuides,
       setShowGuides,
+      styleSource,
+      setStyleSource,
+      pen,
+      setPen,
       apply,
       endGesture: endGestureCb,
       undo,
       redo,
       replaceDocument,
       select,
+      duplicate,
+      selectMany,
       setEditingId,
       setTool,
       setRail,
@@ -374,8 +473,9 @@ export function StudioProvider({
     }),
     [
       doc,
-      selectedId,
+      setPen,
       selectedLayer,
+      selectedLayers,
       editing,
       tool,
       rail,
@@ -385,6 +485,8 @@ export function StudioProvider({
       size,
       guides,
       showGuides,
+      styleSource,
+      pen,
       history,
       apply,
       endGestureCb,
@@ -392,6 +494,8 @@ export function StudioProvider({
       redo,
       replaceDocument,
       select,
+      duplicate,
+      selectMany,
       setTool,
       setViewport,
       setBrush,

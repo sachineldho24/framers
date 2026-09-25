@@ -16,6 +16,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   docToLocal,
+  docToScreen,
   handleAxes,
   HANDLE_HIT_TOLERANCE,
   hitTestTargets,
@@ -47,25 +48,61 @@ import {
   type SnapCandidates,
   type SnapLine,
 } from "@/lib/studio/snap";
-import type {
-  CropRect,
-  ImageLayer,
-  Layer,
-  Stroke,
+import {
+  unfilledSlots,
+  type CropRect,
+  type ImageLayer,
+  type Layer,
+  type Stroke,
 } from "@/lib/studio/document";
 import { useStudio } from "@/lib/studio/StudioContext";
 import { useStudioFonts } from "@/lib/studio/useStudioFonts";
 import { textLayerHeight } from "@/lib/studio/textMeasure";
 
+import { Icon } from "@/components/Icon";
 import { CropOverlay } from "./CropOverlay";
+import { UPLOAD_DRAG_MIME } from "./panels/UploadsPanel";
 import { PrintGuides } from "./PrintGuides";
+import { GroupSelectionOverlay, MarqueeOverlay } from "./GroupSelectionOverlay";
 import { SelectionOverlay } from "./SelectionOverlay";
+import { appendPoint, drawLayerFromPoints, penWidth, strokeHit, type PenKind } from "@/lib/studio/drawing";
+import { createId } from "@/lib/studio/document";
+import {
+  groupOf,
+  layersInRect,
+  rectFromPoints,
+  scaleLayers,
+  selectionBounds,
+  withGroups,
+  type Rect,
+} from "@/lib/studio/multiSelect";
 import { SnapGuides } from "./SnapGuides";
 import { TextEditOverlay } from "./TextEditOverlay";
 import { useCompactStudio } from "./useCompactStudio";
 
 type Gesture =
   | { kind: "none" }
+  /** A pen stroke being drawn; points in document px. */
+  | {
+      kind: "pen";
+      id: string;
+      points: [number, number][];
+      color: string;
+      width: number;
+      pen: PenKind;
+    }
+  /** Rubbing out drawn strokes. */
+  | { kind: "pen-erase" }
+  /** Rubber-band selection from an empty spot. */
+  | { kind: "marquee"; startDoc: { x: number; y: number }; additive: boolean; base: string[] }
+  /** Several layers dragged together. */
+  | {
+      kind: "move-many";
+      starts: { id: string; x: number; y: number }[];
+      startDoc: { x: number; y: number };
+    }
+  /** Several layers scaled together from a corner of their joint bounds. */
+  | { kind: "scale-many"; start: Layer[]; bounds: Rect; handle: HandleId }
   | {
       kind: "move";
       layerId: string;
@@ -137,16 +174,29 @@ function isImageLayer(layer: Layer | null): layer is ImageLayer {
 export function StudioCanvas({
   images,
   onContextMenu,
+  onDropUpload,
+  onFillSlot,
 }: {
   images: ImageMap;
   /** Right-click on the canvas; coordinates are viewport-relative. */
   onContextMenu?: (x: number, y: number, layerId: string | null) => void;
+  /**
+   * An upload was dragged from the Uploads panel and dropped. `targetId` is the
+   * photo under the pointer — Canva's "drop into a frame" — or null for bare
+   * page, where the shell adds a new layer at `point` (doc px).
+   */
+  onDropUpload?: (src: string, point: { x: number; y: number }, targetId: string | null) => void;
+  /** The "Add your photo" button on an empty photo slot. */
+  onFillSlot?: (layerId: string) => void;
 }) {
   const {
     doc,
     docRef,
     selectedId,
     selectedLayer,
+    selectedLayers,
+    selectMany,
+    pen,
     editingId,
     setEditingId,
     tool,
@@ -204,12 +254,19 @@ export function StudioCanvas({
   const toolRef = useRef(tool);
   const brushRef = useRef(brush);
   const selectedIdRef = useRef(selectedId);
+  const selectedIdsRef = useRef<string[]>([]);
+  const penRef = useRef(pen);
   useEffect(() => {
+    penRef.current = pen;
     viewportRef.current = viewport;
     toolRef.current = tool;
     brushRef.current = brush;
     selectedIdRef.current = selectedId;
-  }, [viewport, tool, brush, selectedId]);
+    selectedIdsRef.current = selectedLayers.map((l) => l.id);
+  }, [viewport, tool, brush, selectedId, selectedLayers, pen]);
+
+  /** The rubber band being drawn, in document px — rendered as an overlay. */
+  const [marquee, setMarquee] = useState<Rect | null>(null);
 
   const createCanvas = useMemo(
     () => (w: number, h: number) => {
@@ -371,6 +428,20 @@ export function StudioCanvas({
     [docRef, layerBox]
   );
 
+  /** The photo a dragged upload would land in, for the drop highlight. */
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+
+  const dropTargetAt = useCallback(
+    (e: { clientX: number; clientY: number }): ImageLayer | null => {
+      const hit = pickLayer(toDoc(e));
+      if (!hit || hit.kind !== "image") return null;
+      // A locked photo only accepts a drop when it is a customer photo slot,
+      // matching what the reducer will allow.
+      return hit.locked && hit.role !== "placeholder" ? null : hit;
+    },
+    [pickLayer, toDoc]
+  );
+
   /**
    * Every line this drag may line up with. Built at pointerdown because the
    * neighbours can't move while it runs.
@@ -389,6 +460,20 @@ export function StudioCanvas({
       );
     },
     [docRef, guides, showGuides]
+  );
+
+  /** Remove every drawn stroke under the pointer (unlocked ones). */
+  const eraseStrokesAt = useCallback(
+    (point: { x: number; y: number }) => {
+      const tolerance = 6 / viewportRef.current.scale;
+      for (const layer of docRef.current.layers) {
+        if (layer.kind !== "draw" || layer.locked || !layer.visible) continue;
+        if (strokeHit(layer, point, tolerance)) {
+          apply({ type: "removeLayer", layerId: layer.id }, { transient: true, label: "pen-erase" });
+        }
+      }
+    },
+    [apply, docRef]
   );
 
   const onPointerDown = useCallback(
@@ -437,6 +522,27 @@ export function StudioCanvas({
 
       const point = toDoc(e);
       const activeTool = toolRef.current;
+
+      // Draw: every press starts a new stroke — its own layer, like Canva's.
+      if (activeTool === "pen") {
+        const settings = penRef.current;
+        const current = docRef.current;
+        const kind = settings.pen;
+        const width = penWidth(kind, settings.sizes[kind], Math.min(current.width, current.height));
+        const id = createId("drw");
+        const points: [number, number][] = [[point.x, point.y]];
+        gestureRef.current = { kind: "pen", id, points, color: settings.colors[kind], width, pen: kind };
+        apply(
+          { type: "addLayer", layer: drawLayerFromPoints({ id, points, color: settings.colors[kind], width, pen: kind }) },
+          { transient: true, label: `pen:${id}` }
+        );
+        return;
+      }
+      if (activeTool === "pen-eraser") {
+        gestureRef.current = { kind: "pen-erase" };
+        eraseStrokesAt(point);
+        return;
+      }
       const current = selectedIdRef.current
         ? (docRef.current.layers.find((l) => l.id === selectedIdRef.current) ??
           null)
@@ -497,6 +603,24 @@ export function StudioCanvas({
         return;
       }
 
+      const all = docRef.current.layers;
+      const selectedIds = selectedIdsRef.current;
+
+      // Several selected and the press lands on one of them: drag them all.
+      if (selectedIds.length > 1 && !e.shiftKey) {
+        const onMember = pickLayer(point);
+        if (onMember && selectedIds.includes(onMember.id)) {
+          gestureRef.current = {
+            kind: "move-many",
+            starts: all
+              .filter((l) => selectedIds.includes(l.id) && !l.locked)
+              .map((l) => ({ id: l.id, x: l.x, y: l.y })),
+            startDoc: point,
+          };
+          return;
+        }
+      }
+
       // A handle hit only counts on the already-selected layer.
       if (current && !current.locked) {
         // Tolerances are screen px; hit-testing happens in doc px.
@@ -534,10 +658,40 @@ export function StudioCanvas({
 
       const hit = pickLayer(point);
       if (!hit) {
-        select(null);
+        // An empty spot starts a rubber band. Shift keeps what was selected.
+        if (!e.shiftKey) select(null);
+        gestureRef.current = {
+          kind: "marquee",
+          startDoc: point,
+          additive: e.shiftKey,
+          base: e.shiftKey ? selectedIds : [],
+        };
+        return;
+      }
+
+      // Shift-click adds a layer (or its whole group) to the selection, or
+      // takes it out again.
+      if (e.shiftKey) {
+        const members = groupOf(all, hit).map((l) => l.id);
+        const base = selectedIds.length ? selectedIds : selectedIdRef.current ? [selectedIdRef.current] : [];
+        const removing = members.every((id) => base.includes(id));
+        selectMany(removing ? base.filter((id) => !members.includes(id)) : [...base, ...members]);
         gestureRef.current = { kind: "none" };
         return;
       }
+
+      // A grouped layer selects its whole group, and the drag moves them all.
+      if (hit.groupId) {
+        const members = groupOf(all, hit);
+        selectMany(members.map((l) => l.id));
+        gestureRef.current = {
+          kind: "move-many",
+          starts: members.filter((l) => !l.locked).map((l) => ({ id: l.id, x: l.x, y: l.y })),
+          startDoc: point,
+        };
+        return;
+      }
+
       select(hit.id);
       if (hit.locked) {
         gestureRef.current = { kind: "none" };
@@ -559,9 +713,25 @@ export function StudioCanvas({
       layerBox,
       pickLayer,
       select,
+      selectMany,
       showSnapLines,
       toDoc,
+      eraseStrokesAt,
     ]
+  );
+
+  /** Open a group scale from one of the joint selection's corner handles. */
+  const beginGroupScale = useCallback(
+    (handle: HandleId, e: React.PointerEvent<Element>) => {
+      if (e.button !== 0) return;
+      const ids = selectedIdsRef.current;
+      const start = docRef.current.layers.filter((l) => ids.includes(l.id));
+      const bounds = selectionBounds(start);
+      if (!bounds || start.some((l) => l.locked)) return;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      gestureRef.current = { kind: "scale-many", start, bounds, handle };
+    },
+    [docRef]
   );
 
   /**
@@ -664,6 +834,54 @@ export function StudioCanvas({
       }
 
       const point = toDoc(e);
+
+      if (gesture.kind === "marquee") {
+        setMarquee(rectFromPoints(gesture.startDoc, point));
+        return;
+      }
+
+      if (gesture.kind === "pen") {
+        // One sample per screen pixel or so: enough for a smooth line.
+        const next = appendPoint(gesture.points, [point.x, point.y], 1.5 / viewportRef.current.scale);
+        if (next === gesture.points) return;
+        const points = next as [number, number][];
+        gestureRef.current = { ...gesture, points };
+        apply(
+          {
+            type: "replaceLayer",
+            layer: drawLayerFromPoints({ id: gesture.id, points, color: gesture.color, width: gesture.width, pen: gesture.pen }),
+          },
+          { transient: true, label: `pen:${gesture.id}` }
+        );
+        return;
+      }
+
+      if (gesture.kind === "pen-erase") {
+        eraseStrokesAt(point);
+        return;
+      }
+
+      if (gesture.kind === "move-many") {
+        const dx = Math.round(point.x - gesture.startDoc.x);
+        const dy = Math.round(point.y - gesture.startDoc.y);
+        for (const start of gesture.starts) {
+          apply(
+            { type: "setLayerBox", layerId: start.id, box: { x: start.x + dx, y: start.y + dy } },
+            { transient: true, label: "move-many" }
+          );
+        }
+        return;
+      }
+
+      if (gesture.kind === "scale-many") {
+        for (const patch of scaleLayers(gesture.start, gesture.bounds, gesture.handle, point)) {
+          apply(
+            { type: "setLayerBox", layerId: patch.id, box: patch.box, fontSize: patch.fontSize },
+            { transient: true, label: "scale-many" }
+          );
+        }
+        return;
+      }
 
       if (gesture.kind === "move") {
         // Rounded so a slow drag emits one action per document pixel, not per
@@ -820,7 +1038,7 @@ export function StudioCanvas({
         );
       }
     },
-    [apply, docRef, setViewport, showSnapLines, toDoc]
+    [apply, docRef, eraseStrokesAt, setViewport, showSnapLines, toDoc]
   );
 
   const finishGesture = useCallback(
@@ -836,6 +1054,18 @@ export function StudioCanvas({
       if (gesture.kind === "none") return;
       gestureRef.current = { kind: "none" };
       showSnapLines([]);
+
+      if (gesture.kind === "marquee") {
+        setMarquee(null);
+        const rect = rectFromPoints(gesture.startDoc, toDoc(e));
+        // A click, not a drag: the deselect already happened on the way down.
+        const scale = viewportRef.current.scale;
+        if (rect.width * scale < 4 && rect.height * scale < 4) return;
+        const all = docRef.current.layers;
+        const swept = withGroups(all, layersInRect(all, rect)).map((l) => l.id);
+        selectMany([...gesture.base, ...swept]);
+        return;
+      }
       try {
         // Whichever element opened the drag is the one holding capture — the
         // canvas for a body drag, the handle span for a resize or rotate.
@@ -845,7 +1075,7 @@ export function StudioCanvas({
       }
       endGesture();
     },
-    [endGesture, showSnapLines]
+    [docRef, endGesture, selectMany, showSnapLines, toDoc]
   );
 
   // Ctrl/⌘+wheel zooms about the cursor; plain wheel pans. Non-passive so the
@@ -903,7 +1133,7 @@ export function StudioCanvas({
   }, []);
 
   const cursor =
-    tool === "eraser" || tool === "draw"
+    tool === "eraser" || tool === "draw" || tool === "pen" || tool === "pen-eraser"
       ? "crosshair"
       : // Crop's own handles carry resize cursors; the window itself is dragged,
         // so "move" is the honest default for the rest of the surface.
@@ -915,6 +1145,23 @@ export function StudioCanvas({
     <div
       ref={wrapRef}
       className="studio-canvas-grid relative h-full w-full overflow-hidden"
+      onDragOver={(e) => {
+        if (!onDropUpload || !e.dataTransfer.types.includes(UPLOAD_DRAG_MIME)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        const id = dropTargetAt(e)?.id ?? null;
+        if (id !== dropTargetId) setDropTargetId(id);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropTargetId(null);
+      }}
+      onDrop={(e) => {
+        const src = e.dataTransfer.getData(UPLOAD_DRAG_MIME);
+        setDropTargetId(null);
+        if (!onDropUpload || !src) return;
+        e.preventDefault();
+        onDropUpload(src, toDoc(e), dropTargetAt(e)?.id ?? null);
+      }}
     >
       <canvas
         ref={canvasRef}
@@ -933,7 +1180,8 @@ export function StudioCanvas({
         onContextMenu={(e) => {
           e.preventDefault();
           const hit = pickLayer(toDoc(e));
-          if (hit) select(hit.id);
+          // Right-clicking inside a multi-selection keeps it.
+          if (hit && !selectedIdsRef.current.includes(hit.id)) select(hit.id);
           onContextMenu?.(e.clientX, e.clientY, hit?.id ?? null);
         }}
         className="block h-full w-full"
@@ -958,6 +1206,27 @@ export function StudioCanvas({
         viewport={viewport}
         page={{ width: doc.width, height: doc.height }}
       />
+
+      {marquee && <MarqueeOverlay rect={marquee} viewport={viewport} />}
+
+      {dropTargetId && (() => {
+        const target = doc.layers.find((l) => l.id === dropTargetId);
+        return target ? <LayerOutline layer={target} viewport={viewport} /> : null;
+      })()}
+
+      {onFillSlot && tool === "select" && (
+        <SlotPrompts layers={unfilledSlots(doc)} viewport={viewport} onFill={onFillSlot} />
+      )}
+
+      {selectedLayers.length > 1 && (
+        <GroupSelectionOverlay
+          layers={selectedLayers}
+          viewport={viewport}
+          onHandleDown={beginGroupScale}
+          onHandleMove={onPointerMove}
+          onHandleUp={finishGesture}
+        />
+      )}
 
       {selectedLayer &&
         (isImageLayer(selectedLayer) && tool === "crop" ? (
@@ -988,5 +1257,57 @@ export function StudioCanvas({
           />
         ))}
     </div>
+  );
+}
+
+/** A dashed box over a layer — the drop target while an upload is dragged. */
+function LayerOutline({ layer, viewport }: { layer: Layer; viewport: Viewport }) {
+  const p = docToScreen(viewport, { x: layer.x, y: layer.y });
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute left-0 top-0 border-2 border-dashed border-[var(--studio-accent)] bg-[var(--studio-accent)]/10"
+      style={{
+        width: layer.width * viewport.scale,
+        height: layer.height * viewport.scale,
+        transform: `translate(${p.x}px, ${p.y}px) rotate(${layer.rotation}deg)`,
+        transformOrigin: "center",
+      }}
+    />
+  );
+}
+
+/**
+ * "Add your photo" on every photo slot still holding the template's sample —
+ * the customer's to-do list, drawn where the work is.
+ */
+function SlotPrompts({
+  layers,
+  viewport,
+  onFill,
+}: {
+  layers: ImageLayer[];
+  viewport: Viewport;
+  onFill: (layerId: string) => void;
+}) {
+  return (
+    <>
+      {layers.map((layer) => {
+        const c = docToScreen(viewport, { x: layer.x + layer.width / 2, y: layer.y + layer.height / 2 });
+        return (
+          <button
+            key={layer.id}
+            type="button"
+            data-r="full"
+            onClick={() => onFill(layer.id)}
+            className="absolute left-0 top-0 z-10 inline-flex items-center gap-1.5 whitespace-nowrap bg-[var(--studio-chrome)]/95 px-3 py-1.5 text-[12px] font-semibold text-[var(--studio-ink)] shadow-md ring-1 ring-[var(--studio-border)] hover:ring-[var(--studio-accent)]"
+            style={{ transform: `translate(${c.x}px, ${c.y}px) translate(-50%, -50%)` }}
+          >
+            <Icon name="add_photo_alternate" className="text-[16px]" />
+            Add your photo
+          </button>
+        );
+      })}
+    </>
   );
 }

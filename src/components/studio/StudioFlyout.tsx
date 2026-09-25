@@ -10,28 +10,44 @@ import { RAIL_ENTRIES } from "./StudioRail";
 import { AdjustPanel } from "./panels/AdjustPanel";
 import { BorderPanel } from "./panels/BorderPanel";
 import { ComingSoonPanel } from "./panels/ComingSoonPanel";
+import { EffectsPanel } from "./panels/EffectsPanel";
 import { ElementsPanel } from "./panels/ElementsPanel";
 import { ErasePanel } from "./panels/ErasePanel";
 import { FramesPanel } from "./panels/FramesPanel";
 import { LayersPanel } from "./panels/LayersPanel";
+import { TemplatesPanel } from "./panels/TemplatesPanel";
 import { TextPanel } from "./panels/TextPanel";
-import { ToolsPanel } from "./panels/ToolsPanel";
+import { ToolsPalette } from "./ToolsPalette";
 import { UploadsPanel } from "./panels/UploadsPanel";
+import { Icon } from "@/components/Icon";
 import { IconButton } from "./ui";
 import { CropControls } from "./CropOverlay";
 import { useCompactStudio } from "./useCompactStudio";
 import { useStudio, type RailId } from "@/lib/studio/StudioContext";
 
+/**
+ * The mockup's collapse tab: a slim handle hanging off the panel's right edge.
+ * The compact layout has no edge to hang it on, so it keeps the close button.
+ */
+function CollapseTab({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="studio-panel-tab absolute -right-[13px] top-1/2 z-30 flex h-14 w-[13px] -translate-y-1/2 items-center justify-center border border-l-0 border-[var(--studio-border)] bg-[var(--studio-chrome)] text-[var(--studio-ink-muted)] transition-colors hover:text-[var(--studio-accent)]"
+    >
+      <Icon name="chevron_left" className="text-[14px]" />
+    </button>
+  );
+}
+
 const COMING_SOON: Partial<
   Record<RailId, { icon: string; title: string; body: string }>
 > = {
-  templates: {
-    icon: "dashboard",
-    title: "Templates are coming",
-    body: "Ready-made layouts for common frame sizes. For now, start from your own image in Uploads.",
-  },
   brand: {
-    icon: "palette",
+    icon: "verified",
     title: "Brand kits are coming",
     body: "Save colours, fonts and logos to reuse across designs.",
   },
@@ -53,15 +69,24 @@ export function StudioFlyout({
   uploads,
   uploading,
   uploadError,
+  onRemoveUpload,
+  isAdmin = false,
 }: {
   panelId: string;
   onAddImage: () => void;
   uploads: import("./panels/UploadsPanel").UploadEntry[];
   uploading?: boolean;
   uploadError?: string | null;
+  onRemoveUpload?: (src: string) => void;
+  /** Shows a delete control on each template — admins can clean up their own catalogue. */
+  isAdmin?: boolean;
 }) {
   const { rail, setRail, tool } = useStudio();
   const compact = useCompactStudio();
+  // Tools is Canva's slim palette, not a panel; it stays up while drawing.
+  if (rail === "tools" && (tool === "select" || tool === "pen" || tool === "pen-eraser")) {
+    return <ToolsPalette />;
+  }
   // A subtool replaces the tool list instead of opening a second 300px panel.
   if (!rail || (compact && tool === "crop") || (tool !== "select" && tool !== "crop" && tool !== "draw")) return null;
 
@@ -73,26 +98,28 @@ export function StudioFlyout({
       id={panelId}
       role="tabpanel"
       aria-labelledby={`studio-rail-${rail}`}
-      className="studio-panel flex min-h-0 w-[300px] shrink-0 flex-col bg-[var(--studio-chrome)]"
+      className="studio-panel relative flex min-h-0 w-[340px] shrink-0 flex-col border-r border-[var(--studio-border)] bg-[var(--studio-chrome)]"
     >
-      <div className="flex shrink-0 items-center justify-between px-3 pt-3">
-        <h2 className="px-1 text-[15px] font-semibold text-[var(--studio-ink)]">
+      <CollapseTab label="Hide panel" onClick={() => setRail(null)} />
+      <div className="flex shrink-0 items-center justify-between px-4 pt-4">
+        <h2 className="text-[15px] font-semibold text-[var(--studio-ink)]">
           {entry?.label}
         </h2>
         <IconButton
           icon="close"
           label="Close panel"
           size="sm"
+          className="lg:hidden"
           onClick={() => setRail(null)}
         />
       </div>
 
-      <div className="studio-panel-content min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-2">
-        {rail === "tools" && <ToolsPanel />}
+      <div className="studio-panel-content min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-4 pt-3">
         {rail === "elements" && <ElementsPanel />}
         {rail === "text" && <TextPanel />}
+        {rail === "templates" && <TemplatesPanel isAdmin={isAdmin} />}
         {rail === "uploads" && (
-          <UploadsPanel uploads={uploads} onAddImage={onAddImage} uploading={uploading} error={uploadError} />
+          <UploadsPanel uploads={uploads} onAddImage={onAddImage} onRemove={onRemoveUpload} uploading={uploading} error={uploadError} />
         )}
         {empty && (
           <ComingSoonPanel
@@ -111,15 +138,23 @@ export function StudioFlyout({
  * by the active tool, not the rail — picking "Adjust" in Tools should show the
  * sliders without the rail selection changing under the user.
  */
-export function StudioToolPanel() {
+export function StudioToolPanel({ isAdmin = false }: { isAdmin?: boolean }) {
   const { tool, setTool, selectedLayer } = useStudio();
   const compact = useCompactStudio();
-  if (tool === "select" || (tool === "crop" && !compact) || tool === "draw") return null;
+  if (
+    tool === "select" ||
+    (tool === "crop" && !compact) ||
+    tool === "draw" ||
+    tool === "pen" ||
+    tool === "pen-eraser"
+  )
+    return null;
 
   const titles: Record<string, string> = {
     adjust: "Adjust",
     frames: "Frames",
-    layers: "Layers",
+    layers: "Position",
+    effects: "Effects",
     eraser: "Eraser",
     border: "Border",
     crop: "Crop",
@@ -129,24 +164,27 @@ export function StudioToolPanel() {
     <aside
       id="studio-flyout"
       aria-label={titles[tool]}
-      className="studio-panel flex min-h-0 w-[300px] shrink-0 flex-col bg-[var(--studio-chrome)]"
+      className="studio-panel relative flex min-h-0 w-[340px] shrink-0 flex-col border-r border-[var(--studio-border)] bg-[var(--studio-chrome)]"
     >
-      <div className="flex shrink-0 items-center justify-between px-3 pt-3">
-        <h2 className="px-1 text-[15px] font-semibold text-[var(--studio-ink)]">
+      <CollapseTab label={`Close ${titles[tool]}`} onClick={() => setTool("select")} />
+      <div className="flex shrink-0 items-center justify-between px-4 pt-4">
+        <h2 className="text-[15px] font-semibold text-[var(--studio-ink)]">
           {titles[tool]}
         </h2>
         <IconButton
           icon="close"
           label={`Close ${titles[tool]}`}
           size="sm"
+          className="lg:hidden"
           onClick={() => setTool("select")}
         />
       </div>
-      <div className="studio-panel-content min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 pt-2">
+      <div className="studio-panel-content min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain px-4 pb-4 pt-3">
         {tool === "crop" && selectedLayer?.kind === "image" && <CropControls layer={selectedLayer} />}
         {tool === "adjust" && <AdjustPanel />}
-        {tool === "frames" && <FramesPanel />}
+        {tool === "frames" && <FramesPanel isAdmin={isAdmin} />}
         {tool === "layers" && <LayersPanel />}
+        {tool === "effects" && <EffectsPanel />}
         {tool === "eraser" && <ErasePanel />}
         {tool === "border" && <BorderPanel />}
       </div>

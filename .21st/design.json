@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "project": {
+    "name": "framers",
+    "productType": null,
+    "stack": [
+      "nextjs",
+      "react",
+      "tailwind-v4"
+    ]
+  },
+  "sources": {
+    "tokens": [
+      "src/app/globals.css"
+    ],
+    "components": [
+      "src/components/ui"
+    ],
+    "assets": [
+      "public/brand"
+    ],
+    "instructions": []
+  },
+  "design": {
+    "colorMode": "light",
+    "colors": {
+      "--color-background": {
+        "value": "#000000",
+        "source": "src/app/globals.css"
+      },
+      "--color-surface": {
+        "value": "#000000",
+        "source": "src/app/globals.css"
+      },
+      "--color-surface-muted": {
+        "value": "#141414",
+        "source": "src/app/globals.css"
+      },
+      "--color-surface-container": {
+        "value": "#1c1c1c",
+        "source": "src/app/globals.css"
+      },
+      "--color-surface-lowest": {
+        "value": "#000000",
+        "source": "src/app/globals.css"
+      },
+      "--color-foreground": {
+        "value": "#f5f5f5",
+        "source": "src/app/globals.css"
+      },
+      "--color-on-background": {
+        "value": "#f5f5f5",
+        "source": "src/app/globals.css"
+      },
+      "--color-on-surface": {
+        "value": "#f5f5f5",
+        "source": "src/app/globals.css"
+      },
+      "--color-on-surface-variant": {
+        "value": "#b8b8b8",
+        "source": "src/app/globals.css"
+      },
+      "--color-inverse-surface": {
+        "value": "#303030",
+        "source": "src/app/globals.css"
+      },
+      "--color-inverse-on-surface": {
+        "value": "#f1f1f1",
+        "source": "src/app/globals.css"
+      },
+      "--color-inverse-primary": {
+        "value": "#c6c6c6",
+        "source": "src/app/globals.css"
+      },
+      "--color-primary": {
+        "value": "#242424",
+        "source": "src/app/globals.css"
+      },
+      "--color-on-primary": {
+        "value": "#ffffff",
+        "source": "src/app/globals.css"
+      },
+      "--color-on-primary-container": {
+        "value": "#a3a3a3",
+        "source": "src/app/globals.css"
+      },
+      "--color-surface-container-low": {
+        "value": "#0c0c0c",
+        "source": "src/app/globals.css"
+      },
+      "--color-outline": {
+        "value": "#969696",
+        "source": "src/app/globals.css"
+      },
+      "--color-outline-variant": {
+        "value": "#3d3d3d",
+        "source": "src/app/globals.css"
+      },
+      "--color-border-high-contrast": {
+        "value": "#737373",
+        "source": "src/app/globals.css"
+      },
+      "--color-action-red": {
+        "value": "#ff0000",
+        "source": "src/app/globals.css"
+      },
+      "--color-neon-accent": {
+        "value": "#ccff00",
+        "source": "src/app/globals.css"
+      },
+      "--color-error": {
+        "value": "#ff8a80",
+        "source": "src/app/globals.css"
+      },
+      "--color-on-error": {
+        "value": "#240706",
+        "source": "src/app/globals.css"
+      },
+      "--color-error-container": {
+        "value": "#35100e",
+        "source": "src/app/globals.css"
+      },
+      "--color-on-error-container": {
+        "value": "#ffb4ab",
+        "source": "src/app/globals.css"
+      },
+      "--studio-accent": {
+        "value": "#7c5cff",
+        "source": "src/app/globals.css"
+      },
+      "--studio-accent-soft": {
+        "value": "#241b42",
+        "source": "src/app/globals.css"
+      },
+      "--studio-border": {
+        "value": "#3d3d43",
+        "source": "src/app/globals.css"
+      },
+      "--studio-ink-muted": {
+        "value": "#aaaab4",
+        "source": "src/app/globals.css"
+      }
+    },
+    "typography": {
+      "--font-display": {
+        "value": "var(--font-montserrat), \"Arial Black\", sans-serif",
+        "source": "src/app/globals.css"
+      },
+      "--font-body": {
+        "value": "var(--font-hanken), system-ui, sans-serif",
+        "source": "src/app/globals.css"
+      },
+      "--font-label": {
+        "value": "var(--font-space-grotesk), monospace",
+        "source": "src/app/globals.css"
+      }
+    },
+    "spacing": {
+      "--spacing-section": {
+        "value": "64px",
+        "source": "src/app/globals.css"
+      },
+      "--spacing-margin-mobile": {
+        "value": "20px",
+        "source": "src/app/globals.css"
+      },
+      "--spacing-gutter-mobile": {
+        "value": "12px",
+        "source": "src/app/globals.css"
+      }
+    },
+    "radius": {
+      "--radius-none": {
+        "value": "0px",
+        "source": "src/app/globals.css"
+      }
+    },
+    "shadows": {},
+    "motion": {},
+    "density": "unknown"
+  },
+  "components": {
+    "installed": [
+      "demo",
+      "image-gallery",
+      "image-gallery-state",
+      "image-gallery-state.test",
+      "testimonial-columns",
+      "testimonial-columns.test",
+      "testimonials-columns-1"
+    ],
+    "preferredPrimitives": [],
+    "patterns": []
+  },
+  "constraints": {
+    "must": [],
+    "avoid": []
+  },
+  "decisions": [],
+  "evidence": [
+    {
+      "fact": "components.installed",
+      "source": "src/components/ui"
+    },
+    {
+      "fact": "design.colorMode:light",
+      "source": "src/app/globals.css"
+    },
+    {
+      "fact": "design.tokens",
+      "source": "src/app/globals.css"
+    },
+    {
+      "fact": "project.stack:nextjs",
+      "source": "package.json"
+    },
+    {
+      "fact": "project.stack:react",
+      "source": "package.json"
+    },
+    {
+      "fact": "project.stack:tailwind-v4",
+      "source": "package.json"
+    }
+  ],
+  "generatedAt": "2026-09-20T08:55:19.463Z"
+}

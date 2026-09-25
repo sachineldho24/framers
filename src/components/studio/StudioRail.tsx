@@ -19,17 +19,17 @@ interface RailEntry {
   id: RailId;
   icon: string;
   label: string;
-  /** Shows the mockup's crown — a paid/unavailable marker. */
-  crown?: boolean;
+  /** Shows the lightning-bolt badge — a paid/unavailable marker. */
+  pro?: boolean;
 }
 
 export const RAIL_ENTRIES: RailEntry[] = [
-  { id: "templates", icon: "dashboard", label: "Templates" },
+  { id: "templates", icon: "space_dashboard", label: "Templates" },
   { id: "elements", icon: "category", label: "Elements" },
   { id: "text", icon: "title", label: "Text" },
-  { id: "brand", icon: "palette", label: "Brand", crown: true },
+  { id: "brand", icon: "verified", label: "Brand", pro: true },
   { id: "uploads", icon: "cloud_upload", label: "Uploads" },
-  { id: "tools", icon: "build", label: "Tools" },
+  { id: "tools", icon: "draw", label: "Tools" },
   { id: "projects", icon: "folder", label: "Projects" },
   { id: "apps", icon: "apps", label: "Apps" },
 ];
@@ -48,7 +48,7 @@ export function StudioRail({ panelId }: { panelId: string }) {
       role="tablist"
       aria-label="Studio panels"
       aria-orientation={compact ? "horizontal" : "vertical"}
-      className="studio-rail flex w-[85px] shrink-0 flex-col items-center gap-1 bg-[var(--studio-chrome)] py-3"
+      className="studio-rail flex w-[72px] shrink-0 flex-col items-center gap-0.5 border-r border-[var(--studio-border)] bg-[var(--studio-chrome)] py-2"
     >
       {entries.map((entry) => {
         const active = rail === entry.id;
@@ -65,22 +65,32 @@ export function StudioRail({ panelId }: { panelId: string }) {
               setEditingId(null);
               setRail(active && tool === "select" ? null : entry.id);
             }}
-            data-r="md"
-            className={cx(
-              "relative flex w-[68px] flex-col items-center gap-1 py-2 transition-colors",
-              active
-                ? "bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
-                : "text-[var(--studio-ink-muted)] hover:bg-white/[0.045] hover:text-[var(--studio-ink)]"
-            )}
+            data-r="sm"
+            className="group relative flex w-16 flex-col items-center gap-1 pb-1.5 pt-2 transition-colors hover:bg-[#1c1c1c]"
           >
-            <Icon name={entry.icon} className="text-[22px]" fill={active} />
-            <span className="text-[10.5px] font-medium leading-none">
+            <span
+              data-r="sm"
+              className={cx(
+                "flex h-7 w-9 items-center justify-center transition-colors",
+                active
+                  ? "bg-[#242424] text-[var(--studio-accent)]"
+                  : "text-[var(--studio-ink-muted)] group-hover:text-[var(--studio-ink)]"
+              )}
+            >
+              <Icon name={entry.icon} className="text-[20px]" fill={active} />
+            </span>
+            <span
+              className={cx(
+                "text-[11px] font-medium leading-none tracking-[0.02em]",
+                active ? "text-white" : "text-[var(--studio-ink-muted)]"
+              )}
+            >
               {entry.label}
             </span>
-            {entry.crown && (
+            {entry.pro && (
               <Icon
-                name="workspace_premium"
-                className="absolute right-1.5 top-1 text-[13px] text-[#c9a227]"
+                name="bolt"
+                className="absolute right-2.5 top-1 text-[12px] text-[var(--studio-accent)]"
                 aria-hidden
               />
             )}

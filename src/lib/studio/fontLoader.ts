@@ -17,22 +17,31 @@
  * `fonts.ts` stays pure (and server-importable); this module touches the DOM.
  */
 
-import type { StudioDocument } from "./document";
+import type { CustomFont, StudioDocument } from "./document";
 import { isTextLayer } from "./document";
 import {
   FONT_CATALOGUE,
   fontCssUrlFor,
   fontShorthand,
   getFont,
+  nameCustomFont,
   nearestWeight,
   type FontDefinition,
 } from "./fonts";
+import type { SrcResolver } from "./useStudioImages";
 
 /** Marks our <link> elements, so it's obvious in devtools who added them. */
 const LINK_ATTR = "data-studio-fonts";
 
 /** Families whose stylesheet is already in the document head. */
 const linked = new Set<string>();
+/**
+ * Family → its stylesheet having loaded. `document.fonts.load` only knows
+ * about @font-face rules the browser has already parsed: asked too early it
+ * resolves with nothing, and the face would be recorded as loaded when it
+ * isn't — leaving canvases drawn in the fallback with nothing to repaint them.
+ */
+const sheetReady = new Map<string, Promise<void>>();
 /** Load key → in-flight promise, so N layers on one family make one request. */
 const inflight = new Map<string, Promise<void>>();
 /** Load keys that resolved, and ones that failed (never retried on a loop). */
@@ -58,13 +67,25 @@ function notify(): void {
 }
 
 /**
+ * Any face the browser finishes loading — ours, or one a DOM preview pulled in
+ * — is a reason to repaint. A safety net under the per-request notifications.
+ */
+let watchingFontSet = false;
+function watchFontSet(): void {
+  if (watchingFontSet || typeof document === "undefined" || !document.fonts) return;
+  watchingFontSet = true;
+  document.fonts.addEventListener("loadingdone", () => notify());
+}
+
+/**
  * Inject one stylesheet covering whichever of these families isn't linked yet.
  * Batching matters: `fontCssUrlFor` sorts the families, so the same set always
  * produces the same URL and hits the HTTP cache.
  */
 function ensureStylesheet(fonts: FontDefinition[]): void {
   if (typeof document === "undefined") return;
-  const missing = fonts.filter((font) => !linked.has(font.id));
+  // Uploaded fonts have no Google stylesheet; they are FontFaces (see below).
+  const missing = fonts.filter((font) => !font.custom && !linked.has(font.id));
   if (missing.length === 0) return;
 
   const href = fontCssUrlFor(missing);
@@ -78,6 +99,13 @@ function ensureStylesheet(fonts: FontDefinition[]): void {
   link.rel = "stylesheet";
   link.href = href;
   link.setAttribute(LINK_ATTR, missing.map((font) => font.id).join(" "));
+  // Resolves on error too: the fallback stack still draws, and a load must not
+  // hang forever on a network failure.
+  const ready = new Promise<void>((resolve) => {
+    link.onload = () => resolve();
+    link.onerror = () => resolve();
+  });
+  missing.forEach((font) => sheetReady.set(font.id, ready));
   document.head.appendChild(link);
 }
 
@@ -133,13 +161,17 @@ async function loadFaces(
     )
   );
 
-  await Promise.all(
+  await sheetReady.get(font.id);
+  const faces = await Promise.all(
     specs.map((spec) =>
       // A bad spec rejects rather than throwing synchronously; either way the
       // fallback stack still draws, so one miss must not fail the batch.
       text ? document.fonts.load(spec, text) : document.fonts.load(spec)
     )
   );
+  // Nothing matched: the rules aren't there (yet). Not a success — throwing
+  // records a failure, which `retryFonts` or a reload can clear.
+  if (faces.every((list) => list.length === 0)) throw new Error("No face matched");
 }
 
 /**
@@ -150,7 +182,13 @@ export function loadFont(
   fontId: string,
   options: FontLoadOptions = {}
 ): Promise<void> {
+  watchFontSet();
   const font = getFont(fontId);
+  if (font.custom) {
+    // Ready when its file has been registered; until then the fallback draws,
+    // and registration notifies so the canvas repaints in the real face.
+    return customLoads.get(font.id) ?? Promise.resolve();
+  }
   ensureStylesheet([font]);
 
   const requested = options.weights?.length ? options.weights : font.weights;
@@ -228,4 +266,96 @@ export function retryFonts(): void {
   if (failures.size === 0) return;
   failures.clear();
   notify();
+}
+
+/* -------------------------------------------------------------------------- */
+/* Uploaded fonts                                                             */
+/* -------------------------------------------------------------------------- */
+
+/** Font id → registration, so each file is fetched and parsed once. */
+const customLoads = new Map<string, Promise<void>>();
+
+/** Formats a browser's FontFace accepts, by extension. */
+export const FONT_FILE_EXTENSIONS = ["ttf", "otf", "woff", "woff2"] as const;
+
+/**
+ * Parse a font file without registering it. Rejects for anything the browser
+ * can't use as a face, so a renamed PDF never becomes a stored "font".
+ */
+export async function validateFontFile(data: ArrayBuffer): Promise<void> {
+  const probe = new FontFace("Framers Font Probe", data);
+  await probe.load();
+}
+
+/**
+ * Register one uploaded font under its private family name, from the file's
+ * bytes or a URL. Idempotent per id. Resolves either way — a font that fails
+ * to load leaves its text in the fallback, it doesn't break the editor.
+ */
+export function registerCustomFont(
+  font: CustomFont,
+  source: ArrayBuffer | string
+): Promise<void> {
+  nameCustomFont(font.id, font.name);
+  const existing = customLoads.get(font.id);
+  if (existing) return existing;
+  if (typeof document === "undefined" || typeof FontFace === "undefined") {
+    return Promise.resolve();
+  }
+
+  const family = getFont(font.id).family;
+  const task = (async () => {
+    const data =
+      typeof source === "string"
+        ? await fetch(source).then((res) => {
+            if (!res.ok) throw new Error(`Font file ${res.status}`);
+            return res.arrayBuffer();
+          })
+        : source;
+    // One face at 400. A bold request then finds no 700 face and the browser
+    // emboldens this one synthetically — declaring the file at 700 as well would
+    // make "bold" draw identically to regular.
+    const face = new FontFace(family, data, { weight: "400", style: "normal" });
+    await face.load();
+    document.fonts.add(face);
+  })()
+    .catch(() => {
+      // Forget it, so a later registration (e.g. after re-signing) can retry.
+      customLoads.delete(font.id);
+    })
+    .then(() => notify());
+
+  customLoads.set(font.id, task);
+  return task;
+}
+
+/**
+ * Make a document's uploaded fonts drawable: sign their stored paths in one
+ * batch, then register each. Already-registered fonts cost a Map lookup.
+ */
+export async function registerDocumentFonts(
+  fonts: CustomFont[] | undefined,
+  resolve: SrcResolver
+): Promise<void> {
+  if (!fonts?.length) return;
+  for (const font of fonts) nameCustomFont(font.id, font.name);
+  const pending = fonts.filter((font) => !customLoads.has(font.id));
+  if (pending.length === 0) return;
+
+  const direct = (src: string) => /^(blob:|data:|https?:)/.test(src);
+  const toSign = pending.filter((font) => !direct(font.src)).map((font) => font.src);
+  let signed: Record<string, string> = {};
+  if (toSign.length) {
+    try {
+      signed = await resolve(toSign);
+    } catch {
+      signed = {};
+    }
+  }
+  await Promise.all(
+    pending.map((font) => {
+      const url = direct(font.src) ? font.src : signed[font.src];
+      return url ? registerCustomFont(font, url) : Promise.resolve();
+    })
+  );
 }

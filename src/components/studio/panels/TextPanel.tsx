@@ -19,7 +19,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useStudio, type StudioContextValue } from "@/lib/studio/StudioContext";
 import { isTextLayer, type TextLayer } from "@/lib/studio/document";
-import { loadFontCatalogue } from "@/lib/studio/fontLoader";
+import { loadFontCatalogue, registerCustomFont } from "@/lib/studio/fontLoader";
 import { documentDpi, printedInches } from "@/lib/studio/print";
 import {
   CATEGORY_LABELS,
@@ -29,6 +29,7 @@ import {
   fontsByCategory,
   getFont,
   nearestWeight,
+  type FontCategory,
 } from "@/lib/studio/fonts";
 import type { TextStylePatch } from "@/lib/studio/reducer";
 import {
@@ -46,6 +47,7 @@ import { TEXT_PRESETS, TEXT_PRESET_ORDER } from "@/lib/studio/textInsert";
 
 import { Icon } from "@/components/Icon";
 import { STUDIO_SWATCHES as SWATCHES } from "../palette";
+import { PhotoColourSwatches } from "../StudioAssets";
 import {
   EmptyState,
   IconButton,
@@ -54,7 +56,9 @@ import {
   StudioButton,
   cx,
 } from "../ui";
+import { FontUploadError, pickAndUploadFont } from "../uploadFont";
 import { useInsertText } from "../useInsertText";
+import { FontCombos } from "./FontCombos";
 
 export function TextPanel() {
   const { doc, selectedLayer, apply, endGesture, setEditingId, printSize } =
@@ -116,7 +120,7 @@ export function TextPanel() {
         </div>
       </PanelSection></div>
 
-      {layer ? (
+      {layer && (
         <TextStyleControls
           layer={layer}
           maxFontSize={maxFontSize}
@@ -125,17 +129,9 @@ export function TextPanel() {
           endGesture={endGesture}
           onEdit={() => setEditingId(layer.id)}
         />
-      ) : (
-        <EmptyState
-          icon="title"
-          title={selectedLayer ? "A photo is selected" : "Pick a text box"}
-          body={
-            selectedLayer
-              ? "Select a text box on the canvas to change its font, size and colour."
-              : "Add one above, or select text already on the page — then every typographic control appears here."
-          }
-        />
       )}
+
+      <FontCombos />
     </div>
   );
 }
@@ -239,7 +235,7 @@ function TextStyleControls({
       </PanelSection>
 
       <PanelSection title="Font">
-        <FontPicker value={layer.fontId} onChange={(fontId) => style({ fontId })} />
+        <FontPicker value={layer.fontId} layer={layer} onChange={(fontId) => style({ fontId })} />
       </PanelSection>
 
       <PanelSection title="Style">
@@ -438,7 +434,7 @@ function Toggle({
  * The swatches exist because the picker is a modal OS dialog on most platforms —
  * fine for a one-off, miserable for trying five colours against a photo.
  */
-function ColorField({
+export function ColorField({
   label,
   value,
   onChange,
@@ -495,6 +491,14 @@ function ColorField({
           />
         ))}
       </div>
+      <PhotoColourSwatches
+        className="mt-2.5"
+        value={value}
+        onPick={(colour) => {
+          onChange(colour);
+          onCommit();
+        }}
+      />
     </div>
   );
 }
@@ -502,31 +506,100 @@ function ColorField({
 /**
  * The family list, grouped as the catalogue groups itself and previewed in the
  * face it names — the only preview of a typeface that tells the truth.
+ *
+ * "Your fonts" comes first: the design's uploaded fonts, plus the button that
+ * adds one. Uploading applies the new font to the selected text straight away,
+ * which is what someone uploading a brand font is about to do anyway.
  */
-function FontPicker({
+export function FontPicker({
   value,
+  layer,
   onChange,
 }: {
   value: string;
+  layer: TextLayer;
   onChange: (fontId: string) => void;
 }) {
+  const { doc, apply } = useStudio();
   const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<FontCategory | "all">("all");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const customFonts = useMemo(
+    () => (doc.fonts ?? []).map((f) => ({ ...getFont(f.id), note: f.name, label: f.name })),
+    [doc.fonts]
+  );
 
   const groups = useMemo(() => {
     const needle = query.trim().toLowerCase();
-    return CATEGORY_ORDER.map((category) => ({
-      category,
-      fonts: fontsByCategory(category).filter(
-        (font) =>
-          needle === "" ||
-          font.family.toLowerCase().includes(needle) ||
-          CATEGORY_LABELS[category].toLowerCase().includes(needle)
-      ),
-    })).filter((group) => group.fonts.length > 0);
-  }, [query]);
+    const matches = (label: string, category: FontCategory, note?: string) =>
+      needle === "" ||
+      label.toLowerCase().includes(needle) ||
+      (note ?? "").toLowerCase().includes(needle) ||
+      CATEGORY_LABELS[category].toLowerCase().includes(needle);
+
+    const catalogue = CATEGORY_ORDER.filter((c) => filter === "all" || filter === c).map(
+      (category) => ({
+        category,
+        fonts: fontsByCategory(category)
+          .filter((font) => matches(font.family, category, font.note))
+          .map((font) => ({ ...font, label: font.family })),
+      })
+    );
+    const custom =
+      filter === "all" || filter === "custom"
+        ? [{ category: "custom" as FontCategory, fonts: customFonts.filter((f) => matches(f.label, "custom")) }]
+        : [];
+    return [...custom, ...catalogue].filter((group) => group.fonts.length > 0);
+  }, [query, filter, customFonts]);
+
+  async function upload() {
+    if (uploading) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const result = await pickAndUploadFont();
+      if (!result) return;
+      await registerCustomFont(result.font, result.data);
+      apply({
+        type: "addCustomFont",
+        font: result.font,
+        applyToLayerId: layer.locked ? undefined : layer.id,
+        height: textLayerHeight(layer, { fontId: result.font.id }),
+      });
+    } catch (error) {
+      setUploadError(
+        error instanceof FontUploadError ? error.message : "That font couldn't be uploaded. Please try again."
+      );
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  const chips: (FontCategory | "all")[] = [
+    "all",
+    ...(customFonts.length ? (["custom"] as const) : []),
+    ...CATEGORY_ORDER,
+  ];
 
   return (
     <div>
+      <StudioButton
+        variant="outline"
+        icon={uploading ? "progress_activity" : "upload_file"}
+        onClick={() => void upload()}
+        disabled={uploading}
+        className="mb-2 w-full"
+      >
+        {uploading ? "Uploading font…" : "Upload a font"}
+      </StudioButton>
+      {uploadError && (
+        <p role="alert" className="mb-2 text-[11.5px] leading-relaxed text-[#ff8a80]">
+          {uploadError}
+        </p>
+      )}
+
       <div className="relative mb-2">
         <Icon
           name="search"
@@ -543,18 +616,39 @@ function FontPicker({
         />
       </div>
 
+      {/* Mood filters, as in Canva's font menu. */}
+      <div className="mb-2 flex gap-1 overflow-x-auto pb-1 [scrollbar-width:none]" role="group" aria-label="Font style">
+        {chips.map((chip) => (
+          <button
+            key={chip}
+            type="button"
+            aria-pressed={filter === chip}
+            onClick={() => setFilter(chip)}
+            data-r="full"
+            className={cx(
+              "h-7 shrink-0 border px-2.5 text-[11.5px] font-medium transition-colors",
+              filter === chip
+                ? "border-[var(--studio-accent)] bg-[var(--studio-accent-soft)] text-[var(--studio-accent)]"
+                : "border-[#2e2e2e] text-[var(--studio-ink-muted)] hover:text-[var(--studio-ink)]"
+            )}
+          >
+            {chip === "all" ? "All" : CATEGORY_LABELS[chip].replace("Malayalam & Devanagari", "Indic")}
+          </button>
+        ))}
+      </div>
+
       <div
         data-r="md"
-        className="max-h-[264px] overflow-y-auto border border-[var(--studio-border)] bg-[var(--studio-chrome)]"
+        className="max-h-[320px] overflow-y-auto border border-[var(--studio-border)] bg-[var(--studio-chrome)]"
       >
         {groups.length === 0 ? (
           <p className="px-3 py-4 text-center text-[12px] text-[var(--studio-ink-muted)]">
-            No family matches “{query.trim()}”.
+            {query.trim() ? `No family matches “${query.trim()}”.` : "No fonts here yet."}
           </p>
         ) : (
           groups.map((group) => (
             <div key={group.category}>
-              <p className="sticky top-0 z-10 bg-[var(--studio-surface,#fbfbfd)] px-3 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--studio-ink-muted)]">
+              <p className="sticky top-0 z-10 bg-[var(--studio-chrome)] px-3 py-1.5 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-[var(--studio-ink-muted)]">
                 {CATEGORY_LABELS[group.category]}
               </p>
               {group.fonts.map((font) => (
@@ -562,6 +656,8 @@ function FontPicker({
                   key={font.id}
                   type="button"
                   aria-pressed={font.id === value}
+                  aria-label={font.label}
+                  title={font.note ? `${font.label} — ${font.note}` : font.label}
                   onClick={() => onChange(font.id)}
                   className={cx(
                     "flex w-full items-center justify-between gap-2 px-3 py-2 text-left transition-colors",
@@ -571,7 +667,7 @@ function FontPicker({
                   )}
                 >
                   <span
-                    className="min-w-0 truncate text-[15px] leading-tight text-[var(--studio-ink)]"
+                    className="min-w-0 truncate text-[17px] leading-tight text-[var(--studio-ink)]"
                     style={{
                       fontFamily: fontStack(font),
                       fontWeight: font.weights.includes(400)
@@ -579,7 +675,7 @@ function FontPicker({
                         : font.weights[0],
                     }}
                   >
-                    {font.family}
+                    {font.label}
                   </span>
                   {font.id === value && (
                     <Icon
@@ -593,6 +689,9 @@ function FontPicker({
           ))
         )}
       </div>
+      <p className="mt-2 text-[11px] leading-relaxed text-[var(--studio-ink-muted)]">
+        Uploads accept TTF, OTF, WOFF and WOFF2. Only upload fonts you&apos;re licensed to use in print.
+      </p>
     </div>
   );
 }

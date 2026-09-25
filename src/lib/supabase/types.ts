@@ -84,6 +84,37 @@ export type DesignSession = {
   updated_at: string;
 };
 
+/**
+ * A studio starting point saved by an admin (migration 0013, simplified in
+ * 0014). `document` is typed `unknown` for the same reason as
+ * `DesignSession.document`: it comes from the database untrusted and must go
+ * through `migrateDocument()` before use, even though the write path already
+ * ran it through there once.
+ */
+export type Template = {
+  id: string;
+  name: string;
+  document: unknown;
+  thumbnail_path: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
+/** One photo in a user's library (0015). See `src/lib/uploadLibrary.ts`. */
+export type UserUpload = {
+  id: string;
+  user_id: string;
+  path: string;
+  sha256: string;
+  name: string;
+  width: number;
+  height: number;
+  bytes: number;
+  content_type: string;
+  created_at: string;
+};
+
 export type Order = {
   id: string;
   user_id: string;
@@ -163,6 +194,18 @@ export type Database = {
   };
   public: {
     Tables: {
+      templates: {
+        Row: Template;
+        Insert: Partial<Template>;
+        Update: Partial<Template>;
+        Relationships: [];
+      };
+      user_uploads: {
+        Row: UserUpload;
+        Insert: Omit<UserUpload, "id" | "created_at"> & { id?: string; created_at?: string };
+        Update: Partial<Omit<UserUpload, "id" | "user_id">>;
+        Relationships: [];
+      };
       frames: {
         Row: Frame;
         Insert: Omit<Frame, "id" | "created_at"> & {

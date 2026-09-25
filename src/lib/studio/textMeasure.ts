@@ -35,6 +35,7 @@ export type TextMetrics = Pick<
   | "letterSpacing"
   | "uppercase"
   | "width"
+  | "list"
 >;
 
 /**
@@ -85,6 +86,7 @@ export function layoutTextLayer(
     fontSize: next.fontSize,
     lineHeight: next.lineHeight,
     uppercase: next.uppercase,
+    list: next.list,
     measure: makeMeasure(ctx, spacingPx, mode),
   });
 

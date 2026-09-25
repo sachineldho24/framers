@@ -299,15 +299,24 @@ h3 {
  * them draws a rule against a neighbour.
  */
 .studio-root {
-  --studio-accent: #7c5cff;
-  --studio-accent-soft: #241b42;
-  --studio-chrome: #000000;
+  /* Same high-visibility accent as the rest of the site (see the "redline"
+     tokens above), not Canva's violet-blue — soft is the same hue at low
+     lightness, same relationship the old purple pairing had. */
+  --studio-accent: var(--color-neon-accent);
+  --studio-accent-soft: #212900;
+  --studio-chrome: #141414;
   --studio-surface: #141414;
-  --studio-canvas-bg: #1a1a1a;
-  --studio-canvas-dot: #3a3a42;
-  --studio-border: #3d3d43;
+  /* Floating surfaces — toolbars, menus, dialogs — sit one shade lighter
+     than the chrome behind them, with a faint white border instead of a
+     solid grey one. That's what actually reads as "elevated" against a
+     near-black theme, where a shadow alone barely shows. */
+  --studio-elevated: #1e1e1e;
+  --studio-elevated-border: rgb(255 255 255 / 0.08);
+  --studio-canvas-bg: #0a0a0a;
+  --studio-canvas-dot: rgb(255 255 255 / 0.08);
+  --studio-border: #242424;
   --studio-ink: #f5f5f5;
-  --studio-ink-muted: #aaaab4;
+  --studio-ink-muted: #a1a1aa;
   font-family: var(--font-body);
   color: var(--studio-ink);
 }
@@ -331,10 +340,16 @@ h3 {
 }
 
 .studio-root [data-r="sm"] {
-  border-radius: 6px !important;
+  border-radius: 4px !important;
 }
 .studio-root [data-r="md"] {
-  border-radius: 10px !important;
+  border-radius: 8px !important;
+}
+.studio-root .studio-handle {
+  border-radius: 2px !important;
+}
+.studio-root .studio-panel-tab {
+  border-radius: 0 6px 6px 0 !important;
 }
 .studio-root [data-r="lg"] {
   border-radius: 16px !important;
@@ -344,14 +359,10 @@ h3 {
 }
 
 .studio-shadow {
-  box-shadow:
-    0 1px 2px rgb(16 16 26 / 0.06),
-    0 8px 24px rgb(16 16 26 / 0.1);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.7);
 }
 .studio-shadow-sm {
-  box-shadow:
-    0 1px 2px rgb(16 16 26 / 0.06),
-    0 2px 8px rgb(16 16 26 / 0.08);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
 }
 
 /* Visible keyboard focus that survives the reset above. */
@@ -411,7 +422,8 @@ h3 {
   .studio-wordmark { grid-column: 1 / span 2; grid-row: 1; }
   .studio-topbar > span:has([aria-label="Undo"]) { grid-column: 3; grid-row: 1; justify-self: end; }
   .studio-topbar > span:has([aria-label="Redo"]) { grid-column: 4; grid-row: 1; }
-  .studio-topbar > button { grid-column: 5 / span 2; grid-row: 1; justify-self: end; }
+  .studio-topbar-right { grid-column: 5 / span 2; grid-row: 1; justify-self: end; margin-left: 0; }
+  .studio-topbar-right > div.relative, .studio-save { display: none; }
   .studio-topbar > div.relative { grid-row: 2; grid-column: span 2; }
   .studio-topbar > div.relative > button { width: 100%; }
   .studio-topbar > span:not(.group) { display: none; }
@@ -447,7 +459,13 @@ h3 {
     overflow-y: auto;
   }
   .studio-bottom-bar { padding: 0 4px; gap: 0; }
-  .studio-bottom-bar > span:not(.group), .studio-page-nav { display: none; }
+  .studio-bottom-bar > div > span:not(.group), .studio-page-nav { display: none; }
+  .studio-zoom-slider, .studio-fullscreen, .studio-panel-tab { display: none; }
+  /* The tools palette lies flat above the rail on a phone. */
+  .studio-tools-palette { order: 1; width: 100%; flex-direction: column; padding: 4px 8px; }
+  .studio-tools-palette > div:first-child { flex-direction: row; }
+  .studio-tools-palette [role="toolbar"] { flex-direction: row; overflow-x: auto; }
+  .studio-tools-palette > div:nth-child(2) { margin-top: 0; flex-direction: row; max-height: none; overflow-x: auto; max-width: 100%; }
   .studio-bottom-bar button { min-height: 40px; }
   .studio-bottom-bar > div { flex-shrink: 0; }
   .studio-text-presets-selected { display: none; }
@@ -496,16 +514,14 @@ h3 {
   width: 14px;
   height: 14px;
   margin-top: -5px;
-  border: 2px solid #ffffff;
-  border-radius: 9999px !important;
-  background: var(--studio-accent, #7c5cff);
-  box-shadow: 0 1px 3px rgb(16 16 26 / 0.28);
+  border: none;
+  border-radius: 2px !important;
+  background: var(--studio-accent, #ccff00);
 }
 .studio-range::-moz-range-thumb {
   width: 14px;
   height: 14px;
-  border: 2px solid #ffffff;
-  border-radius: 9999px !important;
-  background: var(--studio-accent, #7c5cff);
-  box-shadow: 0 1px 3px rgb(16 16 26 / 0.28);
+  border: none;
+  border-radius: 2px !important;
+  background: var(--studio-accent, #ccff00);
 }

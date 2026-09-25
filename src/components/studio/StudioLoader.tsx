@@ -32,6 +32,10 @@ import { Icon } from "@/components/Icon";
 import { StudioShell, type StudioShellUpload } from "./StudioShell";
 import type { FrameSizeOption } from "./StudioTopBar";
 import { pickAndUploadImage } from "./uploadImage";
+import { listLibrary, removeFromLibrary } from "@/lib/uploadLibrary";
+
+/** Don't hold the editor closed on a slow library: open, list what came. */
+const LIBRARY_WAIT_MS = 4000;
 
 /** Same wording wherever a lapsed sign-in surfaces — the fix is not a retry. */
 const SIGNED_OUT =
@@ -44,6 +48,7 @@ export interface StudioLoaderProps {
   uploadPath: string | null;
   uploadUrl: string | null;
   userInitial: string;
+  isAdmin?: boolean;
   sizes: FrameSizeOption[];
   /** `null` when the studio was opened before a frame was chosen. */
   currentSizeId: string | null;
@@ -67,6 +72,7 @@ export function StudioLoader({
   uploadPath,
   uploadUrl,
   userInitial,
+  isAdmin = false,
   sizes,
   currentSizeId,
 }: StudioLoaderProps) {
@@ -83,13 +89,51 @@ export function StudioLoader({
   // Derived rather than stored: `StudioShell` copies it into its own state and
   // owns everything added afterwards, so a second source of truth here would
   // only be able to disagree.
-  const uploads = useMemo<StudioShellUpload[]>(
-    () =>
-      uploadPath && uploadUrl
-        ? [{ src: uploadPath, name: "Your photo", url: uploadUrl }]
-        : [],
-    [uploadPath, uploadUrl]
-  );
+  //
+  // After it, the user's photo library — every photo they've uploaded for any
+  // design — so a picture used once is there to reuse without uploading again.
+  const [library, setLibrary] = useState<StudioShellUpload[] | null>(null);
+  const uploads = useMemo<StudioShellUpload[]>(() => {
+    const own = uploadPath && uploadUrl ? [{ src: uploadPath, name: "Your photo", url: uploadUrl }] : [];
+    return [...own, ...(library ?? []).filter((entry) => entry.src !== uploadPath)];
+  }, [uploadPath, uploadUrl, library]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const give = (entries: StudioShellUpload[]) => {
+      if (!cancelled) setLibrary(entries);
+    };
+    // Open without it after a while; a late answer still lands (the shell
+    // merges uploads that arrive after it mounted).
+    const timer = setTimeout(() => {
+      if (!cancelled) setLibrary((current) => current ?? []);
+    }, LIBRARY_WAIT_MS);
+    void (async () => {
+      try {
+        const rows = await listLibrary();
+        const urls = rows.length ? await resolveSrc(rows.map((r) => r.path)) : {};
+        give(
+          rows
+            .filter((r) => urls[r.path])
+            .map((r) => ({
+              src: r.path,
+              name: r.name,
+              url: urls[r.path],
+              naturalWidth: r.width,
+              naturalHeight: r.height,
+            }))
+        );
+      } catch {
+        give([]);
+      } finally {
+        clearTimeout(timer);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [resolveSrc]);
 
   useEffect(() => {
     let cancelled = false;
@@ -164,8 +208,8 @@ export function StudioLoader({
   );
 
   const onPickImage = useCallback(async () => {
-    return pickAndUploadImage(sessionId);
-  }, [sessionId]);
+    return pickAndUploadImage();
+  }, []);
 
   const onResize = useCallback(
     (size: FrameSizeOption) => {
@@ -240,7 +284,7 @@ export function StudioLoader({
     );
   }
 
-  if (!initial) {
+  if (!initial || library === null) {
     return (
       <div
         role="status"
@@ -261,11 +305,13 @@ export function StudioLoader({
     <StudioShell
       initialDocument={initial}
       userInitial={userInitial}
+      isAdmin={isAdmin}
       sizes={sizes}
       currentSizeId={currentSizeId}
       uploads={uploads}
       resolveSrc={resolveSrc}
       onPickImage={onPickImage}
+      onRemoveUpload={removeFromLibrary}
       persist={persist}
       onDone={onDone}
       onResize={onResize}

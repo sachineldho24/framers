@@ -504,6 +504,20 @@ export const SHAPE_CATALOG: readonly ShapeDef[] = [
     ],
   },
   {
+    id: "line-elbow",
+    label: "Elbow",
+    category: "lines",
+    mode: "stroke",
+    strokeRatio: LINE_RATIO,
+    lineCap: "round",
+    path: (w, h) => [
+      { c: "M", x: 0, y: h * 0.9 },
+      { c: "L", x: w * 0.5, y: h * 0.9 },
+      { c: "L", x: w * 0.5, y: h * 0.1 },
+      { c: "L", x: w, y: h * 0.1 },
+    ],
+  },
+  {
     id: "line-curve",
     label: "Curve",
     category: "lines",
@@ -566,8 +580,31 @@ export const SHAPE_CATALOG: readonly ShapeDef[] = [
 const SHAPES_BY_ID = new Map(SHAPE_CATALOG.map((s) => [s.id, s]));
 
 /** The def behind a stored `shapeId`, or null if the catalogue dropped it. */
+/**
+ * Building blocks for the Tools palette that are not elements in their own
+ * right — never on an Elements shelf, but drawn by the same renderer.
+ */
+const INTERNAL_SHAPES: readonly ShapeDef[] = [
+  {
+    // A table cell's outline: a closed rectangle, stroked.
+    id: "table-cell",
+    label: "Table cell",
+    category: "basic",
+    mode: "stroke",
+    lineCap: "butt",
+    path: (w, h) => [
+      { c: "M", x: 0, y: 0 },
+      { c: "L", x: w, y: 0 },
+      { c: "L", x: w, y: h },
+      { c: "L", x: 0, y: h },
+      { c: "Z" },
+    ],
+  },
+];
+const INTERNAL_BY_ID = new Map(INTERNAL_SHAPES.map((s) => [s.id, s]));
+
 export function getShape(id: string): ShapeDef | null {
-  return SHAPES_BY_ID.get(id) ?? null;
+  return SHAPES_BY_ID.get(id) ?? INTERNAL_BY_ID.get(id) ?? null;
 }
 
 function round2(n: number): number {

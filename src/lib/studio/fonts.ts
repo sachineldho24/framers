@@ -21,8 +21,11 @@ export type FontCategory =
   | "sans"
   | "serif"
   | "script"
+  | "handwriting"
   | "mono"
-  | "indic";
+  | "indic"
+  /** Uploaded by the user. Never in the catalogue; see `customFontDefinition`. */
+  | "custom";
 
 export interface FontDefinition {
   /** Stable id stored in the document. Never change one — documents refer to it. */
@@ -38,6 +41,8 @@ export interface FontDefinition {
   fallback: string;
   /** Shown in the picker instead of the family name where it helps. */
   note?: string;
+  /** Uploaded font: loaded as a FontFace from storage, never from Google. */
+  custom?: boolean;
 }
 
 const SANS_FALLBACK = "system-ui, sans-serif";
@@ -301,6 +306,650 @@ export const FONT_CATALOGUE: FontDefinition[] = [
     fallback: SANS_FALLBACK,
     note: "हिन्दी",
   },
+
+  // ---------------------------------------------------------------------
+  // The Canva-style set: popular Google families across every mood, each
+  // one's weights checked against the css2 API (a wrong weight fails the
+  // whole batched stylesheet, so none are guessed).
+  // ---------------------------------------------------------------------
+  // Display
+  {
+    id: "abril-fatface",
+    family: "Abril Fatface",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Fashion-magazine headline",
+  },
+  {
+    id: "alfa-slab-one",
+    family: "Alfa Slab One",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Chunky slab",
+  },
+  {
+    id: "righteous",
+    family: "Righteous",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Retro rounded",
+  },
+  {
+    id: "lilita-one",
+    family: "Lilita One",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "titan-one",
+    family: "Titan One",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Bubbly",
+  },
+  {
+    id: "black-ops-one",
+    family: "Black Ops One",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Stencil",
+  },
+  {
+    id: "russo-one",
+    family: "Russo One",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "orbitron",
+    family: "Orbitron",
+    category: "display",
+    weights: [400, 500, 600, 700, 800, 900],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Futuristic",
+  },
+  {
+    id: "audiowide",
+    family: "Audiowide",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "bungee-shade",
+    family: "Bungee Shade",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "3D signage",
+  },
+  {
+    id: "luckiest-guy",
+    family: "Luckiest Guy",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Comic",
+  },
+  {
+    id: "bangers",
+    family: "Bangers",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Comic caps",
+  },
+  {
+    id: "press-start-2p",
+    family: "Press Start 2P",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Pixel",
+  },
+  {
+    id: "rubik-mono-one",
+    family: "Rubik Mono One",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "staatliches",
+    family: "Staatliches",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "big-shoulders-display",
+    family: "Big Shoulders Display",
+    category: "display",
+    weights: [400, 500, 600, 700, 800, 900],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "unbounded",
+    family: "Unbounded",
+    category: "display",
+    weights: [300, 400, 500, 600, 700, 800, 900],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Wide modern",
+  },
+  {
+    id: "syne",
+    family: "Syne",
+    category: "display",
+    weights: [400, 500, 600, 700, 800],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "cinzel-decorative",
+    family: "Cinzel Decorative",
+    category: "display",
+    weights: [400, 700, 900],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Engraved flourish",
+  },
+  {
+    id: "faster-one",
+    family: "Faster One",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Speed lines",
+  },
+  {
+    id: "zen-dots",
+    family: "Zen Dots",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "fredoka",
+    family: "Fredoka",
+    category: "display",
+    weights: [300, 400, 500, 600, 700],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Soft rounded",
+  },
+  {
+    id: "shrikhand",
+    family: "Shrikhand",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Retro italic",
+  },
+  {
+    id: "rampart-one",
+    family: "Rampart One",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: "Outlined",
+  },
+  {
+    id: "bowlby-one-sc",
+    family: "Bowlby One SC",
+    category: "display",
+    weights: [400],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  // Sans serif
+  {
+    id: "raleway",
+    family: "Raleway",
+    category: "sans",
+    weights: [300, 400, 500, 600, 700, 800, 900],
+    italic: true,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "josefin-sans",
+    family: "Josefin Sans",
+    category: "sans",
+    weights: [300, 400, 500, 600, 700],
+    italic: true,
+    fallback: SANS_FALLBACK,
+    note: "Geometric vintage",
+  },
+  {
+    id: "lato",
+    family: "Lato",
+    category: "sans",
+    weights: [300, 400, 700, 900],
+    italic: true,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "nunito",
+    family: "Nunito",
+    category: "sans",
+    weights: [300, 400, 600, 700, 800, 900],
+    italic: true,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "outfit",
+    family: "Outfit",
+    category: "sans",
+    weights: [300, 400, 500, 600, 700, 800],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "dm-sans",
+    family: "DM Sans",
+    category: "sans",
+    weights: [400, 500, 700],
+    italic: true,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "quicksand",
+    family: "Quicksand",
+    category: "sans",
+    weights: [300, 400, 500, 600, 700],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "league-spartan",
+    family: "League Spartan",
+    category: "sans",
+    weights: [300, 400, 500, 600, 700, 800, 900],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "kanit",
+    family: "Kanit",
+    category: "sans",
+    weights: [300, 400, 500, 600, 700, 800, 900],
+    italic: true,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "sora",
+    family: "Sora",
+    category: "sans",
+    weights: [300, 400, 500, 600, 700, 800],
+    italic: false,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "open-sans",
+    family: "Open Sans",
+    category: "sans",
+    weights: [300, 400, 500, 600, 700, 800],
+    italic: true,
+    fallback: SANS_FALLBACK,
+  },
+  {
+    id: "roboto",
+    family: "Roboto",
+    category: "sans",
+    weights: [300, 400, 500, 700, 900],
+    italic: true,
+    fallback: SANS_FALLBACK,
+  },
+  // Serif
+  {
+    id: "dm-serif-display",
+    family: "DM Serif Display",
+    category: "serif",
+    weights: [400],
+    italic: true,
+    fallback: SERIF_FALLBACK,
+    note: "High-contrast headline",
+  },
+  {
+    id: "cinzel",
+    family: "Cinzel",
+    category: "serif",
+    weights: [400, 500, 600, 700, 800, 900],
+    italic: false,
+    fallback: SERIF_FALLBACK,
+    note: "Roman capitals",
+  },
+  {
+    id: "lora",
+    family: "Lora",
+    category: "serif",
+    weights: [400, 500, 600, 700],
+    italic: true,
+    fallback: SERIF_FALLBACK,
+  },
+  {
+    id: "merriweather",
+    family: "Merriweather",
+    category: "serif",
+    weights: [300, 400, 700, 900],
+    italic: true,
+    fallback: SERIF_FALLBACK,
+  },
+  {
+    id: "bodoni-moda",
+    family: "Bodoni Moda",
+    category: "serif",
+    weights: [400, 500, 600, 700, 800, 900],
+    italic: true,
+    fallback: SERIF_FALLBACK,
+    note: "Didone elegance",
+  },
+  {
+    id: "prata",
+    family: "Prata",
+    category: "serif",
+    weights: [400],
+    italic: false,
+    fallback: SERIF_FALLBACK,
+  },
+  {
+    id: "yeseva-one",
+    family: "Yeseva One",
+    category: "serif",
+    weights: [400],
+    italic: false,
+    fallback: SERIF_FALLBACK,
+  },
+  {
+    id: "fraunces",
+    family: "Fraunces",
+    category: "serif",
+    weights: [300, 400, 500, 600, 700, 800, 900],
+    italic: true,
+    fallback: SERIF_FALLBACK,
+    note: "Soft old-style",
+  },
+  {
+    id: "eb-garamond",
+    family: "EB Garamond",
+    category: "serif",
+    weights: [400, 500, 600, 700, 800],
+    italic: true,
+    fallback: SERIF_FALLBACK,
+  },
+  {
+    id: "ultra",
+    family: "Ultra",
+    category: "serif",
+    weights: [400],
+    italic: false,
+    fallback: SERIF_FALLBACK,
+    note: "Fat western slab",
+  },
+  // Script
+  {
+    id: "allura",
+    family: "Allura",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Formal wedding script",
+  },
+  {
+    id: "sacramento",
+    family: "Sacramento",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Monoline",
+  },
+  {
+    id: "parisienne",
+    family: "Parisienne",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "satisfy",
+    family: "Satisfy",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "alex-brush",
+    family: "Alex Brush",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "kaushan-script",
+    family: "Kaushan Script",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Brush",
+  },
+  {
+    id: "lobster",
+    family: "Lobster",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Bold retro script",
+  },
+  {
+    id: "yellowtail",
+    family: "Yellowtail",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "tangerine",
+    family: "Tangerine",
+    category: "script",
+    weights: [400, 700],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "pinyon-script",
+    family: "Pinyon Script",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Copperplate",
+  },
+  {
+    id: "italianno",
+    family: "Italianno",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "cookie",
+    family: "Cookie",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "mrs-saint-delafield",
+    family: "Mrs Saint Delafield",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Signature",
+  },
+  {
+    id: "playball",
+    family: "Playball",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "courgette",
+    family: "Courgette",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "monsieur-la-doulaise",
+    family: "Monsieur La Doulaise",
+    category: "script",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Ornate",
+  },
+  // Handwritten
+  {
+    id: "permanent-marker",
+    family: "Permanent Marker",
+    category: "handwriting",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Marker",
+  },
+  {
+    id: "amatic-sc",
+    family: "Amatic SC",
+    category: "handwriting",
+    weights: [400, 700],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Hand-drawn caps",
+  },
+  {
+    id: "shadows-into-light",
+    family: "Shadows Into Light",
+    category: "handwriting",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "indie-flower",
+    family: "Indie Flower",
+    category: "handwriting",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "gloria-hallelujah",
+    family: "Gloria Hallelujah",
+    category: "handwriting",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "homemade-apple",
+    family: "Homemade Apple",
+    category: "handwriting",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "rock-salt",
+    family: "Rock Salt",
+    category: "handwriting",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Rough marker",
+  },
+  {
+    id: "kalam",
+    family: "Kalam",
+    category: "handwriting",
+    weights: [300, 400, 700],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+    note: "Handwritten, Devanagari too",
+  },
+  {
+    id: "patrick-hand",
+    family: "Patrick Hand",
+    category: "handwriting",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "architects-daughter",
+    family: "Architects Daughter",
+    category: "handwriting",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "reenie-beanie",
+    family: "Reenie Beanie",
+    category: "handwriting",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
+  {
+    id: "nanum-pen-script",
+    family: "Nanum Pen Script",
+    category: "handwriting",
+    weights: [400],
+    italic: false,
+    fallback: CURSIVE_FALLBACK,
+  },
 ];
 
 export const CATEGORY_LABELS: Record<FontCategory, string> = {
@@ -308,8 +957,10 @@ export const CATEGORY_LABELS: Record<FontCategory, string> = {
   sans: "Sans serif",
   serif: "Serif",
   script: "Script",
+  handwriting: "Handwritten",
   mono: "Monospace",
   indic: "Malayalam & Devanagari",
+  custom: "Your fonts",
 };
 
 /** Catalogue order is the display order, so the picker groups follow it. */
@@ -318,6 +969,7 @@ export const CATEGORY_ORDER: FontCategory[] = [
   "sans",
   "serif",
   "script",
+  "handwriting",
   "mono",
   "indic",
 ];
@@ -331,7 +983,59 @@ export const DEFAULT_FONT_ID = "anton";
  * document referring to a font we later dropped should still render.
  */
 export function getFont(id: string): FontDefinition {
+  if (isCustomFontId(id)) return customFontDefinition(id);
   return BY_ID.get(id) ?? BY_ID.get(DEFAULT_FONT_ID)!;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Uploaded fonts                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Uploaded fonts share one id space, marked by this prefix. The id is what text
+ * layers store, exactly as for a catalogue font.
+ */
+export const CUSTOM_FONT_PREFIX = "custom-";
+
+export function isCustomFontId(id: string): boolean {
+  return id.startsWith(CUSTOM_FONT_PREFIX) && id.length > CUSTOM_FONT_PREFIX.length;
+}
+
+/** Display names, filled in as the document's fonts are registered. */
+const customNames = new Map<string, string>();
+
+export function nameCustomFont(id: string, name: string): void {
+  customNames.set(id, name);
+}
+
+/**
+ * The definition of an uploaded font, derived from its id alone.
+ *
+ * Derived rather than looked up, so a custom id can never fall back to the
+ * default: `getFont` is how documents are coerced on load, and a lookup that
+ * ran before the font was registered would quietly rewrite every layer in it
+ * to Anton. The CSS family is a private name the loader registers the file
+ * under, so an upload called "Arial" can't shadow the real Arial.
+ *
+ * One file is one face. Offering 400 and 700 lets the browser synthesise bold,
+ * which is what every editor does with a single-weight upload.
+ */
+export function customFontDefinition(id: string): FontDefinition {
+  return {
+    id,
+    family: `Framers Custom ${id.slice(CUSTOM_FONT_PREFIX.length)}`,
+    category: "custom",
+    weights: [400, 700],
+    italic: false,
+    fallback: SANS_FALLBACK,
+    note: customNames.get(id) ?? "Uploaded font",
+    custom: true,
+  };
+}
+
+/** Name shown in the picker: the uploaded font's own, or the family's. */
+export function fontDisplayName(font: FontDefinition): string {
+  return font.custom ? (customNames.get(font.id) ?? "Uploaded font") : font.family;
 }
 
 export function fontsByCategory(category: FontCategory): FontDefinition[] {

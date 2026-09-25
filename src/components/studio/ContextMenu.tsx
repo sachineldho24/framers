@@ -17,6 +17,7 @@ import type { AlignMode } from "@/lib/studio/geometry";
 import { useStudio } from "@/lib/studio/StudioContext";
 
 import { Icon } from "@/components/Icon";
+import { useStudioAssets } from "./StudioAssets";
 import { MenuItem, MenuSeparator, cx } from "./ui";
 
 export interface ContextMenuState {
@@ -35,7 +36,7 @@ const ALIGNMENTS: { mode: AlignMode; label: string; icon: string }[] = [
   { mode: "bottom", label: "Bottom", icon: "align_vertical_bottom" },
 ];
 
-const MENU_WIDTH = 244;
+const MENU_WIDTH = 268;
 const MENU_MAX_HEIGHT = 460;
 
 export function ContextMenu({
@@ -52,12 +53,16 @@ export function ContextMenu({
   onCopy: (layer: Layer) => void;
   onPaste: () => void;
   canPaste: boolean;
-  onDownloadSelection: (layer: Layer) => void;
+  /** Staff only; omitted for customers. */
+  onDownloadSelection?: (layer: Layer) => void;
   onShowInfo: (layer: Layer) => void;
 }) {
-  const { doc, apply, select, setEditingId } = useStudio();
+  const { doc, apply, select, duplicate, setEditingId } = useStudio();
+  const { paletteFor } = useStudioAssets();
   const ref = useRef<HTMLDivElement | null>(null);
-  const [alignOpen, setAlignOpen] = useState(false);
+  const [open, setOpen] = useState<"align" | "layer" | null>(null);
+  const alignOpen = open === "align";
+  const layerOpen = open === "layer";
 
   // Narrowed, not cast: the stack holds text as well as images now, and the two
   // image-only items below have to be able to tell which is under the pointer.
@@ -105,8 +110,9 @@ export function ContextMenu({
       role="menu"
       aria-label="Canvas actions"
       data-r="md"
-      className="studio-shadow fixed z-[60] border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-1"
-      style={{ left, top, width: MENU_WIDTH }}
+      className="studio-shadow fixed z-[60] border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] p-1"
+      // Expanding Align or Layer can outgrow a short window; scroll, don't clip.
+      style={{ left, top, width: MENU_WIDTH, maxHeight: `calc(100vh - ${top}px - 8px)`, overflowY: "auto" }}
     >
       {text && !text.locked && (
         <MenuItem
@@ -143,16 +149,16 @@ export function ContextMenu({
         disabled={!layer}
         onSelect={() =>
           layer &&
-          run(() => apply({ type: "duplicateLayer", layerId: layer.id }))
+          run(() => duplicate(layer.id))
         }
       >
         Duplicate
       </MenuItem>
       <MenuItem
         icon="delete"
-        shortcut="Del"
+        shortcut="Delete"
         danger
-        disabled={!layer}
+        disabled={!layer || layer.locked}
         onSelect={() =>
           layer &&
           run(() => {
@@ -173,7 +179,7 @@ export function ContextMenu({
         role="menuitem"
         aria-expanded={alignOpen}
         disabled={!layer}
-        onClick={() => setAlignOpen((v) => !v)}
+        onClick={() => setOpen(alignOpen ? null : "align")}
         data-r="sm"
         className={cx(
           "flex w-full items-center gap-2.5 px-2.5 py-[7px] text-left text-[13px] text-[var(--studio-ink)] transition-colors",
@@ -211,6 +217,55 @@ export function ContextMenu({
         </div>
       )}
 
+      {/* Layer order, opened in place like Align. */}
+      <button
+        type="button"
+        role="menuitem"
+        aria-expanded={layerOpen}
+        disabled={!layer}
+        onClick={() => setOpen(layerOpen ? null : "layer")}
+        data-r="sm"
+        className={cx(
+          "flex w-full items-center gap-2.5 px-2.5 py-[7px] text-left text-[13px] text-[var(--studio-ink)] transition-colors",
+          "hover:bg-white/[0.055] disabled:pointer-events-none disabled:opacity-35"
+        )}
+      >
+        <Icon name="layers" className="text-[18px] opacity-80" />
+        <span className="flex-1">Layer</span>
+        <Icon
+          name={layerOpen ? "expand_more" : "chevron_right"}
+          className="text-[17px] opacity-60"
+        />
+      </button>
+
+      {layerOpen && layer && (() => {
+        const index = doc.layers.findIndex((l) => l.id === layer.id);
+        const top = index === doc.layers.length - 1;
+        const bottom = index === 0;
+        return (
+          <div className="mb-1 pl-4">
+            <MenuItem icon="flip_to_front" shortcut="Ctrl+]" disabled={top}
+              onSelect={() => run(() => apply({ type: "bringToFront", layerId: layer.id }))}>
+              Bring to front
+            </MenuItem>
+            <MenuItem icon="arrow_upward" disabled={top}
+              onSelect={() => run(() => apply({ type: "moveLayerBy", layerId: layer.id, delta: 1 }))}>
+              Bring forward
+            </MenuItem>
+            <MenuItem icon="arrow_downward" disabled={bottom}
+              onSelect={() => run(() => apply({ type: "moveLayerBy", layerId: layer.id, delta: -1 }))}>
+              Send backward
+            </MenuItem>
+            <MenuItem icon="flip_to_back" shortcut="Ctrl+[" disabled={bottom}
+              onSelect={() => run(() => apply({ type: "sendToBack", layerId: layer.id }))}>
+              Send to back
+            </MenuItem>
+          </div>
+        );
+      })()}
+
+      <MenuSeparator />
+
       <MenuItem
         icon={layer?.locked ? "lock_open" : "lock"}
         shortcut="Alt+Shift+L"
@@ -240,16 +295,30 @@ export function ContextMenu({
           Set image as background
         </MenuItem>
       )}
+      {/* The photo's most dominant colour becomes the page colour — the quick
+          way to make the page match its picture. */}
+      {image && paletteFor(image.src).length > 0 && (
+        <MenuItem
+          icon="palette"
+          onSelect={() =>
+            run(() => apply({ type: "setBackground", color: paletteFor(image.src)[0] }))
+          }
+        >
+          Apply colours to page
+        </MenuItem>
+      )}
 
       <MenuSeparator />
 
-      <MenuItem
-        icon="download"
-        disabled={!layer}
-        onSelect={() => layer && run(() => onDownloadSelection(layer))}
-      >
-        Download selection
-      </MenuItem>
+      {onDownloadSelection && (
+        <MenuItem
+          icon="download"
+          disabled={!layer}
+          onSelect={() => layer && run(() => onDownloadSelection(layer))}
+        >
+          Download selection
+        </MenuItem>
+      )}
       <MenuItem
         icon="info"
         disabled={!layer}

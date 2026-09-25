@@ -215,7 +215,7 @@ export function CropOverlay({
           is turned. */}
       {!compact && <div
         data-r="md"
-        className="studio-shadow pointer-events-auto absolute flex w-[264px] flex-col gap-1 border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-1"
+        className="studio-shadow pointer-events-auto absolute flex w-[264px] flex-col gap-1 border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] p-1"
         style={{
           left: left + w / 2,
           top: top + h + 20,
@@ -279,7 +279,7 @@ export function CropControls({ layer }: { layer: ImageLayer }) {
             type="button"
             data-r="sm"
             onClick={() => setTool("select")}
-            className="bg-[var(--studio-accent)] px-3 py-1.5 text-[12px] font-semibold text-white"
+            className="bg-[var(--studio-accent)] px-3 py-1.5 text-[12px] font-semibold text-black"
           >
             Done
           </button>

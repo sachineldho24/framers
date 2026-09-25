@@ -188,7 +188,7 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
         aria-modal="true"
         aria-label="Custom page size"
         data-r="lg"
-        className="studio-shadow w-full max-w-[380px] bg-[var(--studio-chrome)] p-4 text-[var(--studio-ink)]"
+        className="studio-shadow w-full max-w-[380px] border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] p-4 text-[var(--studio-ink)]"
       >
         <div className="flex items-center justify-between">
           <h2 className="text-[14px] font-semibold">Custom size</h2>
@@ -258,7 +258,7 @@ export function CustomSizeDialog({ onClose }: { onClose: () => void }) {
             className={cx(
               "mb-[3px] grid h-8 w-8 shrink-0 place-items-center border transition-colors",
               locked
-                ? "border-[var(--studio-accent)] bg-[var(--studio-accent)] text-white"
+                ? "border-[var(--studio-accent)] bg-[var(--studio-accent)] text-black"
                 : "border-[var(--studio-border)] text-[var(--studio-ink-muted)] hover:bg-white/[0.04]"
             )}
           >

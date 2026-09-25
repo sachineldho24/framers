@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { saveToLibrary } from "@/lib/uploadLibrary";
 import { DESIGN_BUCKET } from "@/lib/storage-shared";
 import { patchDesignerState } from "@/lib/designer-state";
 import { Icon } from "@/components/Icon";
@@ -61,14 +62,22 @@ export function UploadStep({ sessionId }: { sessionId: string }) {
         imageWidth = dimensions.width;
         imageHeight = dimensions.height;
       }
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Please sign in again before uploading your file.");
-      const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
-      const uploadPath = `${user.id}/uploads/${crypto.randomUUID()}/source.${ext}`;
-      const { error: upErr } = await supabase.storage.from(DESIGN_BUCKET)
-        .upload(uploadPath, file, { contentType: file.type, upsert: false });
-      if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+      let uploadPath: string;
+      if (isImage && imageWidth && imageHeight) {
+        // Photos go to the user's library: a photo they've used before isn't
+        // uploaded again, and it shows up in the studio's Uploads panel for
+        // every later design.
+        uploadPath = (await saveToLibrary(file, { width: imageWidth, height: imageHeight })).path;
+      } else {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Please sign in again before uploading your file.");
+        const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+        uploadPath = `${user.id}/uploads/${crypto.randomUUID()}/source.${ext}`;
+        const { error: upErr } = await supabase.storage.from(DESIGN_BUCKET)
+          .upload(uploadPath, file, { contentType: file.type, upsert: false });
+        if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+      }
 
       const response = await fetch(`/api/design/session/${sessionId}`, {
         method: "PATCH",

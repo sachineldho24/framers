@@ -55,8 +55,8 @@ export const MIN_LAYER_SIZE = 8;
  * divide by `viewport.scale` when hit-testing in doc space.
  */
 export const HANDLE_HIT_TOLERANCE = 11;
-/** Gap from the box's bottom edge to the rotate grip's centre. */
-export const ROTATE_GRIP_OFFSET = 30;
+/** Gap from the box's right edge to the rotate grip's centre. */
+export const ROTATE_GRIP_OFFSET = 40;
 
 export const MIN_ZOOM = 0.02;
 export const MAX_ZOOM = 8;
@@ -143,9 +143,9 @@ export function handlePoint(box: Box, handle: HandleId): Vec {
   return localToDoc(box, handleLocal(box, handle));
 }
 
-/** The rotate grip sits below the box's bottom edge, as in the mockup. */
+/** The rotate grip sits beside the box's right edge, as in the mockup. */
 export function rotateHandlePoint(box: Box, offsetDoc: number): Vec {
-  return localToDoc(box, { x: box.width / 2, y: box.height + offsetDoc });
+  return localToDoc(box, { x: box.width + offsetDoc, y: box.height / 2 });
 }
 
 export function oppositeHandle(handle: HandleId): HandleId {
@@ -318,7 +318,7 @@ export function rotationFromPointer(
   grabOffset = 0
 ): number {
   const c = boxCentre(box);
-  const raw = radToDeg(Math.atan2(pointer.y - c.y, pointer.x - c.x)) - 90;
+  const raw = radToDeg(Math.atan2(pointer.y - c.y, pointer.x - c.x));
   return normaliseAngle(raw - grabOffset);
 }
 

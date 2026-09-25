@@ -35,18 +35,23 @@ export function cx(...parts: (string | false | null | undefined)[]): string {
 export function Tooltip({
   label,
   side = "bottom",
+  align = "center",
   children,
 }: {
   label: string;
   side?: "top" | "bottom" | "right";
+  /** `end` pins the tip's right edge to the trigger's, for controls at the
+   *  right edge of the screen — a centred tip there would overflow the page. */
+  align?: "center" | "end";
   children: ReactNode;
 }) {
+  const across = align === "end" ? "right-0" : "left-1/2 -translate-x-1/2";
   const pos =
     side === "top"
-      ? "bottom-full left-1/2 -translate-x-1/2 mb-2"
+      ? `bottom-full mb-2 ${across}`
       : side === "right"
         ? "left-full top-1/2 -translate-y-1/2 ml-2"
-        : "top-full left-1/2 -translate-x-1/2 mt-2";
+        : `top-full mt-2 ${across}`;
 
   return (
     <span className="group relative inline-flex">
@@ -80,6 +85,7 @@ export interface IconButtonProps extends Omit<ButtonBase, "children"> {
   fill?: boolean;
   tooltip?: boolean;
   tooltipSide?: "top" | "bottom" | "right";
+  tooltipAlign?: "center" | "end";
   size?: "sm" | "md";
 }
 
@@ -92,6 +98,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
       fill = false,
       tooltip = true,
       tooltipSide = "bottom",
+      tooltipAlign = "center",
       size = "md",
       className,
       ...rest
@@ -126,7 +133,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(
 
     if (!tooltip) return button;
     return (
-      <Tooltip label={label} side={tooltipSide}>
+      <Tooltip label={label} side={tooltipSide} align={tooltipAlign}>
         {button}
       </Tooltip>
     );
@@ -157,14 +164,14 @@ export const StudioButton = forwardRef<HTMLButtonElement, StudioButtonProps>(
       <button
         ref={ref}
         type="button"
-        data-r={variant === "solid" ? "full" : "md"}
+        data-r="sm"
         className={cx(
           "inline-flex items-center justify-center gap-1.5 font-medium transition-colors",
           size === "sm" ? "h-7 px-2.5 text-[12px]" : "h-9 px-3 text-[13px]",
           variant === "solid" &&
-            "bg-[#16161a] text-white hover:bg-[#2a2a33] disabled:hover:bg-[#16161a]",
+            "bg-[var(--studio-accent)] font-semibold text-black hover:brightness-110 active:scale-[0.98]",
           variant === "outline" &&
-            "border border-[var(--studio-border)] bg-[var(--studio-chrome)] text-[var(--studio-ink)] hover:bg-white/[0.03]",
+            "border border-[#2e2e2e] bg-[var(--studio-elevated)] font-semibold text-[var(--studio-ink)] hover:bg-[#282828]",
           variant === "ghost" &&
             "text-[var(--studio-ink)] hover:bg-white/[0.055]",
           "disabled:pointer-events-none disabled:opacity-40",
@@ -196,6 +203,9 @@ export function Menu({
   trailingIcon = "expand_more",
   children,
   align = "start",
+  variant = "ghost",
+  className,
+  side = "bottom",
 }: {
   label?: string;
   /** Required when there's no visible label, so the trigger still has a name. */
@@ -204,6 +214,10 @@ export function Menu({
   trailingIcon?: string;
   children: (close: () => void) => ReactNode;
   align?: "start" | "end";
+  variant?: StudioButtonProps["variant"];
+  className?: string;
+  /** Open upward for triggers that sit low on the screen. */
+  side?: "top" | "bottom";
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -240,7 +254,8 @@ export function Menu({
         aria-expanded={open}
         aria-controls={open ? id : undefined}
         onClick={() => setOpen((v) => !v)}
-        className={label ? undefined : "w-9 px-0"}
+        variant={variant}
+        className={cx(!label && "w-9 px-0", className)}
       >
         {label}
       </StudioButton>
@@ -251,7 +266,8 @@ export function Menu({
           role="menu"
           data-r="md"
           className={cx(
-            "studio-shadow absolute top-full z-50 mt-1 min-w-[212px] border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-1",
+            "studio-shadow absolute z-50 min-w-[212px] border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] p-1",
+            side === "top" ? "bottom-full mb-1" : "top-full mt-1",
             align === "end" ? "right-0" : "left-0"
           )}
         >
@@ -299,9 +315,12 @@ export function MenuItem({
       )}
       <span className="flex-1 truncate">{children}</span>
       {shortcut && (
-        <span className="shrink-0 text-[11px] tabular-nums text-[var(--studio-ink-muted)]">
+        <kbd
+          data-r="sm"
+          className="shrink-0 bg-[#2a2a2a] px-1.5 py-0.5 font-sans text-[11px] font-medium tracking-[0.02em] text-[var(--studio-ink-muted)]"
+        >
           {shortcut}
-        </span>
+        </kbd>
       )}
       {submenu && (
         <Icon name="chevron_right" className="text-[17px] opacity-60" />

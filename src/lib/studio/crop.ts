@@ -217,7 +217,7 @@ export function aspectMatches(
 }
 
 /** The largest rect of a given w:h that fits inside `within`, on its centre. */
-function ratioRect(ratio: number, within: CropRect): CropRect {
+export function ratioRect(ratio: number, within: CropRect): CropRect {
   let w = Math.min(within.w, within.h * ratio);
   let h = w / ratio;
   // Scale both axes together to stay off the reducer's floor and inside the

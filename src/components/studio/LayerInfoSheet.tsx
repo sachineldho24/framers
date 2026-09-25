@@ -22,7 +22,7 @@ import type {
 } from "@/lib/studio/document";
 import { getShape } from "@/lib/studio/shapes";
 import { FILTER_PRESETS } from "@/lib/studio/filters";
-import { getFont, CATEGORY_LABELS } from "@/lib/studio/fonts";
+import { fontDisplayName, getFont, CATEGORY_LABELS } from "@/lib/studio/fonts";
 import {
   dpiVerdict,
   imagePrintDpi,
@@ -69,7 +69,7 @@ export function LayerInfoSheet({
         aria-modal="true"
         aria-labelledby="studio-info-title"
         data-r="lg"
-        className="studio-shadow w-full max-w-[380px] border border-[var(--studio-border)] bg-[var(--studio-chrome)] p-5"
+        className="studio-shadow w-full max-w-[380px] border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-3 flex items-start justify-between gap-3">
@@ -87,6 +87,8 @@ export function LayerInfoSheet({
             <ImageRows layer={layer} dpi={dpi} />
           ) : layer.kind === "shape" ? (
             <ShapeRows layer={layer} />
+          ) : layer.kind === "draw" ? (
+            <Row label="Kind" value={`Drawing · ${layer.pen}`} />
           ) : (
             <TextRows layer={layer} dpi={dpi} />
           )}
@@ -205,7 +207,7 @@ function TextRows({ layer, dpi }: { layer: TextLayer; dpi: number }) {
     <>
       <Row
         label="Font"
-        value={`${font.family} · ${CATEGORY_LABELS[font.category]}`}
+        value={`${fontDisplayName(font)} · ${CATEGORY_LABELS[font.category]}`}
       />
       <Row
         label="Style"
