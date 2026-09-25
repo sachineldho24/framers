@@ -196,3 +196,59 @@ test("path layers survive a save/load round trip, and junk is dropped", () => {
   const junk = migrateDocument({ width: 10, height: 10, layers: [{ kind: "path", nodes: [{ x: 0, y: 0 }] }, { kind: "path", nodes: "nope" }] })!;
   assert.equal(junk.layers.length, 0);
 });
+
+/* ------------------------------------------------------------ Live Corners */
+
+test("a rounded square corner becomes a true quarter-circle of the chosen radius", async () => {
+  const { cornerGeometry, isRoundable, setCornerRadius } = await import("./penPath.ts");
+  const square = [
+    { x: 0, y: 0 },
+    { x: 100, y: 0 },
+    { x: 100, y: 100 },
+    { x: 0, y: 100 },
+  ];
+  assert.ok(isRoundable(square, true, 1));
+  const rounded = setCornerRadius(square, true, 1, 20);
+  assert.equal(rounded[1].r, 20);
+  assert.equal(rounded[0].r, undefined);
+  const geo = cornerGeometry(rounded, true, 1)!;
+  // 90° corner: tangent length == radius.
+  assert.ok(near(geo.distance, 20, 1e-9));
+  assert.deepEqual(geo.entry, [80, 0]);
+  assert.ok(near(geo.exit[0], 100) && near(geo.exit[1], 20, 1e-9));
+  // The arc passes at distance r from the centre (80, 20) at its midpoint.
+  const [p0, p1, p2, p3] = [geo.entry, geo.c1, geo.c2, geo.exit];
+  const mid = [0, 1].map((k) => (p0[k] + 3 * p1[k] + 3 * p2[k] + p3[k]) / 8);
+  assert.ok(near(Math.hypot(mid[0] - 80, mid[1] - 20), 20, 0.02));
+  const cmds = pathCommands(rounded, true);
+  assert.equal(cmds.filter((c) => c.c === "C").length, 1);
+});
+
+test("a corner can't be rounded past half its sides; smooth points and open ends can't be rounded", async () => {
+  const { cornerGeometry, isRoundable, setCornerRadius } = await import("./penPath.ts");
+  const tri = [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 40 }];
+  const geo = cornerGeometry(setCornerRadius(tri, true, 1, 500), true, 1)!;
+  assert.ok(near(geo.distance, 20, 1e-9));
+  assert.equal(isRoundable(tri, false, 0), false);
+  assert.equal(isRoundable([{ x: 0, y: 0 }, { x: 10, y: 0, out: [15, 0] as [number, number] }, { x: 20, y: 5 }], false, 1), false);
+  // Rounding all corners skips the ones that can't take it.
+  const all = setCornerRadius(tri, false, null, 5);
+  assert.deepEqual(all.map((n) => n.r), [undefined, 5, undefined]);
+});
+
+test("Alt-drag pulls symmetric handles out of a corner and clears its radius", async () => {
+  const { pullHandles } = await import("./penPath.ts");
+  const nodes = [{ x: 0, y: 0 }, { x: 50, y: 50, r: 10 }, { x: 100, y: 0 }];
+  const out = pullHandles(nodes, 1, { x: 80, y: 50 });
+  assert.deepEqual(out[1], { x: 50, y: 50, out: [80, 50], in: [20, 50] });
+});
+
+test("corner radii are saved with the design and follow the path when it moves", () => {
+  const { doc, path } = seed();
+  const withCorner = { ...path, nodes: path.nodes.map((n, i) => (i === 0 ? { ...n, r: 12 } : n)) };
+  const next = { ...doc, layers: [doc.layers[0], withCorner] };
+  const back = migrateDocument(JSON.parse(JSON.stringify(next)))!;
+  assert.equal((back.layers[1] as PathLayer).nodes[0].r, 12);
+  const moved = studioReducer(back, { type: "nudgeLayer", layerId: path.id, dx: 5, dy: 0 });
+  assert.equal((moved.layers[1] as PathLayer).nodes[0].r, 12);
+});

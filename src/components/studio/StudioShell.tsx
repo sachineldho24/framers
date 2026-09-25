@@ -92,6 +92,8 @@ export interface StudioShellProps {
 const SHORTCUTS: { keys: string; what: string }[] = [
   { keys: "T", what: "Add a heading" },
   { keys: "P", what: "Pen tool: click for corners, drag for curves" },
+  { keys: "Alt (Pen)", what: "Redirect a handle / convert a point" },
+  { keys: "A", what: "Edit the selected path's points and round corners" },
   { keys: "Double-click", what: "Edit a text layer in place" },
   { keys: "Ctrl+Z / Ctrl+Y", what: "Undo / redo" },
   { keys: "Ctrl+C / Ctrl+V", what: "Copy / paste a layer" },
@@ -162,6 +164,7 @@ function ShellInner({
     setStyleSource,
     replaceDocument,
     duplicate,
+    setEditingId,
   } = useStudio();
 
   const { images, pending, failed, registerLocal, retry } = useStudioImages(
@@ -395,6 +398,13 @@ function ShellInner({
         setTool("path");
         return;
       }
+      // A — Illustrator's Direct Selection: edit the selected path's points
+      // (and its Live Corners).
+      if (key === "a" && !mod && !e.altKey && layer?.kind === "path" && !layer.locked) {
+        e.preventDefault();
+        setEditingId(layer.id);
+        return;
+      }
 
       if (mod && key === "z") {
         e.preventDefault();
@@ -534,6 +544,7 @@ function ShellInner({
     return () => window.removeEventListener("keydown", onKey);
   }, [
     apply,
+    setEditingId,
     duplicate,
     copyLayer,
     insertText,

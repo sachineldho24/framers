@@ -463,7 +463,7 @@ function LayerThumb({ layer, url }: { layer: Layer; url: string | null }) {
     const k = 28 / Math.max(layer.width, layer.height);
     const w = layer.width * k;
     const h = layer.height * k;
-    const d = commandsToD(pathCommands(layer.nodes.map((n) => mapNode(n, (x, y) => [x * w, y * h])), layer.closed));
+    const d = commandsToD(pathCommands(layer.nodes.map((n) => mapNode(n, (x, y) => [x * w, y * h])), layer.closed, k));
     return (
       <span data-r="sm" className={box}>
         <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">

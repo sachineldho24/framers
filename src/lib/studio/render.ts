@@ -770,7 +770,7 @@ function drawPathLayer(
   scale: number
 ): void {
   const nodes = layer.nodes.map((n) => mapNode(n, (x, y) => [x * destW, y * destH]));
-  const commands = pathCommands(nodes, layer.closed);
+  const commands = pathCommands(nodes, layer.closed, scale);
   if (commands.length < 2) return;
   const trace = () => traceShapeCommands(ctx, commands);
   const width = layer.strokeWidth * scale;

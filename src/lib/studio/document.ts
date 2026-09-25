@@ -195,6 +195,12 @@ export interface PathNode {
   y: number;
   in?: [number, number];
   out?: [number, number];
+  /**
+   * Live Corner radius, in px of the layer's own box (like `strokeWidth`, it
+   * doesn't stretch with a resize). Only a sharp corner between two straight
+   * segments is rounded; elsewhere it is ignored.
+   */
+  r?: number;
 }
 
 /** A soft halo around the line — the "neon tube" look. */
@@ -868,6 +874,8 @@ function coercePathLayer(v: Partial<PathLayer>): Layer | null {
     const hout = coerceHandle(n.out);
     if (hin) node.in = hin;
     if (hout) node.out = hout;
+    const r = num(n.r, 0);
+    if (r > 0) node.r = Math.min(r, 20_000);
     nodes.push(node);
   }
   if (nodes.length < 2) return null;
@@ -1140,6 +1148,7 @@ export function clonePathNode(n: PathNode): PathNode {
     y: n.y,
     ...(n.in ? { in: [n.in[0], n.in[1]] as [number, number] } : {}),
     ...(n.out ? { out: [n.out[0], n.out[1]] as [number, number] } : {}),
+    ...(n.r ? { r: n.r } : {}),
   };
 }
 

@@ -37,25 +37,160 @@ type Pair = [number, number];
  * Path commands for anchors already in the target space. A segment with no
  * handles at either end is a straight line; otherwise a cubic whose missing
  * control point sits on its anchor.
+ *
+ * Live Corners: an anchor with a radius, sitting between two straight
+ * segments, is replaced by a circular arc tangent to both. `radiusScale` maps
+ * the stored radius (layer px) into the space the anchors are in — the
+ * viewport scale on screen, 1 in the layer's own px.
  */
-export function pathCommands(nodes: readonly PathNode[], closed: boolean): ShapeCommand[] {
-  if (nodes.length === 0) return [];
-  const out: ShapeCommand[] = [{ c: "M", x: nodes[0].x, y: nodes[0].y }];
-  const segment = (a: PathNode, b: PathNode) => {
-    if (!a.out && !b.in) {
-      out.push({ c: "L", x: b.x, y: b.y });
-      return;
+export function pathCommands(
+  nodes: readonly PathNode[],
+  closed: boolean,
+  radiusScale = 1
+): ShapeCommand[] {
+  const count = nodes.length;
+  if (count === 0) return [];
+  const wraps = closed && count > 2;
+  const corners = nodes.map((_, i) => cornerGeometry(nodes, wraps, i, radiusScale));
+  const entry = (i: number): Pair => corners[i]?.entry ?? [nodes[i].x, nodes[i].y];
+  const exit = (i: number): Pair => corners[i]?.exit ?? [nodes[i].x, nodes[i].y];
+
+  const [sx, sy] = exit(0);
+  const out: ShapeCommand[] = [{ c: "M", x: sx, y: sy }];
+  const segment = (ia: number, ib: number) => {
+    const a = nodes[ia];
+    const b = nodes[ib];
+    const [ex, ey] = entry(ib);
+    if (!a.out && !b.in) out.push({ c: "L", x: ex, y: ey });
+    else {
+      const [x1, y1] = a.out ?? [a.x, a.y];
+      const [x2, y2] = b.in ?? [b.x, b.y];
+      out.push({ c: "C", x1, y1, x2, y2, x: ex, y: ey });
     }
-    const [x1, y1] = a.out ?? [a.x, a.y];
-    const [x2, y2] = b.in ?? [b.x, b.y];
-    out.push({ c: "C", x1, y1, x2, y2, x: b.x, y: b.y });
+    const corner = corners[ib];
+    if (corner) {
+      out.push({
+        c: "C",
+        x1: corner.c1[0],
+        y1: corner.c1[1],
+        x2: corner.c2[0],
+        y2: corner.c2[1],
+        x: corner.exit[0],
+        y: corner.exit[1],
+      });
+    }
   };
-  for (let i = 1; i < nodes.length; i += 1) segment(nodes[i - 1], nodes[i]);
-  if (closed && nodes.length > 2) {
-    segment(nodes[nodes.length - 1], nodes[0]);
+  for (let i = 1; i < count; i += 1) segment(i - 1, i);
+  if (wraps) {
+    segment(count - 1, 0);
     out.push({ c: "Z" });
   }
   return out;
+}
+
+export interface CornerGeometry {
+  /** Where the arc leaves the incoming line, and joins the outgoing one. */
+  entry: Pair;
+  exit: Pair;
+  /** The arc's control points. */
+  c1: Pair;
+  c2: Pair;
+  /** Unit vector from the anchor into the corner, splitting its angle. */
+  bisector: Pair;
+  /** Tangent length used, and the most the neighbours allow. */
+  distance: number;
+  maxDistance: number;
+  /** tan(half the corner's angle): radius = distance × this. */
+  tanHalf: number;
+}
+
+/** Can this anchor take a Live Corner? A sharp point between two straight lines. */
+export function isRoundable(nodes: readonly PathNode[], closed: boolean, i: number): boolean {
+  const count = nodes.length;
+  const wraps = closed && count > 2;
+  const n = nodes[i];
+  if (!n || n.in || n.out) return false;
+  const prev = i > 0 ? nodes[i - 1] : wraps ? nodes[count - 1] : null;
+  const next = i < count - 1 ? nodes[i + 1] : wraps ? nodes[0] : null;
+  if (!prev || !next || prev.out || next.in) return false;
+  const u1: Pair = [prev.x - n.x, prev.y - n.y];
+  const u2: Pair = [next.x - n.x, next.y - n.y];
+  const l1 = Math.hypot(u1[0], u1[1]);
+  const l2 = Math.hypot(u2[0], u2[1]);
+  if (l1 < 1e-6 || l2 < 1e-6) return false;
+  const cos = (u1[0] * u2[0] + u1[1] * u2[1]) / (l1 * l2);
+  // A straight run through the anchor has no corner to round.
+  return cos > -0.9999;
+}
+
+/**
+ * The fillet at anchor `i` with `radius` (in the anchors' space), or with the
+ * anchor's own stored radius × `radiusScale`. Null when it isn't a roundable
+ * corner. The tangent length is capped at half of each neighbouring segment,
+ * so two rounded corners on one side can meet but never overlap.
+ */
+export function cornerGeometry(
+  nodes: readonly PathNode[],
+  closed: boolean,
+  i: number,
+  radiusScale = 1,
+  radius?: number
+): CornerGeometry | null {
+  const r = radius ?? (nodes[i]?.r ?? 0) * radiusScale;
+  if (!(r > 0) || !isRoundable(nodes, closed, i)) return null;
+  const count = nodes.length;
+  const n = nodes[i];
+  const prev = i > 0 ? nodes[i - 1] : nodes[count - 1];
+  const next = i < count - 1 ? nodes[i + 1] : nodes[0];
+  const l1 = Math.hypot(prev.x - n.x, prev.y - n.y);
+  const l2 = Math.hypot(next.x - n.x, next.y - n.y);
+  const u1: Pair = [(prev.x - n.x) / l1, (prev.y - n.y) / l1];
+  const u2: Pair = [(next.x - n.x) / l2, (next.y - n.y) / l2];
+  const cos = Math.max(-1, Math.min(1, u1[0] * u2[0] + u1[1] * u2[1]));
+  const theta = Math.acos(cos);
+  const tanHalf = Math.tan(theta / 2);
+  const maxDistance = Math.min(l1, l2) / 2;
+  const distance = Math.min(r / tanHalf, maxDistance);
+  const radiusUsed = distance * tanHalf;
+  // A cubic that hugs a circular arc of angle (π − θ).
+  const k = (4 / 3) * Math.tan((Math.PI - theta) / 4) * radiusUsed;
+  const entry: Pair = [n.x + u1[0] * distance, n.y + u1[1] * distance];
+  const exit: Pair = [n.x + u2[0] * distance, n.y + u2[1] * distance];
+  let bx = u1[0] + u2[0];
+  let by = u1[1] + u2[1];
+  const bl = Math.hypot(bx, by) || 1;
+  bx /= bl;
+  by /= bl;
+  return {
+    entry,
+    exit,
+    c1: [entry[0] - u1[0] * k, entry[1] - u1[1] * k],
+    c2: [exit[0] - u2[0] * k, exit[1] - u2[1] * k],
+    bisector: [bx, by],
+    distance,
+    maxDistance,
+    tanHalf,
+  };
+}
+
+/**
+ * Set the Live Corner radius (layer px) on one anchor, or — `index` null — on
+ * every anchor that can take one. 0 removes it.
+ */
+export function setCornerRadius(
+  nodes: readonly PathNode[],
+  closed: boolean,
+  index: number | null,
+  radius: number
+): PathNode[] {
+  return nodes.map((n, i) => {
+    const next = clonePathNode(n);
+    if (index !== null && i !== index) return next;
+    if (!isRoundable(nodes, closed, i)) return next;
+    if (radius > 0) next.r = radius;
+    else delete next.r;
+    return next;
+  });
 }
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
@@ -83,6 +218,8 @@ export function mapNode(n: PathNode, f: (x: number, y: number) => Pair): PathNod
     y,
     ...(n.in ? { in: f(n.in[0], n.in[1]) } : {}),
     ...(n.out ? { out: f(n.out[0], n.out[1]) } : {}),
+    // A radius is a length, not a point: it rides along untouched.
+    ...(n.r ? { r: n.r } : {}),
   };
 }
 
@@ -315,6 +452,7 @@ export function toggleSmooth(nodes: readonly PathNode[], i: number, closed: bool
     delete n.out;
     return out;
   }
+  delete n.r;
   const count = out.length;
   const prev = i > 0 ? out[i - 1] : closed ? out[count - 1] : null;
   const next = i < count - 1 ? out[i + 1] : closed ? out[0] : null;
@@ -331,6 +469,21 @@ export function toggleSmooth(nodes: readonly PathNode[], i: number, closed: bool
   if (prev) n.in = [n.x - dx * lin, n.y - dy * lin];
   if (next) n.out = [n.x + dx * lout, n.y + dy * lout];
   return out;
+}
+
+/**
+ * Alt-drag on an anchor (Illustrator's Anchor Point tool): pull brand-new
+ * symmetric handles out of it toward `to`, turning a corner into a curve.
+ */
+export function pullHandles(nodes: readonly PathNode[], i: number, to: Vec): PathNode[] {
+  return nodes.map((n, k) => {
+    const next = clonePathNode(n);
+    if (k !== i) return next;
+    next.out = [to.x, to.y];
+    next.in = [2 * n.x - to.x, 2 * n.y - to.y];
+    delete next.r;
+    return next;
+  });
 }
 
 /** Remove an anchor; a path keeps at least two. */

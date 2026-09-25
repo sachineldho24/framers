@@ -6,13 +6,19 @@
  * `PenToolOverlay` — drawing a new path, as in Illustrator / Photoshop /
  * Photopea: click to drop a corner anchor, click-and-drag to pull out curve
  * handles, click the first anchor to close, Enter or double-click to finish,
- * Backspace to take the last anchor back, Shift to lock to 45°.
+ * Backspace to take the last anchor back, Shift to lock to 45°. Alt is
+ * Illustrator's Anchor Point tool: Alt while dragging a new anchor moves only
+ * its outgoing handle (a cusp); Alt-drag the last anchor to redirect its
+ * outgoing handle; Alt-click it to drop that handle so the next line is
+ * straight.
  *
  * `PathEditOverlay` — reshaping an existing path (double-click it, or "Edit
  * points"): drag anchors, drag handles (Alt breaks the pair), drag a segment
  * to bend it, double-click a segment to add an anchor, double-click or
- * Alt-click an anchor to switch corner ⇄ smooth, Delete to remove the selected
- * anchor, Esc / Enter / click away to finish.
+ * Alt-click an anchor to switch corner ⇄ smooth, Alt-drag a corner to pull
+ * fresh curve handles out of it, drag a corner's Live Corner dot inward to
+ * round it, Delete to remove the selected anchor, Esc / Enter / click away to
+ * finish.
  *
  * Both sit over the canvas and take its pointer events while they are up, so
  * the canvas's own select/drag logic never sees a pen click. The wheel is
@@ -27,6 +33,7 @@ import {
   bendSegment,
   boxOf,
   commandsToD,
+  cornerGeometry,
   createPathLayer,
   defaultPathStyle,
   insertNode,
@@ -36,7 +43,9 @@ import {
   moveHandle,
   nearestSegment,
   pathCommands,
+  pullHandles,
   removeNode,
+  setCornerRadius,
   snap45,
   toggleSmooth,
   type PathStyle,
@@ -89,7 +98,12 @@ export function PenToolOverlay({ viewport }: { viewport: Viewport }) {
   const [cursor, setCursor] = useState<Vec | null>(null);
   const [dragging, setDragging] = useState(false);
   const nodesRef = useRef<PathNode[]>([]);
-  const dragRef = useRef<{ index: number; startScreen: Vec } | null>(null);
+  /**
+   * The anchor whose handle is being dragged. `redirect` = Alt-drag on the
+   * last anchor: only its outgoing handle moves, and a click without a drag
+   * removes it.
+   */
+  const dragRef = useRef<{ index: number; startScreen: Vec; redirect?: boolean; moved?: boolean } | null>(null);
   const toDoc = useToDoc(viewport);
   // Fixed for this path: taken from the page as it was when the tool opened.
   const [style] = useState(() => nextPathStyle(doc.layers, doc));
@@ -182,18 +196,32 @@ export function PenToolOverlay({ viewport }: { viewport: Viewport }) {
 
   return (
     <div
-      className="absolute inset-0 z-20"
+      className="absolute inset-0 z-20 select-none"
       style={{ cursor: nearFirst ? "pointer" : "crosshair", touchAction: "none" }}
       onWheel={forwardWheel}
       onPointerDown={(e) => {
         if (e.button !== 0) return;
         e.currentTarget.setPointerCapture(e.pointerId);
         const current = nodesRef.current;
-        if (nearFirst) {
+        // Measured from this click, not the last hover: a tap (or a click with
+        // no move before it) must still close the shape.
+        const rect = e.currentTarget.getBoundingClientRect();
+        const at = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        const firstScreen = current.length >= 2 ? screen(current[0]) : null;
+        if (firstScreen && Math.hypot(firstScreen.x - at.x, firstScreen.y - at.y) <= CLOSE_RADIUS) {
           finish(true);
           return;
         }
         let p = toDoc(e);
+        const lastIndex = current.length - 1;
+        if (e.altKey && lastIndex >= 0) {
+          const s = screen(current[lastIndex]);
+          if (Math.hypot(s.x - at.x, s.y - at.y) <= CLOSE_RADIUS) {
+            dragRef.current = { index: lastIndex, startScreen: { x: e.clientX, y: e.clientY }, redirect: true };
+            setDragging(true);
+            return;
+          }
+        }
         if (e.shiftKey && current.length > 0) p = snap45(current[current.length - 1], p);
         update([...current, { x: p.x, y: p.y }]);
         dragRef.current = { index: current.length, startScreen: { x: e.clientX, y: e.clientY } };
@@ -203,17 +231,25 @@ export function PenToolOverlay({ viewport }: { viewport: Viewport }) {
         let p = toDoc(e);
         const drag = dragRef.current;
         if (drag) {
-          if (Math.hypot(e.clientX - drag.startScreen.x, e.clientY - drag.startScreen.y) < DRAG_THRESHOLD) return;
-          // Dragging out of a fresh anchor pulls symmetric handles: the out
-          // handle follows the pointer, the in handle mirrors it.
+          if (!drag.moved && Math.hypot(e.clientX - drag.startScreen.x, e.clientY - drag.startScreen.y) < DRAG_THRESHOLD) return;
+          drag.moved = true;
           const anchor = nodesRef.current[drag.index];
           if (e.shiftKey) p = snap45(anchor, p);
           const next = nodesRef.current.slice();
+          // Dragging out of a fresh anchor pulls symmetric handles: the out
+          // handle follows the pointer, the in handle mirrors it. With Alt (or
+          // when redirecting) the in handle stays put — a cusp, as in the
+          // video: a curve in, then a sharp turn out.
+          const cusp = drag.redirect || e.altKey;
           next[drag.index] = {
             x: anchor.x,
             y: anchor.y,
             out: [p.x, p.y],
-            in: [2 * anchor.x - p.x, 2 * anchor.y - p.y],
+            ...(cusp
+              ? anchor.in
+                ? { in: anchor.in }
+                : {}
+              : { in: [2 * anchor.x - p.x, 2 * anchor.y - p.y] as [number, number] }),
           };
           update(next);
           return;
@@ -223,6 +259,16 @@ export function PenToolOverlay({ viewport }: { viewport: Viewport }) {
         setCursor(p);
       }}
       onPointerUp={() => {
+        const drag = dragRef.current;
+        // Alt-click on the last anchor without dragging: drop its outgoing
+        // handle, so the next segment leaves it in a straight line.
+        if (drag?.redirect && !drag.moved) {
+          const next = nodesRef.current.slice();
+          const n = { ...next[drag.index] };
+          delete n.out;
+          next[drag.index] = n;
+          update(next);
+        }
         dragRef.current = null;
         setDragging(false);
       }}
@@ -275,7 +321,7 @@ export function PenToolOverlay({ viewport }: { viewport: Viewport }) {
           ? "Pen tool — click to place a point, drag to make a curve"
           : nodes.length === 1
             ? "Click for a straight line, drag for a curve · Shift locks 45°"
-            : "Click the first point to close · Enter or double-click to finish · Backspace undoes a point"}
+            : "Click the first point to close · Enter or double-click to finish · Alt-drag the last point to redirect its curve · Backspace undoes a point"}
       </div>
     </div>
   );
@@ -288,7 +334,22 @@ export function PenToolOverlay({ viewport }: { viewport: Viewport }) {
 type EditGesture =
   | { kind: "anchor"; index: number }
   | { kind: "handle"; index: number; which: "in" | "out" }
-  | { kind: "bend"; segment: number };
+  | { kind: "bend"; segment: number }
+  /** Alt on an anchor: drag pulls new handles, a plain click toggles. */
+  | { kind: "convert"; index: number }
+  /** A Live Corner dot, dragged along the corner's bisector. */
+  | {
+      kind: "corner";
+      index: number;
+      /** Screen px, measured when the drag began. */
+      anchor: Vec;
+      bisector: [number, number];
+      tanHalf: number;
+      maxDistance: number;
+    };
+
+/** Screen px from a corner to its Live Corner dot at radius 0. */
+const CORNER_DOT_OFFSET = 16;
 
 export function PathEditOverlay({ layer, viewport }: { layer: PathLayer; viewport: Viewport }) {
   const { apply, endGesture, setEditingId } = useStudio();
@@ -299,6 +360,7 @@ export function PathEditOverlay({ layer, viewport }: { layer: PathLayer; viewpor
     frame: Box;
     start: PathNode[];
     from: Vec;
+    moved?: boolean;
   } | null>(null);
 
   const box = boxOf(layer);
@@ -365,11 +427,40 @@ export function PathEditOverlay({ layer, viewport }: { layer: PathLayer; viewpor
     const b = screenNodes[(i + 1) % count];
     segmentPaths.push({ d: commandsToD(pathCommands([a, b], false)), index: i });
   }
-  const outline = commandsToD(pathCommands(screenNodes, layer.closed));
+  const outline = commandsToD(pathCommands(screenNodes, layer.closed, viewport.scale));
+
+  // A Live Corner dot inside every sharp corner between straight lines, pushed
+  // further in as the corner gets rounder.
+  const corners =
+    screenNodes.length > 60
+      ? []
+      : screenNodes.flatMap((n, index) => {
+          const geo = cornerGeometry(
+            screenNodes,
+            layer.closed,
+            index,
+            1,
+            Math.max(1e-6, (layer.nodes[index].r ?? 0) * viewport.scale)
+          );
+          if (!geo) return [];
+          const rounded = (layer.nodes[index].r ?? 0) > 0;
+          const along = CORNER_DOT_OFFSET + (rounded ? geo.distance : 0);
+          return [
+            {
+              index,
+              rounded,
+              anchor: { x: n.x, y: n.y },
+              bisector: geo.bisector,
+              tanHalf: geo.tanHalf,
+              maxDistance: geo.maxDistance,
+              dot: { x: n.x + geo.bisector[0] * along, y: n.y + geo.bisector[1] * along },
+            },
+          ];
+        });
 
   return (
     <svg
-      className="absolute inset-0 z-20 h-full w-full"
+      className="absolute inset-0 z-20 h-full w-full select-none"
       style={{ touchAction: "none" }}
       onWheel={forwardWheel}
       onPointerDown={(e) => {
@@ -383,20 +474,40 @@ export function PathEditOverlay({ layer, viewport }: { layer: PathLayer; viewpor
         const dx = p.x - gesture.from.x;
         const dy = p.y - gesture.from.y;
         const { g, start } = gesture;
-        const nodes =
-          g.kind === "anchor"
-            ? moveAnchor(start, g.index, dx, dy)
-            : g.kind === "handle"
-              ? moveHandle(start, g.index, g.which, p, e.altKey)
-              : bendSegment(start, g.segment, dx, dy);
+        if (!gesture.moved && Math.hypot(dx, dy) * viewport.scale < DRAG_THRESHOLD) return;
+        gesture.moved = true;
+        let nodes: PathNode[];
+        if (g.kind === "corner") {
+          // Project the pointer onto the bisector: further in = rounder.
+          const s = docToScreen(viewport, toDoc(e));
+          const along = (s.x - g.anchor.x) * g.bisector[0] + (s.y - g.anchor.y) * g.bisector[1];
+          const distance = Math.max(0, Math.min(g.maxDistance, along - CORNER_DOT_OFFSET));
+          nodes = setCornerRadius(start, layer.closed, g.index, (distance * g.tanHalf) / viewport.scale);
+        } else {
+          nodes =
+            g.kind === "anchor"
+              ? moveAnchor(start, g.index, dx, dy)
+              : g.kind === "handle"
+                ? moveHandle(start, g.index, g.which, p, e.altKey)
+                : g.kind === "convert"
+                  ? pullHandles(start, g.index, p)
+                  : bendSegment(start, g.segment, dx, dy);
+        }
         apply(
           { type: "setPathGeometry", layerId: layer.id, frame: gesture.frame, nodes },
           { transient: true, label }
         );
       }}
       onPointerUp={() => {
-        if (gestureRef.current) endGesture();
+        const gesture = gestureRef.current;
         gestureRef.current = null;
+        if (!gesture) return;
+        if (gesture.moved) {
+          endGesture();
+        } else if (gesture.g.kind === "convert") {
+          // Alt-click: corner ⇄ smooth.
+          commit(toggleSmooth(gesture.start, gesture.g.index, layer.closed));
+        }
       }}
     >
       <path d={outline} fill="none" stroke={ACCENT} strokeWidth={1} pointerEvents="none" />
@@ -431,12 +542,7 @@ export function PathEditOverlay({ layer, viewport }: { layer: PathLayer; viewpor
         selected={selected}
         onAnchorDown={(e, i) => {
           setSelected(i);
-          if (e.altKey) {
-            e.stopPropagation();
-            commit(toggleSmooth(local, i, layer.closed));
-            return;
-          }
-          begin(e, { kind: "anchor", index: i });
+          begin(e, e.altKey ? { kind: "convert", index: i } : { kind: "anchor", index: i });
         }}
         onAnchorToggle={(i) => commit(toggleSmooth(local, i, layer.closed))}
         onHandleDown={(e, i, which) => {
@@ -444,6 +550,35 @@ export function PathEditOverlay({ layer, viewport }: { layer: PathLayer; viewpor
           begin(e, { kind: "handle", index: i, which });
         }}
       />
+
+      {corners.map((c) => (
+        <circle
+          key={`corner-${c.index}`}
+          cx={c.dot.x}
+          cy={c.dot.y}
+          r={4.5}
+          fill={c.rounded ? ACCENT : "#111"}
+          stroke={ACCENT}
+          strokeWidth={1.5}
+          style={{ cursor: "pointer" }}
+          onPointerDown={(e) =>
+            begin(e, {
+              kind: "corner",
+              index: c.index,
+              anchor: c.anchor,
+              bisector: c.bisector,
+              tanHalf: c.tanHalf,
+              maxDistance: c.maxDistance,
+            })
+          }
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            commit(setCornerRadius(local, layer.closed, c.index, 0));
+          }}
+        >
+          <title>Live Corner: drag inward to round this corner · double-click to make it sharp again</title>
+        </circle>
+      ))}
 
       <foreignObject x={0} y={0} width="100%" height="48" pointerEvents="none">
         <div className="flex justify-center pt-3">

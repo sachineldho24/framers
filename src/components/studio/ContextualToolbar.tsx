@@ -39,7 +39,7 @@ import { alignLayersTo, isWholeGroup } from "@/lib/studio/multiSelect";
 import { fontDisplayName, fontStack, getFont, nearestWeight } from "@/lib/studio/fonts";
 import { documentDpi, printedInches } from "@/lib/studio/print";
 import type { StudioAction, TextStylePatch } from "@/lib/studio/reducer";
-import { boxOf, boxesOverlap, defaultGlow } from "@/lib/studio/penPath";
+import { boxOf, boxesOverlap, defaultGlow, isRoundable, localNodes, setCornerRadius } from "@/lib/studio/penPath";
 import { getShape } from "@/lib/studio/shapes";
 import { DEFAULT_LINE_HEIGHT, MIN_FONT_SIZE } from "@/lib/studio/text";
 import { useStudio } from "@/lib/studio/StudioContext";
@@ -74,7 +74,8 @@ type PopoverId =
   | "align"
   | "background"
   | "glow"
-  | "fill";
+  | "fill"
+  | "corners";
 
 interface PopoverState {
   id: PopoverId;
@@ -684,6 +685,8 @@ function PathToolbar({ layer }: { layer: PathLayer }) {
           <GlowPopover layer={layer} />
         ) : id === "fill" ? (
           <FillPopover layer={layer} />
+        ) : id === "corners" ? (
+          <PathCornersPopover layer={layer} />
         ) : id === "opacity" ? (
           <OpacityPopover layer={layer} />
         ) : null
@@ -710,6 +713,9 @@ function PathToolbar({ layer }: { layer: PathLayer }) {
       <PopoverButton id="fill" label="Fill, or close the shape">
         Fill
       </PopoverButton>
+      {layer.nodes.some((_, i) => isRoundable(layer.nodes, layer.closed, i)) && (
+        <PopoverButton id="corners" icon="rounded_corner" label="Round corners (A, then drag a corner's dot, for one corner)" />
+      )}
       <PopoverButton id="opacity" icon="opacity" label="Transparency" />
       {photo && (
         <>
@@ -794,6 +800,44 @@ function GlowPopover({ layer }: { layer: PathLayer }) {
           />
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * Round every sharp corner at once. For one corner, Edit points (A) shows a
+ * Live Corner dot inside each corner to drag instead.
+ */
+function PathCornersPopover({ layer }: { layer: PathLayer }) {
+  const { apply, endGesture } = useStudio();
+  const radii = layer.nodes.filter((n, i) => isRoundable(layer.nodes, layer.closed, i)).map((n) => n.r ?? 0);
+  const current = radii.length ? Math.max(...radii) : 0;
+  const max = Math.max(10, Math.round(Math.min(layer.width, layer.height) / 2));
+  const set = (r: number, transient: boolean) =>
+    apply(
+      {
+        type: "setPathGeometry",
+        layerId: layer.id,
+        frame: boxOf(layer),
+        nodes: setCornerRadius(localNodes(layer), layer.closed, null, r),
+      },
+      transient ? { transient: true, label: `corners:${layer.id}` } : undefined
+    );
+  return (
+    <div className="w-[240px] px-2 py-2">
+      <Slider
+        label="Round corners"
+        value={Math.min(current, max)}
+        min={0}
+        max={max}
+        suffix="px"
+        onChange={(v) => set(v, true)}
+        onCommit={endGesture}
+        onReset={() => set(0, false)}
+      />
+      <p className="mt-1.5 text-[11px] leading-relaxed text-[var(--studio-ink-muted)]">
+        One corner only: press A (Edit points) and drag the dot inside that corner.
+      </p>
     </div>
   );
 }
