@@ -12,7 +12,9 @@ import {
   cloneDocument,
   asFreshCopy,
   cloneLayer,
+  coerceGlow,
   coerceMask,
+  MAX_PATH_NODES,
   createId,
   FULL_CROP,
   idPrefixFor,
@@ -34,6 +36,9 @@ import {
   type LayerRole,
   type Mask,
   type MaskKind,
+  type PathGlow,
+  type PathLayer,
+  type PathNode,
   type PageBorder,
   type ShapeLayer,
   type Stroke,
@@ -43,6 +48,7 @@ import {
 import type { FilterId } from "./filters";
 import { DEFAULT_FILTER } from "./filters";
 import { fitToAspect, ratioRect } from "./crop";
+import { boxOf, fitPath, localNodes, maskFromPath } from "./penPath";
 import { getFont, nearestWeight } from "./fonts";
 import { coerceTextEffect, type TextEffect } from "./textEffects";
 import type { ListStyle } from "./text";
@@ -178,7 +184,31 @@ export type StudioAction =
       height?: number;
     }
   | { type: "setShapeStyle"; layerId: string; patch: Partial<ShapeStylePatch> }
-  | { type: "setDrawStyle"; layerId: string; patch: { color?: string; strokeWidth?: number } };
+  | { type: "setDrawStyle"; layerId: string; patch: { color?: string; strokeWidth?: number } }
+  /**
+   * New anchors for a pen path, in px in `frame`'s local space (the box the
+   * edit started from). The reducer re-boxes the path around them.
+   */
+  | { type: "setPathGeometry"; layerId: string; frame: Box; nodes: PathNode[]; closed?: boolean }
+  | {
+      type: "setPathStyle";
+      layerId: string;
+      patch: {
+        stroke?: string;
+        strokeWidth?: number;
+        /** null removes the fill. */
+        fill?: string | null;
+        /** null removes the glow. */
+        glow?: PathGlow | null;
+        closed?: boolean;
+      };
+    }
+  /**
+   * Clip a photo with a pen path. "mask" clips the photo itself; "cutout"
+   * clips a copy placed where the path sits in the stack — how a line is made
+   * to pass *behind* part of a photo. Either way the path is used up.
+   */
+  | { type: "maskWithPath"; pathId: string; imageId: string; mode: "mask" | "cutout"; newId?: string };
 
 export interface ShapeStylePatch {
   color: string;
@@ -746,6 +776,68 @@ export function studioReducer(
         layers.unshift(updated);
         return { ...doc, layers };
       })();
+
+    case "setPathGeometry":
+      return mapLayer(doc, action.layerId, (l) => {
+        if (l.kind !== "path" || l.locked || action.nodes.length < 2) return null;
+        const closed = action.closed ?? l.closed;
+        const next: PathLayer = {
+          ...l,
+          ...fitPath(action.frame, action.nodes.slice(0, MAX_PATH_NODES), closed, l.strokeWidth),
+          closed,
+        };
+        // Only a closed path has an inside to fill.
+        if (!closed) delete next.fill;
+        return next;
+      });
+
+    case "setPathStyle":
+      return mapLayer(doc, action.layerId, (l) => {
+        if (l.kind !== "path" || l.locked) return null;
+        const p = action.patch;
+        const closed = p.closed ?? l.closed;
+        const strokeWidth = clamp(p.strokeWidth ?? l.strokeWidth, 0, MAX_SHAPE_STROKE);
+        const { fill: _f, glow: _g, ...rest } = l;
+        void _f;
+        void _g;
+        const fill = p.fill === null ? undefined : p.fill ?? l.fill;
+        const glow = p.glow === null ? undefined : p.glow !== undefined ? coerceGlow(p.glow) : l.glow;
+        const next: PathLayer = {
+          ...rest,
+          stroke: p.stroke ?? l.stroke,
+          strokeWidth,
+          closed,
+          ...(closed && fill ? { fill } : {}),
+          ...(glow ? { glow } : {}),
+        };
+        // The box hugs the ink, so a new weight or a closing segment re-boxes.
+        if (strokeWidth === l.strokeWidth && closed === l.closed) return next;
+        return { ...next, ...fitPath(boxOf(l), localNodes(l), closed, strokeWidth) };
+      });
+
+    case "maskWithPath": {
+      const path = doc.layers.find((l) => l.id === action.pathId);
+      const image = doc.layers.find((l) => l.id === action.imageId);
+      if (!path || path.kind !== "path" || !image || image.kind !== "image") return doc;
+      if (path.locked) return doc;
+      const mask = maskFromPath(path, image);
+      if (action.mode === "mask") {
+        if (image.locked) return doc;
+        return {
+          ...doc,
+          layers: doc.layers
+            .filter((l) => l.id !== path.id)
+            .map((l) => (l.id === image.id ? { ...image, mask } : l)),
+        };
+      }
+      const id =
+        action.newId && layerIndex(doc, action.newId) < 0 ? action.newId : createId("img");
+      const copy: Layer = { ...(asFreshCopy(image) as ImageLayer), id, name: `${image.name} cut-out`, mask };
+      return {
+        ...doc,
+        layers: doc.layers.map((l) => (l.id === path.id ? copy : l)),
+      };
+    }
 
     case "setDrawStyle":
       return mapLayer(doc, action.layerId, (l) =>

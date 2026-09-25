@@ -84,7 +84,7 @@ export function StudioFlyout({
   const { rail, setRail, tool } = useStudio();
   const compact = useCompactStudio();
   // Tools is Canva's slim palette, not a panel; it stays up while drawing.
-  if (rail === "tools" && (tool === "select" || tool === "pen" || tool === "pen-eraser")) {
+  if (rail === "tools" && (tool === "select" || tool === "pen" || tool === "pen-eraser" || tool === "path")) {
     return <ToolsPalette />;
   }
   // A subtool replaces the tool list instead of opening a second 300px panel.
@@ -146,7 +146,8 @@ export function StudioToolPanel({ isAdmin = false }: { isAdmin?: boolean }) {
     (tool === "crop" && !compact) ||
     tool === "draw" ||
     tool === "pen" ||
-    tool === "pen-eraser"
+    tool === "pen-eraser" ||
+    tool === "path"
   )
     return null;
 

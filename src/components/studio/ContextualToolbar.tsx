@@ -29,6 +29,7 @@ import type {
   ImageOutline,
   Layer,
   OutlineStyle,
+  PathLayer,
   ShapeLayer,
   TextLayer,
 } from "@/lib/studio/document";
@@ -37,7 +38,8 @@ import type { AlignMode } from "@/lib/studio/geometry";
 import { alignLayersTo, isWholeGroup } from "@/lib/studio/multiSelect";
 import { fontDisplayName, fontStack, getFont, nearestWeight } from "@/lib/studio/fonts";
 import { documentDpi, printedInches } from "@/lib/studio/print";
-import type { TextStylePatch } from "@/lib/studio/reducer";
+import type { StudioAction, TextStylePatch } from "@/lib/studio/reducer";
+import { boxOf, boxesOverlap, defaultGlow } from "@/lib/studio/penPath";
 import { getShape } from "@/lib/studio/shapes";
 import { DEFAULT_LINE_HEIGHT, MIN_FONT_SIZE } from "@/lib/studio/text";
 import { useStudio } from "@/lib/studio/StudioContext";
@@ -70,7 +72,9 @@ type PopoverId =
   | "color"
   | "spacing"
   | "align"
-  | "background";
+  | "background"
+  | "glow"
+  | "fill";
 
 interface PopoverState {
   id: PopoverId;
@@ -292,6 +296,7 @@ export function ContextualToolbar({
   if (layer.kind === "text") return <TextToolbar layer={layer} />;
   if (layer.kind === "shape") return <ShapeToolbar layer={layer} />;
   if (layer.kind === "draw") return <DrawToolbar layer={layer} />;
+  if (layer.kind === "path") return <PathToolbar layer={layer} />;
   return <ImageToolbar layer={layer} onBgRemover={onBgRemover} onReplace={onReplace} />;
 }
 
@@ -598,6 +603,232 @@ function DrawToolbar({ layer }: { layer: DrawLayer }) {
         Position
       </LabelButton>
     </Pill>
+  );
+}
+
+/** Six palette inks plus a custom picker — the Draw toolbar's row, reusable. */
+function InkSwatches({ value, onPick, label }: { value: string; onPick: (color: string) => void; label: string }) {
+  const current = value.toLowerCase();
+  return (
+    <div className="flex items-center gap-1.5 px-1.5">
+      {STUDIO_SWATCHES.slice(0, 6).map((swatch) => (
+        <button
+          key={swatch}
+          type="button"
+          data-r="full"
+          aria-label={`${label}: ${swatch}`}
+          aria-pressed={current === swatch}
+          onClick={() => onPick(swatch)}
+          className={cx(
+            "h-[22px] w-[22px] shrink-0 border transition-colors",
+            current === swatch ? "border-[var(--studio-accent)]" : "border-[#353534] hover:border-[var(--studio-accent)]"
+          )}
+          style={{ backgroundColor: swatch }}
+        />
+      ))}
+      <label
+        data-r="full"
+        title={`Custom ${label.toLowerCase()}`}
+        className="relative h-[22px] w-[22px] shrink-0 cursor-pointer overflow-hidden border border-[#353534]"
+        style={{ background: "conic-gradient(red, yellow, lime, cyan, blue, magenta, red)" }}
+      >
+        <span className="sr-only">Custom {label.toLowerCase()}</span>
+        <input
+          type="color"
+          value={value.slice(0, 7)}
+          onChange={(e) => onPick(e.target.value)}
+          className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        />
+      </label>
+    </div>
+  );
+}
+
+/**
+ * The photo a path would mask: the nearest photo *below* it in the stack whose
+ * box it overlaps — "the car under the line I just drew".
+ */
+function photoUnderPath(layers: readonly Layer[], path: PathLayer): ImageLayer | null {
+  const index = layers.findIndex((l) => l.id === path.id);
+  for (let i = index - 1; i >= 0; i -= 1) {
+    const l = layers[i];
+    if (l.kind === "image" && l.visible && boxesOverlap(boxOf(l), boxOf(path))) return l;
+  }
+  return null;
+}
+
+type PathStylePatch = Extract<StudioAction, { type: "setPathStyle" }>["patch"];
+
+function pathStyle(layerId: string, patch: PathStylePatch): StudioAction {
+  return { type: "setPathStyle", layerId, patch };
+}
+
+/**
+ * A pen path: line colour and weight, Glow, fill, point editing, and the two
+ * ways to turn it into a mask.
+ */
+function PathToolbar({ layer }: { layer: PathLayer }) {
+  const { apply, tool, setTool, setEditingId, doc, select } = useStudio();
+  const style = (patch: PathStylePatch) => apply(pathStyle(layer.id, patch));
+  const photo = photoUnderPath(doc.layers, layer);
+  const mask = (mode: "mask" | "cutout") => {
+    if (!photo) return;
+    const newId = createId("img");
+    apply({ type: "maskWithPath", pathId: layer.id, imageId: photo.id, mode, newId });
+    select(mode === "mask" ? photo.id : newId);
+  };
+  return (
+    <Pill
+      popover={(id) =>
+        id === "glow" ? (
+          <GlowPopover layer={layer} />
+        ) : id === "fill" ? (
+          <FillPopover layer={layer} />
+        ) : id === "opacity" ? (
+          <OpacityPopover layer={layer} />
+        ) : null
+      }
+    >
+      <LabelButton
+        icon="conversion_path"
+        onClick={() => setEditingId(layer.id)}
+        title="Move points, bend lines, add or remove points (or double-click the path)"
+      >
+        Edit points
+      </LabelButton>
+      <Divider />
+      <InkSwatches label="Line colour" value={layer.stroke} onPick={(stroke) => style({ stroke })} />
+      <Divider />
+      <PillButton icon="remove" label="Thinner" onClick={() => style({ strokeWidth: Math.max(0, layer.strokeWidth * 0.8) })} />
+      <PillButton icon="add" label="Thicker" onClick={() => style({ strokeWidth: Math.max(1, layer.strokeWidth * 1.25) })} />
+      <PopoverButton id="glow" label="Glow: a neon halo around the line">
+        <span className={cx("flex items-center gap-1", layer.glow && "text-[var(--studio-accent)]")}>
+          <Icon name="flare" className="text-[18px]" />
+          Glow
+        </span>
+      </PopoverButton>
+      <PopoverButton id="fill" label="Fill, or close the shape">
+        Fill
+      </PopoverButton>
+      <PopoverButton id="opacity" icon="opacity" label="Transparency" />
+      {photo && (
+        <>
+          <Divider />
+          <LabelButton
+            icon="content_cut"
+            onClick={() => mask("mask")}
+            title={`Clip "${photo.name}" to this path, keeping only what is inside`}
+          >
+            Mask photo
+          </LabelButton>
+          <LabelButton
+            icon="layers"
+            onClick={() => mask("cutout")}
+            title={`Copy the part of "${photo.name}" inside this path onto its own layer, here in the stack, so a line drawn earlier passes behind it`}
+          >
+            Cut out
+          </LabelButton>
+        </>
+      )}
+      <Divider />
+      <LabelButton active={tool === "layers"} onClick={() => setTool(tool === "layers" ? "select" : "layers")} title="Layer order">
+        Position
+      </LabelButton>
+    </Pill>
+  );
+}
+
+/** Glow: on/off, colour, size and strength. Each slider drag is one undo step. */
+function GlowPopover({ layer }: { layer: PathLayer }) {
+  const { apply, endGesture } = useStudio();
+  const glow = layer.glow;
+  const set = (patch: Partial<NonNullable<PathLayer["glow"]>>, transient = false) =>
+    apply(
+      pathStyle(layer.id, { glow: { ...(glow ?? defaultGlow(layer)), ...patch } }),
+      transient ? { transient: true, label: `glow:${layer.id}` } : undefined
+    );
+  const maxSize = Math.max(60, Math.round(layer.strokeWidth * 20));
+  return (
+    <div className="flex w-[260px] flex-col gap-2 px-2 py-2">
+      <label className="flex cursor-pointer items-center justify-between text-[13px] font-medium text-[var(--studio-ink)]">
+        Glow
+        <input
+          type="checkbox"
+          className="accent-[var(--studio-accent)]"
+          checked={!!glow}
+          onChange={(e) => apply(pathStyle(layer.id, { glow: e.target.checked ? defaultGlow(layer) : null }))}
+        />
+      </label>
+      {glow && (
+        <>
+          <div>
+            <p className="mb-1.5 text-[11px] text-[var(--studio-ink-muted)]">Glow colour</p>
+            <InkSwatches label="Glow colour" value={glow.color} onPick={(color) => set({ color })} />
+            <button
+              type="button"
+              onClick={() => apply(pathStyle(layer.id, { stroke: "#ffffff" }))}
+              className="mt-1.5 px-1.5 text-[11px] text-[var(--studio-accent)] hover:underline"
+              title="A white-hot core with the glow colour around it"
+            >
+              Neon tube: white line, coloured glow
+            </button>
+          </div>
+          <Slider
+            label="Size"
+            value={glow.size}
+            min={2}
+            max={maxSize}
+            onChange={(v) => set({ size: v }, true)}
+            onCommit={endGesture}
+            onReset={() => set({ size: defaultGlow(layer).size })}
+          />
+          <Slider
+            label="Strength"
+            value={glow.strength}
+            min={5}
+            max={100}
+            suffix="%"
+            onChange={(v) => set({ strength: v }, true)}
+            onCommit={endGesture}
+            onReset={() => set({ strength: defaultGlow(layer).strength })}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Close the path and fill it, or open it again. */
+function FillPopover({ layer }: { layer: PathLayer }) {
+  const { apply } = useStudio();
+  return (
+    <div className="flex w-[240px] flex-col gap-2 px-2 py-2">
+      <label className="flex cursor-pointer items-center justify-between text-[13px] font-medium text-[var(--studio-ink)]">
+        Closed shape
+        <input
+          type="checkbox"
+          className="accent-[var(--studio-accent)]"
+          checked={layer.closed}
+          disabled={layer.nodes.length < 3}
+          onChange={(e) => apply(pathStyle(layer.id, { closed: e.target.checked }))}
+        />
+      </label>
+      {layer.closed && (
+        <>
+          <p className="text-[11px] text-[var(--studio-ink-muted)]">Fill</p>
+          <InkSwatches label="Fill" value={layer.fill ?? "#000000"} onPick={(fill) => apply(pathStyle(layer.id, { fill }))} />
+          {layer.fill && (
+            <button
+              type="button"
+              onClick={() => apply(pathStyle(layer.id, { fill: null }))}
+              className="self-start px-1.5 text-[11px] text-[var(--studio-accent)] hover:underline"
+            >
+              No fill
+            </button>
+          )}
+        </>
+      )}
+    </div>
   );
 }
 

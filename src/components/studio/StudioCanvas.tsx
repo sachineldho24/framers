@@ -78,6 +78,7 @@ import {
 } from "@/lib/studio/multiSelect";
 import { SnapGuides } from "./SnapGuides";
 import { TextEditOverlay } from "./TextEditOverlay";
+import { PathEditOverlay, PenToolOverlay } from "./PenOverlays";
 import { useCompactStudio } from "./useCompactStudio";
 
 type Gesture =
@@ -310,8 +311,12 @@ export function StudioCanvas({
       showTransparencyGrid: true,
       maskCache: maskCache.current,
       // The textarea overlay is showing this layer's words already; drawing them
-      // underneath as well would double every glyph.
-      skipLayerId: compact ? undefined : editingId ?? undefined,
+      // underneath as well would double every glyph. A path being reshaped
+      // stays drawn — its points sit on top of the real line.
+      skipLayerId:
+        compact || !editingId || doc.layers.find((l) => l.id === editingId)?.kind !== "text"
+          ? undefined
+          : editingId,
     });
     // `fontRevision` is not read here — it is a dependency so that a face
     // arriving forces the repaint. The lint rule can only see the read, not the
@@ -1173,7 +1178,8 @@ export function StudioCanvas({
           // Double-click is how every editor opens text for typing. Harmless on
           // a photo, which is why it isn't gated on the active tool.
           const hit = pickLayer(toDoc(e));
-          if (hit?.kind !== "text" || hit.locked) return;
+          // Text opens for typing; a pen path opens for point editing.
+          if ((hit?.kind !== "text" && hit?.kind !== "path") || hit.locked) return;
           select(hit.id);
           setEditingId(hit.id);
         }}
@@ -1209,6 +1215,8 @@ export function StudioCanvas({
 
       {marquee && <MarqueeOverlay rect={marquee} viewport={viewport} />}
 
+      {tool === "path" && <PenToolOverlay viewport={viewport} />}
+
       {dropTargetId && (() => {
         const target = doc.layers.find((l) => l.id === dropTargetId);
         return target ? <LayerOutline layer={target} viewport={viewport} /> : null;
@@ -1239,6 +1247,8 @@ export function StudioCanvas({
             onHandleMove={onPointerMove}
             onHandleUp={finishGesture}
           />
+        ) : editingId === selectedLayer.id && selectedLayer.kind === "path" ? (
+          <PathEditOverlay layer={selectedLayer} viewport={viewport} />
         ) : !compact && editingId === selectedLayer.id && selectedLayer.kind === "text" ? (
           // Likewise for typing: the caret is the only grab target that makes
           // sense while the words are being edited.

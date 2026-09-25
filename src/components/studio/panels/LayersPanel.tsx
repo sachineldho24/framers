@@ -17,6 +17,7 @@ import { useState } from "react";
 import { Icon } from "@/components/Icon";
 import type { Layer, TextLayer } from "@/lib/studio/document";
 import type { AlignMode } from "@/lib/studio/geometry";
+import { commandsToD, mapNode, pathCommands } from "@/lib/studio/penPath";
 import { useStudio } from "@/lib/studio/StudioContext";
 import { textLayerHeight } from "@/lib/studio/textMeasure";
 
@@ -384,7 +385,7 @@ function LayersTab() {
                     {layer.kind === "text" ? layer.text.split("\n")[0] || layer.name : layer.name}
                   </span>
                   <span className="block text-[11px] capitalize text-[var(--studio-ink-muted)]">
-                    {layer.kind === "image" ? "Photo" : layer.kind}
+                    {layer.kind === "image" ? "Photo" : layer.kind === "path" ? "Pen path" : layer.kind}
                     {layer.locked && " · locked"}
                     {!layer.visible && " · hidden"}
                   </span>
@@ -454,6 +455,27 @@ function LayerThumb({ layer, url }: { layer: Layer; url: string | null }) {
         <span className="text-[15px] font-bold" style={{ color: layer.color }}>
           T
         </span>
+      </span>
+    );
+  }
+  if (layer.kind === "path") {
+    // The curve itself, fitted into the thumbnail with its aspect kept.
+    const k = 28 / Math.max(layer.width, layer.height);
+    const w = layer.width * k;
+    const h = layer.height * k;
+    const d = commandsToD(pathCommands(layer.nodes.map((n) => mapNode(n, (x, y) => [x * w, y * h])), layer.closed));
+    return (
+      <span data-r="sm" className={box}>
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} className="overflow-visible">
+          <path
+            d={d}
+            fill={layer.closed && layer.fill ? layer.fill : "none"}
+            stroke={layer.stroke}
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            style={layer.glow ? { filter: `drop-shadow(0 0 2px ${layer.glow.color})` } : undefined}
+          />
+        </svg>
       </span>
     );
   }

@@ -89,6 +89,11 @@ export function LayerInfoSheet({
             <ShapeRows layer={layer} />
           ) : layer.kind === "draw" ? (
             <Row label="Kind" value={`Drawing · ${layer.pen}`} />
+          ) : layer.kind === "path" ? (
+            <Row
+              label="Kind"
+              value={`Pen path · ${layer.nodes.length} points${layer.closed ? " · closed" : ""}${layer.glow ? " · glow" : ""}`}
+            />
           ) : (
             <TextRows layer={layer} dpi={dpi} />
           )}

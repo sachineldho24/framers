@@ -180,7 +180,53 @@ export interface ImageOutline {
 export const NO_OUTLINE: ImageOutline = { width: 0, color: "#111111", style: "solid" };
 export const MAX_OUTLINE = 200;
 
-export type Layer = ImageLayer | TextLayer | ShapeLayer | DrawLayer;
+export type Layer = ImageLayer | TextLayer | ShapeLayer | DrawLayer | PathLayer;
+
+/**
+ * One anchor of a pen path. Everything is normalised to the layer's box (0–1,
+ * though a handle may reach past the edge), like a freehand stroke, so the box
+ * can be moved, scaled and rotated by the ordinary selection handles.
+ *
+ * `in`/`out` are the Bézier control points on either side of the anchor, as
+ * absolute positions. Absent = that side is straight (a corner).
+ */
+export interface PathNode {
+  x: number;
+  y: number;
+  in?: [number, number];
+  out?: [number, number];
+}
+
+/** A soft halo around the line — the "neon tube" look. */
+export interface PathGlow {
+  color: string;
+  /** Blur radius in doc px. */
+  size: number;
+  /** 0–100: how bright the halo is. */
+  strength: number;
+}
+
+export const MAX_PATH_NODES = 400;
+export const MAX_GLOW_SIZE = 400;
+
+/**
+ * A vector path drawn with the Pen tool: straight or curved segments through
+ * anchors the user placed. See `penPath.ts` for the geometry.
+ */
+export interface PathLayer extends LayerBase {
+  kind: "path";
+  nodes: PathNode[];
+  /** Joins the last anchor back to the first. */
+  closed: boolean;
+  /** Line colour. */
+  stroke: string;
+  /** Doc px. 0 = no line (a fill-only shape). */
+  strokeWidth: number;
+  /** Fill for a closed path. Absent = none. */
+  fill?: string;
+  /** Absent = no glow. */
+  glow?: PathGlow;
+}
 
 /**
  * A freehand stroke — Canva's Draw tool, and the signature pad. See
@@ -780,7 +826,72 @@ function coerceDrawLayer(v: Partial<DrawLayer>): Layer | null {
 
 /** Id prefix per layer kind, for fresh copies. */
 export function idPrefixFor(kind: Layer["kind"]): string {
-  return kind === "text" ? "txt" : kind === "shape" ? "shp" : kind === "draw" ? "drw" : "img";
+  return kind === "text"
+    ? "txt"
+    : kind === "shape"
+      ? "shp"
+      : kind === "draw"
+        ? "drw"
+        : kind === "path"
+          ? "pth"
+          : "img";
+}
+
+/** A handle may reach past the box, but not to infinity. */
+const HANDLE_LIMIT = 50;
+
+function coerceHandle(value: unknown): [number, number] | undefined {
+  if (!Array.isArray(value) || value.length !== 2) return undefined;
+  const [x, y] = value;
+  if (typeof x !== "number" || typeof y !== "number" || !Number.isFinite(x) || !Number.isFinite(y)) return undefined;
+  return [clamp(x, -HANDLE_LIMIT, HANDLE_LIMIT), clamp(y, -HANDLE_LIMIT, HANDLE_LIMIT)];
+}
+
+export function coerceGlow(value: unknown): PathGlow | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const v = value as Partial<PathGlow>;
+  const strength = clamp(num(v.strength, 0), 0, 100);
+  const size = clamp(num(v.size, 0), 0, MAX_GLOW_SIZE);
+  if (strength <= 0 || size <= 0) return undefined;
+  return { color: colour(v.color, "#ccff00"), size, strength };
+}
+
+function coercePathLayer(v: Partial<PathLayer>): Layer | null {
+  if (!Array.isArray(v.nodes)) return null;
+  const nodes: PathNode[] = [];
+  for (const raw of v.nodes.slice(0, MAX_PATH_NODES)) {
+    if (!raw || typeof raw !== "object") continue;
+    const n = raw as Partial<PathNode>;
+    if (typeof n.x !== "number" || typeof n.y !== "number" || !Number.isFinite(n.x) || !Number.isFinite(n.y)) continue;
+    const node: PathNode = { x: clamp(n.x, -HANDLE_LIMIT, HANDLE_LIMIT), y: clamp(n.y, -HANDLE_LIMIT, HANDLE_LIMIT) };
+    const hin = coerceHandle(n.in);
+    const hout = coerceHandle(n.out);
+    if (hin) node.in = hin;
+    if (hout) node.out = hout;
+    nodes.push(node);
+  }
+  if (nodes.length < 2) return null;
+  const glow = coerceGlow(v.glow);
+  const closed = bool(v.closed, false);
+  return {
+    id: str(v.id, createId("pth")),
+    kind: "path",
+    name: str(v.name, "Path"),
+    x: num(v.x, 0),
+    y: num(v.y, 0),
+    width: Math.max(1, num(v.width, 1)),
+    height: Math.max(1, num(v.height, 1)),
+    rotation: num(v.rotation, 0),
+    opacity: clamp01(num(v.opacity, 1)),
+    locked: bool(v.locked, false),
+    visible: bool(v.visible, true),
+    nodes,
+    closed,
+    stroke: colour(v.stroke, "#111111"),
+    strokeWidth: clamp(num(v.strokeWidth, 4), 0, MAX_SHAPE_STROKE),
+    ...(closed && typeof v.fill === "string" ? { fill: colour(v.fill, "#111111") } : {}),
+    ...(glow ? { glow } : {}),
+  };
 }
 
 function coerceShapeLayer(v: Partial<ShapeLayer>): Layer | null {
@@ -884,7 +995,9 @@ function coerceLayer(value: unknown): Layer | null {
           ? coerceShapeLayer(v as Partial<ShapeLayer>)
           : v.kind === "draw"
             ? coerceDrawLayer(v as Partial<DrawLayer>)
-            : null;
+            : v.kind === "path"
+              ? coercePathLayer(v as Partial<PathLayer>)
+              : null;
   if (!layer) return null;
   const withRole = { ...layer, ...coerceRole(v.role) } as Layer;
   if (typeof v.groupId === "string" && v.groupId.length > 0) {
@@ -1021,9 +1134,25 @@ export function cloneDocument(doc: StudioDocument): StudioDocument {
   };
 }
 
+export function clonePathNode(n: PathNode): PathNode {
+  return {
+    x: n.x,
+    y: n.y,
+    ...(n.in ? { in: [n.in[0], n.in[1]] as [number, number] } : {}),
+    ...(n.out ? { out: [n.out[0], n.out[1]] as [number, number] } : {}),
+  };
+}
+
 /** Deep enough that editing the copy can never reach the original's nested state. */
 export function cloneLayer(layer: Layer): Layer {
   if (layer.kind === "draw") return { ...layer, points: layer.points.map((p) => [p[0], p[1]]) };
+  if (layer.kind === "path") {
+    return {
+      ...layer,
+      nodes: layer.nodes.map(clonePathNode),
+      ...(layer.glow ? { glow: { ...layer.glow } } : {}),
+    };
+  }
   // Only an image layer owns nested objects; everything else is flat.
   if (layer.kind !== "image") return { ...layer };
   return {

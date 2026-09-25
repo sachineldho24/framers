@@ -52,6 +52,8 @@ export type ToolId =
   | "pen"
   /** Rubs out whole drawn strokes. */
   | "pen-eraser"
+  /** The Pen tool proper: anchors and Bézier curves (`penPath.ts`). */
+  | "path"
   | "select"
   | "draw"
   | "eraser"
@@ -426,7 +428,8 @@ export function StudioProvider({
   const editing =
     editingId !== null &&
     selectedLayer?.id === editingId &&
-    selectedLayer.kind === "text" &&
+    // Text is typed into; a pen path has its points edited.
+    (selectedLayer.kind === "text" || selectedLayer.kind === "path") &&
     !selectedLayer.locked
       ? editingId
       : null;

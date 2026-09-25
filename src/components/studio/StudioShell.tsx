@@ -91,6 +91,7 @@ export interface StudioShellProps {
 
 const SHORTCUTS: { keys: string; what: string }[] = [
   { keys: "T", what: "Add a heading" },
+  { keys: "P", what: "Pen tool: click for corners, drag for curves" },
   { keys: "Double-click", what: "Edit a text layer in place" },
   { keys: "Ctrl+Z / Ctrl+Y", what: "Undo / redo" },
   { keys: "Ctrl+C / Ctrl+V", what: "Copy / paste a layer" },
@@ -385,6 +386,13 @@ function ShellInner({
       if (key === "t" && !mod && !e.altKey) {
         e.preventDefault();
         insertText("heading");
+        return;
+      }
+      // P for the Pen tool, as in Photoshop, Illustrator and Photopea.
+      if (key === "p" && !mod && !e.altKey) {
+        e.preventDefault();
+        select(null);
+        setTool("path");
         return;
       }
 

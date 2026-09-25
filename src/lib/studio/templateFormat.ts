@@ -46,6 +46,7 @@ import {
 } from "./document";
 import { FONT_CATALOGUE, getFont, isCustomFontId } from "./fonts";
 import { SHAPE_CATALOG, getShape, shapePathD } from "./shapes";
+import { commandsToD, mapNode, pathCommands } from "./penPath";
 import { parseSvgPath } from "./svgPath";
 
 export const TEMPLATE_SCHEMA_VERSION = "1.0";
@@ -486,6 +487,22 @@ export function toFramersTemplate(doc: StudioDocument, options: ExportOptions = 
               ? { kind: "path", path, fill: hex6or8(layer.color) }
               : { kind: "path", path, stroke: { color: hex6or8(layer.color), width: round(layer.strokeWidth) } },
         });
+        break;
+      }
+      case "path": {
+        const scaled = layer.nodes.map((n) => mapNode(n, (x, y) => [x * layer.width, y * layer.height]));
+        const d = commandsToD(pathCommands(scaled, layer.closed));
+        layers.push({
+          ...base(layer),
+          type: "shape",
+          shape: {
+            kind: "path",
+            path: { d, viewBox: [0, 0, round(layer.width), round(layer.height)] },
+            ...(layer.closed && layer.fill ? { fill: hex6or8(layer.fill) } : {}),
+            ...(layer.strokeWidth > 0 ? { stroke: { color: hex6or8(layer.stroke), width: round(layer.strokeWidth) } } : {}),
+          },
+        });
+        if (layer.glow) warnings.add("Glow on pen paths is not part of the template format and was left out.");
         break;
       }
       case "draw": {

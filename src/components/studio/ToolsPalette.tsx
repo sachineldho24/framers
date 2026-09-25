@@ -28,11 +28,12 @@ import { STUDIO_SWATCHES } from "./palette";
 import { SignatureDialog } from "./SignatureDialog";
 import { cx } from "./ui";
 
-type ToolKey = "select" | "draw" | "shapes" | "lines" | "sticky" | "text" | "signature" | "table";
+type ToolKey = "select" | "draw" | "pentool" | "shapes" | "lines" | "sticky" | "text" | "signature" | "table";
 
 const TOOLS: { key: ToolKey; icon: string; label: string }[] = [
   { key: "select", icon: "near_me", label: "Select" },
   { key: "draw", icon: "draw", label: "Draw" },
+  { key: "pentool", icon: "conversion_path", label: "Pen tool (P) — click for corners, drag for curves" },
   { key: "shapes", icon: "interests", label: "Shapes" },
   { key: "lines", icon: "pen_size_2", label: "Lines" },
   { key: "sticky", icon: "sticky_note_2", label: "Sticky notes" },
@@ -59,7 +60,7 @@ export function ToolsPalette() {
   const [hover, setHover] = useState<{ r: number; c: number } | null>(null);
 
   const active: ToolKey =
-    tool === "pen" || tool === "pen-eraser" ? "draw" : open ?? "select";
+    tool === "pen" || tool === "pen-eraser" ? "draw" : tool === "path" ? "pentool" : open ?? "select";
 
   /** Add layers, return to Select, and select what was added. */
   const insert = (layers: Layer[]) => {
@@ -88,6 +89,13 @@ export function ToolsPalette() {
     }
     if (key === "signature") {
       setSigning(true);
+      return;
+    }
+    if (key === "pentool") {
+      // Armed until the path is finished; it hands back to Select itself.
+      setTool(tool === "path" ? "select" : "path");
+      select(null);
+      setOpen(null);
       return;
     }
     if (key === "draw") {

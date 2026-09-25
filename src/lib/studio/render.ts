@@ -10,7 +10,8 @@
  *   4. composite the result onto the page at the layer's opacity
  */
 
-import type { DrawLayer, ImageLayer, ShapeLayer, StudioDocument, TextLayer } from "./document";
+import type { DrawLayer, ImageLayer, PathLayer, ShapeLayer, StudioDocument, TextLayer } from "./document";
+import { mapNode, pathCommands } from "./penPath";
 import { HIGHLIGHTER_ALPHA } from "./drawing";
 import { borderInsetPx } from "./document";
 import { buildFilterString } from "./filters";
@@ -691,6 +692,8 @@ export function drawDocument(
       drawShapeLayer(ctx, layer, destW, destH, viewport.scale);
     } else if (layer.kind === "draw") {
       drawDrawLayer(ctx, layer, destW, destH, viewport.scale);
+    } else if (layer.kind === "path") {
+      drawPathLayer(ctx, layer, destW, destH, viewport.scale);
     } else if (image) {
       drawLayerContent(ctx, layer, image, destW, destH, options);
       drawImageOutline(ctx, layer, destW, destH, viewport.scale);
@@ -748,6 +751,71 @@ function drawDrawLayer(
   const last = pts[pts.length - 1];
   ctx.lineTo(last[0], last[1]);
   ctx.stroke();
+  ctx.restore();
+}
+
+/**
+ * A pen path: optional fill, then the glow, then the line on top.
+ *
+ * The glow is the line stroked again in the glow colour with a canvas shadow —
+ * three passes from wide and faint to tight and bright, which is what gives a
+ * neon tube its soft falloff instead of one flat blur. Blur is in doc px scaled
+ * by the viewport, so the halo is the same size on screen and in the print.
+ */
+function drawPathLayer(
+  ctx: AnyCtx,
+  layer: PathLayer,
+  destW: number,
+  destH: number,
+  scale: number
+): void {
+  const nodes = layer.nodes.map((n) => mapNode(n, (x, y) => [x * destW, y * destH]));
+  const commands = pathCommands(nodes, layer.closed);
+  if (commands.length < 2) return;
+  const trace = () => traceShapeCommands(ctx, commands);
+  const width = layer.strokeWidth * scale;
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  if (layer.closed && layer.fill) {
+    ctx.fillStyle = layer.fill;
+    trace();
+    ctx.fill();
+  }
+
+  const glow = layer.glow;
+  if (glow && glow.strength > 0 && glow.size > 0) {
+    const k = glow.strength / 100;
+    const base = ctx.globalAlpha;
+    ctx.strokeStyle = glow.color;
+    ctx.shadowColor = glow.color;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    // A glow needs a body to cast from even on a hairline or a fill-only path.
+    ctx.lineWidth = Math.max(width, 1.5 * scale);
+    for (const [spread, alpha] of [
+      [1, 0.55],
+      [0.5, 0.75],
+      [0.2, 1],
+    ] as const) {
+      ctx.shadowBlur = glow.size * scale * spread;
+      ctx.globalAlpha = base * alpha * (0.25 + 0.75 * k);
+      trace();
+      ctx.stroke();
+    }
+    ctx.globalAlpha = base;
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = "transparent";
+  }
+
+  if (width > 0) {
+    ctx.strokeStyle = layer.stroke;
+    ctx.lineWidth = width;
+    trace();
+    ctx.stroke();
+  }
   ctx.restore();
 }
 
