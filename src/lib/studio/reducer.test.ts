@@ -244,6 +244,42 @@ test("replaceLayerImage swaps the source and covers the existing box, not stretc
   assert.ok(Math.abs(pixelAspect - after.width / after.height) < 1e-9);
 });
 
+test("a processed copy of the same photo keeps the crop and a template's sample flag", () => {
+  const base = seed();
+  const id = base.layers[0].id;
+  const crop = { x: 0.1, y: 0.2, w: 0.5, h: 0.5 };
+  const doc = {
+    ...base,
+    layers: base.layers.map((l) => (l.id === id ? { ...l, crop, sample: true } : l)),
+  };
+
+  // Enlarged ×3: same shape, more pixels.
+  const out = studioReducer(doc, {
+    type: "replaceLayerImage",
+    layerId: id,
+    src: "a-enhanced.png",
+    naturalWidth: 1200,
+    naturalHeight: 600,
+    processed: true,
+  });
+  const after = findLayer(out, id) as ImageLayer;
+  assert.equal(after.src, "a-enhanced.png");
+  assert.equal(after.naturalWidth, 1200);
+  assert.deepEqual(after.crop, crop);
+  assert.equal(after.sample, true);
+
+  // A different shape can't keep the crop without stretching: it re-covers.
+  const reshaped = studioReducer(doc, {
+    type: "replaceLayerImage",
+    layerId: id,
+    src: "other.png",
+    naturalWidth: 100,
+    naturalHeight: 200,
+    processed: true,
+  });
+  assert.notDeepEqual((findLayer(reshaped, id) as ImageLayer).crop, crop);
+});
+
 test("adjustments and opacity clamp to their ranges", () => {
   const doc = seed();
   const id = doc.layers[0].id;

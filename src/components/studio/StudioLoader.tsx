@@ -31,7 +31,7 @@ import { createSessionResolver } from "@/lib/studio/useStudioImages";
 import { Icon } from "@/components/Icon";
 import { StudioShell, type StudioShellUpload } from "./StudioShell";
 import type { FrameSizeOption } from "./StudioTopBar";
-import { pickAndUploadImage } from "./uploadImage";
+import { pickAndUploadImage, saveGeneratedImage } from "./uploadImage";
 import { listLibrary, removeFromLibrary } from "@/lib/uploadLibrary";
 
 /** Don't hold the editor closed on a slow library: open, list what came. */
@@ -311,6 +311,7 @@ export function StudioLoader({
       uploads={uploads}
       resolveSrc={resolveSrc}
       onPickImage={onPickImage}
+      onSaveImage={saveGeneratedImage}
       onRemoveUpload={removeFromLibrary}
       persist={persist}
       onDone={onDone}

@@ -52,6 +52,39 @@ function measure(url: string): Promise<{ width: number; height: number }> {
 
 export class UploadError extends Error {}
 
+const EXTENSIONS: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+
+/**
+ * Store a picture the studio made itself — a cutout, an enhanced photo — the
+ * same way as an upload: into the library, content-addressed, so it is listed
+ * in Uploads and the design that uses it survives a reload.
+ */
+export async function saveGeneratedImage(
+  image: Blob,
+  name: string,
+  size: { width: number; height: number }
+): Promise<StudioShellUpload> {
+  const file = new File([image], `${name}.${EXTENSIONS[image.type] ?? "png"}`, { type: image.type });
+  const url = URL.createObjectURL(file);
+  try {
+    const saved = await saveToLibrary(file, size);
+    return {
+      src: saved.path,
+      name: saved.name,
+      url,
+      naturalWidth: saved.width,
+      naturalHeight: saved.height,
+    };
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error instanceof LibraryError ? new UploadError(error.message) : error;
+  }
+}
+
 /**
  * Pick, validate, upload. Returns null when the user cancels; throws
  * `UploadError` with a message worth showing when something actually fails.

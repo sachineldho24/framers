@@ -2,7 +2,7 @@
 
 /**
  * The full-screen studio: provider, layout, and the chrome that doesn't belong
- * to any single region — context menu, shortcuts sheet, the BG-remover notice,
+ * to any single region — context menu, shortcuts sheet, the image-AI card,
  * the clipboard, autosave, and the keyboard map.
  *
  * Everything below the top bar is one flex row: rail, the rail's flyout, the
@@ -29,7 +29,13 @@ import {
   type ExportType,
 } from "@/lib/studio/export";
 import { keepsObjectToolbars, StudioProvider, useStudio } from "@/lib/studio/StudioContext";
-import { layersOutsideSafeArea } from "@/lib/studio/print";
+import { documentDpi, layersOutsideSafeArea } from "@/lib/studio/print";
+import {
+  cancelImageAi,
+  ImageAiCancelled,
+  runImageAi,
+} from "@/lib/studio/imageAi/client";
+import { planEnhance } from "@/lib/studio/imageAi/plan";
 import { pasteStyleActions } from "@/lib/studio/copyStyle";
 import { textLayerHeight } from "@/lib/studio/textMeasure";
 import {
@@ -39,7 +45,7 @@ import {
 
 import { Icon } from "@/components/Icon";
 import { ContextMenu, type ContextMenuState } from "./ContextMenu";
-import { ContextualToolbar, MultiToolbar, PageToolbar } from "./ContextualToolbar";
+import { ContextualToolbar, MultiToolbar, PageToolbar, type ImageAiControls } from "./ContextualToolbar";
 import { CustomSizeDialog } from "./CustomSizeDialog";
 import { LayerInfoSheet } from "./LayerInfoSheet";
 import { MobileTextEditor } from "./MobileTextEditor";
@@ -76,6 +82,12 @@ export interface StudioShellProps {
   resolveSrc: SrcResolver;
   /** Open the file picker and resolve with the stored upload, or null. */
   onPickImage: () => Promise<StudioShellUpload | null>;
+  /** Store a picture the studio made (a cutout, an enhanced photo). */
+  onSaveImage: (
+    image: Blob,
+    name: string,
+    size: { width: number; height: number }
+  ) => Promise<StudioShellUpload>;
   /** Take a photo out of the user's library. Absent = no remove control. */
   onRemoveUpload?: (src: string) => Promise<void>;
   /** Persist a snapshot. `false` means it only reached this browser. */
@@ -134,6 +146,7 @@ function ShellInner({
   uploads: initialUploads,
   resolveSrc,
   onPickImage,
+  onSaveImage,
   onRemoveUpload,
   persist,
   onDone,
@@ -154,7 +167,6 @@ function ShellInner({
     redo,
     select,
     setTool,
-    setRail,
     setSaveStatus,
     printSize,
     guides,
@@ -239,7 +251,8 @@ function ShellInner({
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [sizeDialogOpen, setSizeDialogOpen] = useState(false);
   const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
-  const [bgNoteOpen, setBgNoteOpen] = useState(false);
+  const [aiMenuOpen, setAiMenuOpen] = useState(false);
+  const [aiJob, setAiJob] = useState<AiJob | null>(null);
   const [busy, setBusy] = useState(false);
   /** Surfaced to the user. Export and Done must never fail silently. */
   const [error, setError] = useState<string | null>(null);
@@ -373,7 +386,7 @@ function ShellInner({
         setStyleSource(null);
         setCtxMenu(null);
         setShortcutsOpen(false);
-        setBgNoteOpen(false);
+        setAiMenuOpen(false);
         setInfoLayer(null);
         setError(null);
         if (tool !== "select") setTool("select");
@@ -630,6 +643,72 @@ function ShellInner({
   }
 
   /**
+   * BG Remover and Enhance. The model runs on this device (see `imageAi/`), the
+   * result is stored like an upload, and it replaces the picture as one undo
+   * step — same box, crop, frame shape and effects, just new pixels. If the
+   * photo was swapped or deleted while the model ran, the result is kept in
+   * Uploads and the design is left alone.
+   */
+  async function handleImageAi(kind: AiJob["kind"], layer: ImageLayer) {
+    if (aiJob && !aiJob.error) return;
+    setAiMenuOpen(false);
+
+    let scale = 1;
+    if (kind === "enhance") {
+      const plan = planEnhance(layer, documentDpi(docRef.current, printSize));
+      if (!plan.ok) return;
+      scale = plan.scale;
+    }
+
+    const decoded = images.get(layer.src);
+    const url = decoded && "src" in decoded ? decoded.src : null;
+    if (!url) {
+      setAiJob({ kind, stage: "process", gpu: true, error: "This photo hasn’t finished loading yet. Try again in a moment." });
+      return;
+    }
+
+    setAiJob({ kind, stage: "process", gpu: true });
+    try {
+      const source = await fetch(url).then((res) => {
+        if (!res.ok) throw new Error("Couldn’t read this photo. Please try again.");
+        return res.blob();
+      });
+      const result = await runImageAi(
+        kind === "enhance" ? { kind, image: source, scale } : { kind, image: source },
+        (progress) => setAiJob((job) => job && { ...job, ...progress })
+      );
+
+      setAiJob((job) => job && { ...job, stage: "save", fraction: undefined });
+      const saved = await onSaveImage(
+        result.image,
+        `${layer.name} (${kind === "enhance" ? "enhanced" : "cutout"})`,
+        { width: result.width, height: result.height }
+      );
+      registerLocal(saved.src, saved.url);
+      addPicked(saved);
+
+      const now = docRef.current.layers.find((l) => l.id === layer.id);
+      if (now?.kind === "image" && now.src === layer.src) {
+        apply({
+          type: "replaceLayerImage",
+          layerId: layer.id,
+          src: saved.src,
+          naturalWidth: result.width,
+          naturalHeight: result.height,
+          processed: true,
+        });
+      }
+      setAiJob(null);
+    } catch (error) {
+      if (error instanceof ImageAiCancelled) {
+        setAiJob(null);
+        return;
+      }
+      setAiJob((job) => job && { ...job, error: friendlyAiError(error) });
+    }
+  }
+
+  /**
    * An upload dropped on the canvas. Onto a photo it swaps the picture in place
    * (Canva's drop-into-frame: same box, mask and filters); onto bare page it
    * lands as a new layer centred on the drop.
@@ -806,6 +885,20 @@ function ShellInner({
   // lands on top of a turned corner.
   const selectionBounds = selectedLayer ? boundingRect(selectedLayer) : null;
   const multi = selectedLayers.length > 1;
+  const imageAi: ImageAiControls | undefined =
+    selectedLayer?.kind === "image"
+      ? {
+          onRemoveBackground: () => void handleImageAi("removeBackground", selectedLayer),
+          onEnhance: () => void handleImageAi("enhance", selectedLayer),
+          enhance: planEnhance(selectedLayer, documentDpi(doc, printSize)),
+          blocked:
+            aiJob && !aiJob.error
+              ? "Another photo is being processed"
+              : selectedLayer.locked && selectedLayer.role !== "placeholder"
+                ? "Unlock this photo to change it"
+                : undefined,
+        }
+      : undefined;
   // Nothing selected: the page's own toolbar (background colour, border).
   const showPageToolbar = selectedLayers.length === 0 && keepsObjectToolbars(tool) && !editingId;
   const multiBounds = multi ? selectionBoundsOf(selectedLayers) : null;
@@ -892,7 +985,7 @@ function ShellInner({
               <div className="pointer-events-none absolute left-1/2 top-2.5 z-20 flex max-w-[calc(100%-16px)] -translate-x-1/2 justify-center">
                 <ContextualToolbar
                   layer={selectedLayer}
-                  onBgRemover={() => setBgNoteOpen(true)}
+                  imageAi={imageAi}
                   onReplace={
                     selectedLayer.kind === "image"
                       ? () => void handleReplaceImage(selectedLayer)
@@ -956,12 +1049,14 @@ function ShellInner({
               </div>
             )}
 
-            {/* The mockup's AI circle. It opens the same honest notice. */}
+            {/* The mockup's AI circle: the photo tools, for whoever looks here
+                before they look at the toolbar. */}
             <button
               type="button"
-              onClick={() => setBgNoteOpen(true)}
+              onClick={() => setAiMenuOpen((open) => !open)}
               data-r="full"
-              aria-label="AI tools — not available yet"
+              aria-label="AI tools"
+              aria-expanded={aiMenuOpen}
               title="AI tools"
               className="studio-canvas-extra studio-shadow absolute bottom-4 left-4 z-20 flex h-11 w-11 items-center justify-center bg-[var(--studio-elevated)] text-white transition-transform hover:scale-105 motion-reduce:transition-none motion-reduce:hover:scale-100"
             >
@@ -1051,7 +1146,7 @@ function ShellInner({
               {showContextual && (
                 <ContextualToolbar
                   layer={selectedLayer}
-                  onBgRemover={() => setBgNoteOpen(true)}
+                  imageAi={imageAi}
                   onReplace={
                     selectedLayer.kind === "image"
                       ? () => void handleReplaceImage(selectedLayer)
@@ -1087,15 +1182,19 @@ function ShellInner({
         />
       )}
 
-      {bgNoteOpen && (
-        <BgRemoverNotice
-          onClose={() => setBgNoteOpen(false)}
-          onUseEraser={() => {
-            setRail("tools");
-            setTool("eraser");
-            setBgNoteOpen(false);
-          }}
+      {aiJob ? (
+        <ImageAiCard
+          job={aiJob}
+          onCancel={cancelImageAi}
+          onClose={() => setAiJob(null)}
         />
+      ) : (
+        aiMenuOpen && (
+          <ImageAiMenu
+            controls={imageAi}
+            onClose={() => setAiMenuOpen(false)}
+          />
+        )
       )}
 
       {shortcutsOpen && (
@@ -1116,46 +1215,161 @@ function ShellInner({
   );
 }
 
+interface AiJob {
+  kind: "removeBackground" | "enhance";
+  /** `save` is ours: the result being stored, after the model has finished. */
+  stage: "download" | "process" | "save";
+  fraction?: number;
+  /** False when the device has no WebGPU, so the wait deserves a warning. */
+  gpu: boolean;
+  error?: string;
+}
+
+const AI_TITLES: Record<AiJob["kind"], string> = {
+  removeBackground: "Removing background",
+  enhance: "Enhancing for print",
+};
+
+/** The model's own errors are for developers; this is for the customer. */
+function friendlyAiError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  if (/sign in/i.test(message)) return message;
+  if (/fetch|network|download|load/i.test(message)) {
+    return "Couldn’t download the AI model. Check your connection and try again.";
+  }
+  if (/memory|allocat|OOM|abort/i.test(message)) {
+    return "This device ran out of memory. Try a smaller photo, or a computer.";
+  }
+  return "Something went wrong while processing this photo. Please try again.";
+}
+
 /**
- * Shared by BG Remover and the AI circle. Says plainly that automatic removal
- * isn't built, then routes to the tool that does the job — a dead end becomes a
- * signpost.
+ * The running job: what it's doing, how far along, and a way out. Models run
+ * on the customer's device, so the first use includes a download and a phone
+ * without WebGPU can take minutes — both are said plainly rather than left to
+ * look like a hang.
  */
-function BgRemoverNotice({
+function ImageAiCard({
+  job,
+  onCancel,
   onClose,
-  onUseEraser,
 }: {
+  job: AiJob;
+  onCancel: () => void;
   onClose: () => void;
-  onUseEraser: () => void;
 }) {
+  const percent = job.fraction === undefined ? null : Math.round(job.fraction * 100);
+  const status = job.error
+    ? job.error
+    : job.stage === "download"
+      ? `Downloading the AI model — first time only${percent === null ? "…" : ` (${percent}%)`}`
+      : job.stage === "save"
+        ? "Saving…"
+        : job.gpu
+          ? `Working on it${percent === null ? "…" : ` (${percent}%)`}`
+          : `Working on it${percent === null ? "" : ` (${percent}%)`}. This device has no graphics acceleration, so it can take a few minutes.`;
+
   return (
     <div
-      role="dialog"
-      aria-label="Background remover"
+      role={job.error ? "alert" : "status"}
+      aria-label={AI_TITLES[job.kind]}
       data-r="lg"
-      className="studio-shadow fixed bottom-20 left-4 z-[65] w-[304px] border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] p-4"
+      className="studio-shadow fixed bottom-20 left-4 z-[65] w-[304px] max-w-[calc(100vw-32px)] border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] p-4"
     >
       <div className="mb-1 flex items-start justify-between gap-2">
         <h2 className="text-[14px] font-semibold text-[var(--studio-ink)]">
-          Automatic removal isn&apos;t ready
+          {job.error ? "Couldn’t finish" : AI_TITLES[job.kind]}
         </h2>
+        {job.error && <IconButton icon="close" label="Close" size="sm" onClick={onClose} />}
+      </div>
+      <p className="text-[12.5px] leading-relaxed text-[var(--studio-ink-muted)]">{status}</p>
+      {!job.error && (
+        <>
+          <div
+            data-r="full"
+            className="mt-3 h-1.5 overflow-hidden bg-[var(--studio-border)]"
+            aria-hidden
+          >
+            <div
+              data-r="full"
+              className={cx(
+                "h-full bg-[var(--studio-accent)] transition-[width] duration-200",
+                percent === null && "w-full animate-pulse"
+              )}
+              style={percent === null ? undefined : { width: `${Math.max(3, percent)}%` }}
+            />
+          </div>
+          {job.stage !== "save" && (
+            <div className="mt-3 flex justify-end">
+              <StudioButton variant="outline" size="sm" onClick={onCancel}>
+                Cancel
+              </StudioButton>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** The AI circle's menu: the same two tools, for the selected photo. */
+function ImageAiMenu({
+  controls,
+  onClose,
+}: {
+  controls: ImageAiControls | undefined;
+  onClose: () => void;
+}) {
+  const enhanceHint = !controls
+    ? ""
+    : controls.enhance.ok
+      ? `Prints at ${Math.round(controls.enhance.dpiAfter)} DPI instead of ${Math.round(controls.enhance.dpiNow)}`
+      : controls.enhance.reason === "sharp"
+        ? "Already sharp at this size"
+        : "Already as large as the studio can handle";
+
+  return (
+    <div
+      role="dialog"
+      aria-label="AI tools"
+      data-r="lg"
+      className="studio-shadow fixed bottom-20 left-4 z-[65] w-[304px] max-w-[calc(100vw-32px)] border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] p-4"
+    >
+      <div className="mb-1 flex items-start justify-between gap-2">
+        <h2 className="text-[14px] font-semibold text-[var(--studio-ink)]">AI tools</h2>
         <IconButton icon="close" label="Close" size="sm" onClick={onClose} />
       </div>
-      <p className="text-[12.5px] leading-relaxed text-[var(--studio-ink-muted)]">
-        One-click background removal isn&apos;t available yet. The Eraser does the
-        same job by hand: pick a brush size, rub the background out, and use
-        Restore to paint anything back.
-      </p>
-      <div className="mt-3 flex justify-end">
-        <StudioButton
-          variant="solid"
-          size="sm"
-          icon="ink_eraser"
-          onClick={onUseEraser}
-        >
-          Open the Eraser
-        </StudioButton>
-      </div>
+      {!controls ? (
+        <p className="text-[12.5px] leading-relaxed text-[var(--studio-ink-muted)]">
+          Select a photo to remove its background or enhance it for print. Both run on
+          this device — your photo isn&apos;t sent anywhere to be processed.
+        </p>
+      ) : (
+        <div className="mt-2 flex flex-col gap-2">
+          {controls.blocked && (
+            <p className="text-[12px] text-[var(--studio-ink-muted)]">{controls.blocked}</p>
+          )}
+          <StudioButton
+            variant="solid"
+            size="sm"
+            icon="background_replace"
+            disabled={!!controls.blocked}
+            onClick={controls.onRemoveBackground}
+          >
+            Remove background
+          </StudioButton>
+          <StudioButton
+            variant="outline"
+            size="sm"
+            icon="auto_awesome"
+            disabled={!!controls.blocked || !controls.enhance.ok}
+            onClick={controls.onEnhance}
+          >
+            Enhance for print
+          </StudioButton>
+          <p className="text-[11.5px] text-[var(--studio-ink-muted)]">{enhanceHint}</p>
+        </div>
+      )}
     </div>
   );
 }

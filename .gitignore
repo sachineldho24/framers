@@ -79,3 +79,7 @@ rzp-key.csv
 /.codex/
 __pycache__/
 *.py[cod]
+
+# The background-removal model is hosted on Hugging Face in production
+# (NEXT_PUBLIC_BG_MODEL_URL). A local copy here serves development only.
+/public/models/background/

@@ -155,6 +155,13 @@ export type StudioAction =
       src: string;
       naturalWidth: number;
       naturalHeight: number;
+      /**
+       * The new source is the same picture, processed (background removed,
+       * enlarged). The user's crop is kept rather than the box re-covered — when
+       * the shape matches, since otherwise the crop would stretch — and a
+       * template's sample stays a sample: it is still not the customer's photo.
+       */
+      processed?: boolean;
     }
   /**
    * Reshape an image to a ratio. Box *and* crop, in one action: they have to
@@ -547,6 +554,20 @@ export function studioReducer(
           // one edit a template locks everything *around*. Any other locked
           // picture refuses, as before.
           if (l.locked && l.role !== "placeholder") return null;
+          if (action.processed) {
+            const sameShape =
+              Math.abs(
+                (action.naturalWidth / action.naturalHeight) * (l.naturalHeight / l.naturalWidth) - 1
+              ) < 0.01;
+            if (sameShape) {
+              return {
+                ...l,
+                src: action.src,
+                naturalWidth: action.naturalWidth,
+                naturalHeight: action.naturalHeight,
+              };
+            }
+          }
           const { sample: _sample, ...rest } = l;
           void _sample;
           return {

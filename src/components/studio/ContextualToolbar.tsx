@@ -37,7 +37,8 @@ import { createId, MAX_OUTLINE, MAX_SHAPE_STROKE, NO_OUTLINE } from "@/lib/studi
 import type { AlignMode } from "@/lib/studio/geometry";
 import { alignLayersTo, isWholeGroup } from "@/lib/studio/multiSelect";
 import { fontDisplayName, fontStack, getFont, nearestWeight } from "@/lib/studio/fonts";
-import { documentDpi, printedInches } from "@/lib/studio/print";
+import type { EnhancePlan } from "@/lib/studio/imageAi/plan";
+import { documentDpi, printedInches, SOFT_DPI } from "@/lib/studio/print";
 import type { StudioAction, TextStylePatch } from "@/lib/studio/reducer";
 import { boxOf, boxesOverlap, defaultGlow, isRoundable, localNodes, setCornerRadius } from "@/lib/studio/penPath";
 import { getShape } from "@/lib/studio/shapes";
@@ -238,7 +239,7 @@ function LabelButton({
   onClick,
   title,
   ariaLabel,
-  muted,
+  disabled,
   trailingIcon,
   trailingClassName,
   active,
@@ -248,8 +249,11 @@ function LabelButton({
   onClick: () => void;
   title?: string;
   ariaLabel?: string;
-  /** BG Remover's not-quite-a-button-yet treatment. */
-  muted?: boolean;
+  /**
+   * Shown but inert. `aria-disabled` rather than `disabled` on purpose: a
+   * disabled button swallows the hover, and its title is what says *why*.
+   */
+  disabled?: boolean;
   trailingIcon?: string;
   trailingClassName?: string;
   /** Pass a boolean for a toggle. */
@@ -258,16 +262,17 @@ function LabelButton({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       data-r="sm"
       title={title}
       aria-label={ariaLabel}
       aria-pressed={active}
+      aria-disabled={disabled || undefined}
       className={cx(
         active && "!bg-[var(--studio-accent-soft)] !text-[var(--studio-accent)]",
         "relative flex h-8 shrink-0 items-center gap-1 px-2.5 text-[13px] font-medium transition-colors hover:bg-[#282828]",
-        muted
-          ? "text-[var(--studio-ink-muted)] hover:text-[var(--studio-ink)]"
+        disabled
+          ? "cursor-default text-[var(--studio-ink-muted)] opacity-60 hover:bg-transparent"
           : "text-[var(--studio-ink)]"
       )}
     >
@@ -284,13 +289,23 @@ function LabelButton({
   );
 }
 
+/** Remove background and Enhance, for the selected photo. */
+export interface ImageAiControls {
+  onRemoveBackground: () => void;
+  onEnhance: () => void;
+  enhance: EnhancePlan;
+  /** Why neither can run right now (a job already running, a locked photo). */
+  blocked?: string;
+}
+
 export function ContextualToolbar({
   layer,
-  onBgRemover,
+  imageAi,
   onReplace,
 }: {
   layer: Layer;
-  onBgRemover: () => void;
+  /** Image layers only. */
+  imageAi?: ImageAiControls;
   /** Swap the picture in place, keeping the box, mask and filters. Image layers only. */
   onReplace?: () => void;
 }) {
@@ -298,7 +313,7 @@ export function ContextualToolbar({
   if (layer.kind === "shape") return <ShapeToolbar layer={layer} />;
   if (layer.kind === "draw") return <DrawToolbar layer={layer} />;
   if (layer.kind === "path") return <PathToolbar layer={layer} />;
-  return <ImageToolbar layer={layer} onBgRemover={onBgRemover} onReplace={onReplace} />;
+  return <ImageToolbar layer={layer} imageAi={imageAi} onReplace={onReplace} />;
 }
 
 /**
@@ -1182,13 +1197,52 @@ function ColourButton({ color }: { color: string }) {
   );
 }
 
+/**
+ * BG Remover and Enhance. Enhance only offers itself when it would help the
+ * print, and lights up when the photo is soft enough that it really should.
+ */
+function ImageAiButtons({ controls }: { controls: ImageAiControls }) {
+  const { enhance, blocked } = controls;
+  const soft = enhance.dpiNow > 0 && enhance.dpiNow < SOFT_DPI;
+  const enhanceTitle = blocked
+    ? blocked
+    : enhance.ok
+      ? `Sharpen and enlarge ×${enhance.scale.toFixed(1)} with AI — prints at ${Math.round(enhance.dpiAfter)} DPI instead of ${Math.round(enhance.dpiNow)}`
+      : enhance.reason === "sharp"
+        ? "Already sharp at this size — nothing to enhance"
+        : "This photo already has as many pixels as the studio can handle";
+
+  return (
+    <>
+      <LabelButton
+        onClick={controls.onRemoveBackground}
+        disabled={!!blocked}
+        title={blocked ?? "Remove the background with AI — runs on this device"}
+        trailingIcon="bolt"
+        trailingClassName="text-[var(--studio-accent)]"
+      >
+        BG Remover
+      </LabelButton>
+      <LabelButton
+        onClick={controls.onEnhance}
+        disabled={!!blocked || !enhance.ok}
+        title={enhanceTitle}
+        trailingIcon={enhance.ok && soft ? "auto_awesome" : undefined}
+        trailingClassName="text-[var(--studio-accent)]"
+      >
+        Enhance
+      </LabelButton>
+    </>
+  );
+}
+
 function ImageToolbar({
   layer,
-  onBgRemover,
+  imageAi,
   onReplace,
 }: {
   layer: ImageLayer;
-  onBgRemover: () => void;
+  imageAi?: ImageAiControls;
   onReplace?: () => void;
 }) {
   const { tool, setTool } = useStudio();
@@ -1222,15 +1276,7 @@ function ImageToolbar({
         </LabelButton>
       )}
 
-      <LabelButton
-        onClick={onBgRemover}
-        title="BG Remover"
-        ariaLabel="BG Remover — not available yet"
-        trailingIcon="bolt"
-        trailingClassName="text-[var(--studio-accent)]"
-      >
-        BG Remover
-      </LabelButton>
+      {imageAi && <ImageAiButtons controls={imageAi} />}
 
       <LabelButton active={tool === "eraser"} onClick={() => toggle("eraser")} title="Rub out part of the image">
         Eraser
