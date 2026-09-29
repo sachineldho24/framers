@@ -27,7 +27,7 @@ import {
   type ReactNode,
 } from "react";
 
-import type { Layer, StudioDocument } from "./document";
+import type { Layer, Stroke, StudioDocument } from "./document";
 import { createId, findLayer, idPrefixFor } from "./document";
 import {
   canRedo as canRedoOf,
@@ -57,6 +57,8 @@ export type ToolId =
   | "select"
   | "draw"
   | "eraser"
+  /** Paint over an object, then fill it from its surroundings (`inpaint.ts`). */
+  | "objectEraser"
   | "crop"
   | "frames"
   | "adjust"
@@ -159,6 +161,12 @@ export interface StudioContextValue {
   rail: RailId | null;
   viewport: Viewport;
   brush: BrushSettings;
+  /**
+   * What Erase object will remove: strokes over the selected photo, in its box
+   * (0–1). Tool state, not document state — painting isn't an edit, only the
+   * erase is — so it clears when the tool or the selection changes.
+   */
+  objectStrokes: Stroke[];
   saveStatus: SaveStatus;
   canUndo: boolean;
   canRedo: boolean;
@@ -211,6 +219,7 @@ export interface StudioContextValue {
   setRail: (rail: RailId | null) => void;
   setViewport: Dispatch<React.SetStateAction<Viewport>>;
   setBrush: (patch: Partial<BrushSettings>) => void;
+  setObjectStrokes: Dispatch<React.SetStateAction<Stroke[]>>;
   setSaveStatus: (status: SaveStatus) => void;
 
   /**
@@ -272,6 +281,7 @@ export function StudioProvider({
     feather: 0.5,
     mode: "erase",
   });
+  const [objectStrokes, setObjectStrokes] = useState<Stroke[]>([]);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   // Off by default: the workspace should show the artwork and nothing else. The
   // lip is still a fact about the print, so the bottom bar's toggle and the
@@ -328,7 +338,11 @@ export function StudioProvider({
   }, []);
 
   const select = useCallback((layerId: string | null) => {
-    setSelectedId(layerId);
+    setSelectedId((current) => {
+      // Strokes belong to the photo they were painted on.
+      if (current !== layerId) setObjectStrokes([]);
+      return layerId;
+    });
     setMultiIds([]);
     // Selecting anything else ends the text edit — otherwise the textarea would
     // hang over the canvas belonging to a layer that is no longer selected.
@@ -339,7 +353,7 @@ export function StudioProvider({
     // put — their flyout simply shows its empty state.
     if (!layerId) {
       setToolState((t) =>
-        t === "crop" || t === "eraser" || t === "draw" ? "select" : t
+        t === "crop" || t === "eraser" || t === "objectEraser" || t === "draw" ? "select" : t
       );
     }
   }, []);
@@ -364,15 +378,17 @@ export function StudioProvider({
       }
       setSelectedId(null);
       setMultiIds(ids);
+      setObjectStrokes([]);
       setEditingId(null);
       // Crop and the brushes act on one layer; they have nothing to do here.
-      setToolState((t) => (t === "crop" || t === "eraser" || t === "draw" ? "select" : t));
+      setToolState((t) => (t === "crop" || t === "eraser" || t === "objectEraser" || t === "draw" ? "select" : t));
     },
     [select]
   );
 
   const setTool = useCallback((next: ToolId) => {
     setToolState(next);
+    if (next !== "objectEraser") setObjectStrokes([]);
   }, []);
 
   const setBrush = useCallback((patch: Partial<BrushSettings>) => {
@@ -445,6 +461,7 @@ export function StudioProvider({
       rail,
       viewport,
       brush,
+      objectStrokes,
       saveStatus,
       canUndo: canUndoOf(history),
       canRedo: canRedoOf(history),
@@ -469,6 +486,7 @@ export function StudioProvider({
       setRail,
       setViewport,
       setBrush,
+      setObjectStrokes,
       setSaveStatus,
       fitTo,
       viewportPristineRef,
@@ -484,6 +502,7 @@ export function StudioProvider({
       rail,
       viewport,
       brush,
+      objectStrokes,
       saveStatus,
       size,
       guides,

@@ -64,6 +64,7 @@ import { CropOverlay } from "./CropOverlay";
 import { UPLOAD_DRAG_MIME } from "./panels/UploadsPanel";
 import { PrintGuides } from "./PrintGuides";
 import { GroupSelectionOverlay, MarqueeOverlay } from "./GroupSelectionOverlay";
+import { ObjectMaskOverlay } from "./ObjectMaskOverlay";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { appendPoint, drawLayerFromPoints, penWidth, strokeHit, type PenKind } from "@/lib/studio/drawing";
 import { createId } from "@/lib/studio/document";
@@ -150,6 +151,12 @@ type Gesture =
       stroke: Stroke;
       box: Box;
     }
+  /** Painting what Erase object will remove: tool state, not an edit. */
+  | {
+      kind: "object-paint";
+      stroke: Stroke;
+      box: Box;
+    }
   // Crop drags carry the layer box (to convert doc → local) and the crop rect
   // as it was when the drag opened, so every move is computed from the start
   // rather than accumulated — no drift over a long drag.
@@ -203,6 +210,8 @@ export function StudioCanvas({
     tool,
     viewport,
     brush,
+    objectStrokes,
+    setObjectStrokes,
     apply,
     endGesture,
     select,
@@ -576,6 +585,20 @@ export function StudioCanvas({
         return;
       }
 
+      if (activeTool === "objectEraser" && isImageLayer(current) && !current.locked) {
+        const box = layerBox(current);
+        const local = docToLocal(box, point);
+        // Hard-edged: the mask says which pixels to replace, and a soft edge
+        // would only leave a faint outline of the object behind.
+        const stroke = createStroke("erase", brushRef.current.size, 0, {
+          x: local.x / current.width,
+          y: local.y / current.height,
+        });
+        gestureRef.current = { kind: "object-paint", stroke, box };
+        setObjectStrokes((strokes) => [...strokes, stroke]);
+        return;
+      }
+
       // Crop works on the selected layer only, and takes over the whole
       // surface: dragging inside the window pans the visible region, dragging a
       // handle resizes it. Neither touches the layer's footprint on the page.
@@ -719,6 +742,7 @@ export function StudioCanvas({
       pickLayer,
       select,
       selectMany,
+      setObjectStrokes,
       showSnapLines,
       toDoc,
       eraseStrokesAt,
@@ -1029,6 +1053,18 @@ export function StudioCanvas({
         return;
       }
 
+      if (gesture.kind === "object-paint") {
+        const local = docToLocal(gesture.box, point);
+        const next = extendStroke(gesture.stroke, {
+          x: local.x / gesture.box.width,
+          y: local.y / gesture.box.height,
+        });
+        if (next === gesture.stroke) return;
+        gestureRef.current = { ...gesture, stroke: next };
+        setObjectStrokes((strokes) => strokes.map((s) => (s.id === next.id ? next : s)));
+        return;
+      }
+
       if (gesture.kind === "paint") {
         const local = docToLocal(gesture.box, point);
         const next = extendStroke(gesture.stroke, {
@@ -1043,7 +1079,7 @@ export function StudioCanvas({
         );
       }
     },
-    [apply, docRef, eraseStrokesAt, setViewport, showSnapLines, toDoc]
+    [apply, docRef, eraseStrokesAt, setObjectStrokes, setViewport, showSnapLines, toDoc]
   );
 
   const finishGesture = useCallback(
@@ -1138,7 +1174,7 @@ export function StudioCanvas({
   }, []);
 
   const cursor =
-    tool === "eraser" || tool === "draw" || tool === "pen" || tool === "pen-eraser"
+    tool === "eraser" || tool === "objectEraser" || tool === "draw" || tool === "pen" || tool === "pen-eraser"
       ? "crosshair"
       : // Crop's own handles carry resize cursors; the window itself is dragged,
         // so "move" is the honest default for the rest of the surface.
@@ -1224,6 +1260,10 @@ export function StudioCanvas({
 
       {onFillSlot && tool === "select" && (
         <SlotPrompts layers={unfilledSlots(doc)} viewport={viewport} onFill={onFillSlot} />
+      )}
+
+      {tool === "objectEraser" && selectedLayer && isImageLayer(selectedLayer) && objectStrokes.length > 0 && (
+        <ObjectMaskOverlay layer={selectedLayer} viewport={viewport} strokes={objectStrokes} />
       )}
 
       {selectedLayers.length > 1 && (

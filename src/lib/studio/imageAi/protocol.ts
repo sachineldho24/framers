@@ -1,3 +1,5 @@
+import type { CropRect, Stroke } from "../document";
+
 /**
  * Messages between the studio and the image-AI worker (`worker.ts`).
  *
@@ -10,7 +12,20 @@ export type ImageAiTask =
   /** `modelUrl`: where the ISNet model is hosted (NEXT_PUBLIC_BG_MODEL_URL). */
   | { kind: "removeBackground"; image: Blob; modelUrl: string }
   /** `scale` is the final factor, 1–4; the model runs at ×4 and is drawn down. */
-  | { kind: "enhance"; image: Blob; scale: number };
+  | { kind: "enhance"; image: Blob; scale: number }
+  /**
+   * Content-aware fill under the painted strokes. The strokes are in the
+   * layer's box (0–1), so the crop and mirror come along to place them on the
+   * source pixels. No model: see `inpaint.ts`.
+   */
+  | {
+      kind: "eraseObject";
+      image: Blob;
+      strokes: Stroke[];
+      crop: CropRect;
+      flipX: boolean;
+      flipY: boolean;
+    };
 
 /** `cpuOnly`: the GPU already failed once this session; don't try it again. */
 export type ImageAiRequest = { id: number; cpuOnly?: boolean } & ImageAiTask;

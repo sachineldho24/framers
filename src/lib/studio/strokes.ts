@@ -129,6 +129,15 @@ function replayStroke(
   }
 }
 
+/**
+ * Paint strokes, opaque, into a `width` × `height` box — the same brush the
+ * eraser uses. For masks built from strokes rather than punched out by them.
+ */
+export function paintStrokes(ctx: AnyCtx, strokes: Stroke[], width: number, height: number): void {
+  ctx.fillStyle = "#000000";
+  for (const stroke of strokes) replayStroke(ctx, stroke, width, height);
+}
+
 export interface MaskShape {
   kind: "none" | "circle" | "rounded" | "shape" | "path";
   /** Fraction (0–0.5) of the shorter edge. */

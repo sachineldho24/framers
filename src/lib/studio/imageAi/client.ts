@@ -17,7 +17,7 @@
  * photos and not worth keeping for the rest of the session.
  */
 
-import type { ImageAiRequest, ImageAiResponse, ImageAiStage } from "./protocol";
+import type { ImageAiRequest, ImageAiResponse, ImageAiStage, ImageAiTask } from "./protocol";
 
 /**
  * Where the background-removal model is downloaded from. Production points at
@@ -29,7 +29,8 @@ const BG_MODEL_URL =
 export type ImageAiJob =
   | { kind: "removeBackground"; image: Blob }
   /** `scale`: the final enlargement, from `planEnhance`. */
-  | { kind: "enhance"; image: Blob; scale: number };
+  | { kind: "enhance"; image: Blob; scale: number }
+  | Extract<ImageAiTask, { kind: "eraseObject" }>;
 
 export interface ImageAiProgress {
   stage: ImageAiStage;

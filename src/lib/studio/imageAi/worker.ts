@@ -18,6 +18,9 @@
  * a worker, so a slow device shows a progress bar rather than a frozen page.
  */
 
+import type { CropRect, Stroke } from "../document";
+import { inpaint } from "../inpaint";
+import { paintStrokes } from "../strokes";
 import type { ImageAiRequest, ImageAiResponse, ImageAiStage } from "./protocol";
 
 type Ort = typeof import("onnxruntime-web/webgpu");
@@ -364,6 +367,63 @@ async function enhance(id: number, blob: Blob, scale: number) {
   post({ id, type: "done", image, width: W, height: H });
 }
 
+/* ------------------------------------------------------------ erase object */
+
+/**
+ * Content-aware fill under the customer's brush strokes. No model to fetch —
+ * `inpaint.ts` borrows texture from the rest of the photo — so it is ready at
+ * once, on any device.
+ */
+async function eraseObject(
+  id: number,
+  blob: Blob,
+  strokes: Stroke[],
+  crop: CropRect,
+  flipX: boolean,
+  flipY: boolean
+) {
+  // Not a GPU job, but not a slow one either: no "this device is slow" warning.
+  const progress = reporter(id, true);
+  progress("process", 0);
+
+  const bitmap = await createImageBitmap(blob);
+  const { width, height } = bitmap;
+  const canvas = new OffscreenCanvas(width, height);
+  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const pixels = ctx.getImageData(0, 0, width, height);
+
+  // The strokes were painted over the layer's box, which shows the crop window
+  // of the source, mirrored as the layer is (the same mapping `render.ts` draws
+  // with). Replayed through that mapping, they land on the source pixels.
+  const maskCanvas = new OffscreenCanvas(width, height);
+  const maskCtx = maskCanvas.getContext("2d", { willReadFrequently: true })!;
+  const cropX = (flipX ? 1 - crop.x - crop.w : crop.x) * width;
+  const cropY = (flipY ? 1 - crop.y - crop.h : crop.y) * height;
+  const cropW = crop.w * width;
+  const cropH = crop.h * height;
+  maskCtx.translate(cropX + (flipX ? cropW : 0), cropY + (flipY ? cropH : 0));
+  maskCtx.scale(flipX ? -1 : 1, flipY ? -1 : 1);
+  paintStrokes(maskCtx, strokes, cropW, cropH);
+  const painted = maskCtx.getImageData(0, 0, width, height).data;
+  const mask = new Uint8Array(width * height);
+  for (let i = 0; i < mask.length; i++) mask[i] = painted[i * 4 + 3] > 16 ? 255 : 0;
+
+  const filled = inpaint(pixels, mask, { onProgress: (f) => progress("process", f) });
+
+  let hasAlpha = false;
+  for (let i = 3; i < filled.length; i += 4) {
+    if (filled[i] < 255) {
+      hasAlpha = true;
+      break;
+    }
+  }
+  ctx.putImageData(new ImageData(filled, width, height), 0, 0);
+  const image = await encode(canvas, hasAlpha);
+  post({ id, type: "done", image, width, height });
+}
+
 /* ----------------------------------------------------------------- output */
 
 /**
@@ -383,7 +443,9 @@ self.onmessage = async (event: MessageEvent<ImageAiRequest>) => {
   cpuOnly ||= !!request.cpuOnly;
   try {
     if (request.kind === "removeBackground") await removeBackground(request.id, request.image, request.modelUrl);
-    else await enhance(request.id, request.image, request.scale);
+    else if (request.kind === "eraseObject") {
+      await eraseObject(request.id, request.image, request.strokes, request.crop, request.flipX, request.flipY);
+    } else await enhance(request.id, request.image, request.scale);
   } catch (error) {
     post({
       id: request.id,

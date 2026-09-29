@@ -293,6 +293,8 @@ function LabelButton({
 export interface ImageAiControls {
   onRemoveBackground: () => void;
   onEnhance: () => void;
+  /** Open the Erase object brush. */
+  onEraseObject: () => void;
   enhance: EnhancePlan;
   /** Why neither can run right now (a job already running, a locked photo). */
   blocked?: string;
@@ -1231,6 +1233,13 @@ function ImageAiButtons({ controls }: { controls: ImageAiControls }) {
         trailingClassName="text-[var(--studio-accent)]"
       >
         Enhance
+      </LabelButton>
+      <LabelButton
+        onClick={controls.onEraseObject}
+        disabled={!!blocked}
+        title={blocked ?? "Paint over something to remove it — filled from its surroundings"}
+      >
+        Erase object
       </LabelButton>
     </>
   );

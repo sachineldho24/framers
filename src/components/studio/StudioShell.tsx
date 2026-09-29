@@ -34,6 +34,7 @@ import {
   cancelImageAi,
   ImageAiCancelled,
   runImageAi,
+  type ImageAiJob,
 } from "@/lib/studio/imageAi/client";
 import { planEnhance } from "@/lib/studio/imageAi/plan";
 import { pasteStyleActions } from "@/lib/studio/copyStyle";
@@ -59,7 +60,7 @@ import { StudioAssetsProvider } from "./StudioAssets";
 import { StudioRail } from "./StudioRail";
 import { StudioTopBar, type FrameSizeOption } from "./StudioTopBar";
 import { useInsertText } from "./useInsertText";
-import { IconButton, StudioButton, cx } from "./ui";
+import { IconButton, Slider, StudioButton, cx } from "./ui";
 
 export interface StudioShellUpload {
   /** Storage path — what the layer stores. */
@@ -167,6 +168,10 @@ function ShellInner({
     redo,
     select,
     setTool,
+    brush,
+    setBrush,
+    objectStrokes,
+    setObjectStrokes,
     setSaveStatus,
     printSize,
     guides,
@@ -652,6 +657,8 @@ function ShellInner({
   async function handleImageAi(kind: AiJob["kind"], layer: ImageLayer) {
     if (aiJob && !aiJob.error) return;
     setAiMenuOpen(false);
+    const strokes = objectStrokes;
+    if (kind === "eraseObject" && strokes.length === 0) return;
 
     let scale = 1;
     if (kind === "enhance") {
@@ -673,15 +680,25 @@ function ShellInner({
         if (!res.ok) throw new Error("Couldn’t read this photo. Please try again.");
         return res.blob();
       });
-      const result = await runImageAi(
-        kind === "enhance" ? { kind, image: source, scale } : { kind, image: source },
-        (progress) => setAiJob((job) => job && { ...job, ...progress })
-      );
+      const job: ImageAiJob =
+        kind === "enhance"
+          ? { kind, image: source, scale }
+          : kind === "eraseObject"
+            ? {
+                kind,
+                image: source,
+                strokes,
+                crop: layer.crop,
+                flipX: !!layer.flipX,
+                flipY: !!layer.flipY,
+              }
+            : { kind, image: source };
+      const result = await runImageAi(job, (progress) => setAiJob((current) => current && { ...current, ...progress }));
 
       setAiJob((job) => job && { ...job, stage: "save", fraction: undefined });
       const saved = await onSaveImage(
         result.image,
-        `${layer.name} (${kind === "enhance" ? "enhanced" : "cutout"})`,
+        `${layer.name} (${kind === "enhance" ? "enhanced" : kind === "eraseObject" ? "erased" : "cutout"})`,
         { width: result.width, height: result.height }
       );
       registerLocal(saved.src, saved.url);
@@ -698,6 +715,8 @@ function ShellInner({
           processed: true,
         });
       }
+      // Painted over and now gone: start the next erase from a clean slate.
+      if (kind === "eraseObject") setObjectStrokes([]);
       setAiJob(null);
     } catch (error) {
       if (error instanceof ImageAiCancelled) {
@@ -890,6 +909,7 @@ function ShellInner({
       ? {
           onRemoveBackground: () => void handleImageAi("removeBackground", selectedLayer),
           onEnhance: () => void handleImageAi("enhance", selectedLayer),
+          onEraseObject: () => setTool("objectEraser"),
           enhance: planEnhance(selectedLayer, documentDpi(doc, printSize)),
           blocked:
             aiJob && !aiJob.error
@@ -1182,6 +1202,18 @@ function ShellInner({
         />
       )}
 
+      {tool === "objectEraser" && selectedLayer?.kind === "image" && !aiJob && (
+        <ObjectEraseBar
+          brushSize={brush.size}
+          onBrushSize={(size) => setBrush({ size })}
+          strokes={objectStrokes.length}
+          blocked={imageAi?.blocked}
+          onClear={() => setObjectStrokes([])}
+          onErase={() => void handleImageAi("eraseObject", selectedLayer)}
+          onDone={() => setTool("select")}
+        />
+      )}
+
       {aiJob ? (
         <ImageAiCard
           job={aiJob}
@@ -1216,7 +1248,7 @@ function ShellInner({
 }
 
 interface AiJob {
-  kind: "removeBackground" | "enhance";
+  kind: "removeBackground" | "enhance" | "eraseObject";
   /** `save` is ours: the result being stored, after the model has finished. */
   stage: "download" | "process" | "save";
   fraction?: number;
@@ -1228,6 +1260,7 @@ interface AiJob {
 const AI_TITLES: Record<AiJob["kind"], string> = {
   removeBackground: "Removing background",
   enhance: "Enhancing for print",
+  eraseObject: "Erasing",
 };
 
 /** The model's own errors are for developers; this is for the customer. */
@@ -1240,6 +1273,7 @@ function friendlyAiError(error: unknown): string {
   if (/memory|allocat|OOM|abort/i.test(message)) {
     return "This device ran out of memory. Try a smaller photo, or a computer.";
   }
+  if (/too large/i.test(message)) return message;
   return "Something went wrong while processing this photo. Please try again.";
 }
 
@@ -1367,9 +1401,79 @@ function ImageAiMenu({
           >
             Enhance for print
           </StudioButton>
+          <StudioButton
+            variant="outline"
+            size="sm"
+            icon="ink_eraser"
+            disabled={!!controls.blocked}
+            onClick={() => {
+              controls.onEraseObject();
+              onClose();
+            }}
+          >
+            Erase an object
+          </StudioButton>
           <p className="text-[11.5px] text-[var(--studio-ink-muted)]">{enhanceHint}</p>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Erase object, while it's active: what to do, the brush size, and the two
+ * buttons that matter. The painting itself happens on the canvas.
+ */
+function ObjectEraseBar({
+  brushSize,
+  onBrushSize,
+  strokes,
+  blocked,
+  onClear,
+  onErase,
+  onDone,
+}: {
+  brushSize: number;
+  onBrushSize: (size: number) => void;
+  strokes: number;
+  blocked?: string;
+  onClear: () => void;
+  onErase: () => void;
+  onDone: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-label="Erase an object"
+      data-r="lg"
+      // Top of the workspace, where the photo's toolbar sits (hidden while this
+      // tool is on), so the panel never covers what is being painted over.
+      className="studio-shadow fixed left-1/2 top-16 z-[65] w-[340px] max-w-[calc(100vw-32px)] -translate-x-1/2 border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] p-4"
+    >
+      <div className="mb-1 flex items-start justify-between gap-2">
+        <h2 className="text-[14px] font-semibold text-[var(--studio-ink)]">Erase an object</h2>
+        <IconButton icon="close" label="Done" size="sm" onClick={onDone} />
+      </div>
+      <p className="mb-3 text-[12.5px] leading-relaxed text-[var(--studio-ink-muted)]">
+        {blocked ??
+          "Paint over what you want gone — cover it completely, a little past its edges. It's filled from what's around it. Best on backgrounds like sky, grass, road or walls."}
+      </p>
+      <Slider
+        label="Brush size"
+        value={Math.round(brushSize * 100)}
+        min={1}
+        max={40}
+        suffix="%"
+        onChange={(v) => onBrushSize(v / 100)}
+      />
+      <div className="mt-3 flex justify-end gap-2">
+        <StudioButton variant="ghost" size="sm" disabled={strokes === 0} onClick={onClear}>
+          Clear
+        </StudioButton>
+        <StudioButton variant="solid" size="sm" icon="ink_eraser" disabled={strokes === 0 || !!blocked} onClick={onErase}>
+          Erase
+        </StudioButton>
+      </div>
     </div>
   );
 }

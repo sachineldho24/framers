@@ -147,7 +147,9 @@ export function StudioToolPanel({ isAdmin = false }: { isAdmin?: boolean }) {
     tool === "draw" ||
     tool === "pen" ||
     tool === "pen-eraser" ||
-    tool === "path"
+    tool === "path" ||
+    // Its controls float over the canvas (StudioShell), so the photo stays in view.
+    tool === "objectEraser"
   )
     return null;
 
