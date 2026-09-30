@@ -15,7 +15,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ImageLayer, Layer, StudioDocument } from "@/lib/studio/document";
 import { asFreshCopy, createId, createImageLayer, docSizeForFrame, idPrefixFor, unfilledSlots } from "@/lib/studio/document";
 import { fromFramersTemplate, toFramersTemplate } from "@/lib/studio/templateFormat";
-import { boundingRect, containBox } from "@/lib/studio/geometry";
+import { boundingRect, containBox, coverBox } from "@/lib/studio/geometry";
 import { isWholeGroup, selectionBounds as selectionBoundsOf } from "@/lib/studio/multiSelect";
 import { registerDocumentFonts, waitForFonts } from "@/lib/studio/fontLoader";
 import {
@@ -28,14 +28,24 @@ import {
   type DownloadFormat,
   type ExportType,
 } from "@/lib/studio/export";
-import { keepsObjectToolbars, StudioProvider, useStudio } from "@/lib/studio/StudioContext";
+import { keepsObjectToolbars, StudioProvider, useStudio, type AiSelection } from "@/lib/studio/StudioContext";
 import { documentDpi, layersOutsideSafeArea } from "@/lib/studio/print";
 import {
   cancelImageAi,
+  commitSelection,
   ImageAiCancelled,
+  prepareSelection,
   runImageAi,
+  segmentSelection,
   type ImageAiJob,
+  type SegPrompt,
 } from "@/lib/studio/imageAi/client";
+import { ringsToPathData } from "@/lib/studio/maskTrace";
+import { expandedBox, sourcePxToTightBox, tightLayerFor, type Growth } from "@/lib/studio/objectGeometry";
+import type { AiTask } from "@/lib/aiGen/catalog";
+import { fetchAiModels } from "@/lib/aiGen/client";
+import type { GeneratedImage, GeneratedLayer } from "@/lib/aiGen/protocol";
+import type { LiftedObject } from "@/lib/studio/reducer";
 import { planEnhance } from "@/lib/studio/imageAi/plan";
 import { pasteStyleActions } from "@/lib/studio/copyStyle";
 import { textLayerHeight } from "@/lib/studio/textMeasure";
@@ -45,6 +55,7 @@ import {
 } from "@/lib/studio/useStudioImages";
 
 import { Icon } from "@/components/Icon";
+import { AiGeneratePanel, type AiSelectionMask } from "./AiGeneratePanel";
 import { ContextMenu, type ContextMenuState } from "./ContextMenu";
 import { ContextualToolbar, MultiToolbar, PageToolbar, type ImageAiControls } from "./ContextualToolbar";
 import { CustomSizeDialog } from "./CustomSizeDialog";
@@ -172,6 +183,8 @@ function ShellInner({
     setBrush,
     objectStrokes,
     setObjectStrokes,
+    aiSelection,
+    setAiSelection,
     setSaveStatus,
     printSize,
     guides,
@@ -654,7 +667,7 @@ function ShellInner({
    * photo was swapped or deleted while the model ran, the result is kept in
    * Uploads and the design is left alone.
    */
-  async function handleImageAi(kind: AiJob["kind"], layer: ImageLayer) {
+  async function handleImageAi(kind: "removeBackground" | "enhance" | "eraseObject", layer: ImageLayer) {
     if (aiJob && !aiJob.error) return;
     setAiMenuOpen(false);
     const strokes = objectStrokes;
@@ -725,6 +738,306 @@ function ShellInner({
       }
       setAiJob((job) => job && { ...job, error: friendlyAiError(error) });
     }
+  }
+
+  /* ------------------------------------------------------- object selection */
+
+  /** The photo's bytes, from the copy the canvas already decoded. */
+  async function sourceBlob(layer: ImageLayer): Promise<Blob> {
+    const decoded = images.get(layer.src);
+    const url = decoded && "src" in decoded ? decoded.src : null;
+    if (!url) throw new Error("This photo hasn’t finished loading yet. Try again in a moment.");
+    const res = await fetch(url);
+    if (!res.ok) throw new Error("Couldn’t read this photo. Please try again.");
+    return res.blob();
+  }
+
+  /**
+   * Select object: open the tool and have the photo analysed (once per photo —
+   * the worker keeps it). Taps before it's ready are ignored; the bar says so.
+   */
+  async function startObjectSelect(layer: ImageLayer) {
+    setAiMenuOpen(false);
+    setTool("objectSelect");
+    const src = layer.src;
+    const mine = (s: AiSelection | null) => s !== null && s.layerId === layer.id && s.src === src;
+    setAiSelection({ layerId: layer.id, src, status: "preparing", prompts: [], chosen: 0, mode: "add" });
+    try {
+      const blob = await sourceBlob(layer);
+      const natural = await prepareSelection(src, blob, (p) =>
+        setAiSelection((s) => (mine(s) ? { ...s!, fraction: p.stage === "download" ? p.fraction : undefined } : s))
+      );
+      setAiSelection((s) => (mine(s) ? { ...s!, status: "ready", fraction: undefined, natural } : s));
+    } catch (error) {
+      setAiSelection((s) => (mine(s) ? { ...s!, status: "error", message: friendlyAiError(error) } : s));
+    }
+  }
+
+  /** Bumped per tap, so a slow answer to an older tap never overwrites a newer one. */
+  const segmentRun = useRef(0);
+
+  function handleObjectTap(point: { x: number; y: number }, exclude: boolean) {
+    const sel = aiSelection;
+    if (!sel || (sel.status !== "ready" && sel.status !== "segmenting")) return;
+    const include = !exclude && sel.mode === "add";
+    // "Not this" means nothing until something has been chosen.
+    if (!include && sel.prompts.length === 0) return;
+    const prompts = [...sel.prompts, { x: point.x, y: point.y, include }];
+    runSegment(sel, prompts);
+  }
+
+  function runSegment(sel: AiSelection, prompts: SegPrompt[]) {
+    const run = ++segmentRun.current;
+    const same = (s: AiSelection | null) => s !== null && s.src === sel.src && s.layerId === sel.layerId;
+    if (prompts.length === 0) {
+      setAiSelection({ ...sel, prompts, candidates: undefined, chosen: 0, status: "ready" });
+      return;
+    }
+    setAiSelection({ ...sel, prompts, status: "segmenting" });
+    segmentSelection(sel.src, prompts).then(
+      ({ candidates, best }) => {
+        if (run !== segmentRun.current) return;
+        setAiSelection((s) => (same(s) ? { ...s!, candidates, chosen: best, status: "ready" } : s));
+      },
+      (error) => {
+        if (run !== segmentRun.current) return;
+        setAiSelection((s) => (same(s) ? { ...s!, status: "error", message: friendlyAiError(error) } : s));
+      }
+    );
+  }
+
+  /** SAM gives three answers — part, object, whole. Step through them by size. */
+  function stepCandidate(direction: 1 | -1) {
+    const sel = aiSelection;
+    if (!sel?.candidates) return;
+    const order = [0, 1, 2].sort((a, b) => sel.candidates![a].area - sel.candidates![b].area);
+    const at = order.indexOf(sel.chosen);
+    const next = order[Math.min(2, Math.max(0, at + direction))];
+    if (next !== sel.chosen) setAiSelection({ ...sel, chosen: next });
+  }
+
+  /**
+   * Lift copy, Cut out or Erase. The worker sharpens the selection and traces
+   * its outline (and, for Cut out and Erase, fills the area behind it); then one
+   * reducer action makes it real — one undo step — and the tool hands over to
+   * the ordinary editor with the new layer selected.
+   */
+  async function commitObjectSelection(action: "lift" | "extract" | "erase", layer: ImageLayer) {
+    const sel = aiSelection;
+    if (!sel?.candidates || !sel.natural || sel.layerId !== layer.id || sel.src !== layer.src) return;
+    if (aiJob && !aiJob.error) return;
+    const kind: AiJob["kind"] = action === "lift" ? "liftObject" : action === "extract" ? "cutOut" : "eraseSelection";
+    setAiJob({ kind, stage: "process", gpu: true });
+    try {
+      const object = await commitSelection(sel.src, sel.prompts, sel.chosen, action !== "lift", (progress) =>
+        setAiJob((current) => current && { ...current, ...progress })
+      );
+      // The photo may have been changed while the worker was busy.
+      const now = docRef.current.layers.find((l) => l.id === layer.id);
+      if (now?.kind !== "image" || now.src !== sel.src) {
+        setAiJob(null);
+        return;
+      }
+
+      let repaired: StudioShellUpload | null = null;
+      if (object.repaired) {
+        setAiJob((job) => job && { ...job, stage: "save", fraction: undefined });
+        repaired = await onSaveImage(
+          object.repaired.image,
+          `${now.name} (${action === "erase" ? "erased" : "filled"})`,
+          { width: object.repaired.width, height: object.repaired.height }
+        );
+        registerLocal(repaired.src, repaired.url);
+        addPicked(repaired);
+      }
+
+      if (action === "erase" && repaired) {
+        apply({
+          type: "replaceLayerImage",
+          layerId: now.id,
+          src: repaired.src,
+          naturalWidth: object.repaired!.width,
+          naturalHeight: object.repaired!.height,
+          processed: true,
+        });
+      } else {
+        const { natural } = sel;
+        const tight = tightLayerFor(now, {
+          x0: object.bbox.x0 / natural.width,
+          y0: object.bbox.y0 / natural.height,
+          x1: object.bbox.x1 / natural.width,
+          y1: object.bbox.y1 / natural.height,
+        });
+        if (!tight) throw new Error("That object is outside the visible part of this photo.");
+        const d = ringsToPathData(object.rings, (x, y) => sourcePxToTightBox(now, natural, tight, x, y));
+        const round = (n: number) => Math.round(n * 100) / 100;
+        const lifted: LiftedObject = {
+          x: tight.x,
+          y: tight.y,
+          width: tight.width,
+          height: tight.height,
+          crop: tight.crop,
+          mask: { kind: "path", radius: 0, path: { d, viewBox: [0, 0, round(tight.width), round(tight.height)] } },
+        };
+        const newId = createId("img");
+        if (action === "lift") {
+          apply({ type: "liftObject", sourceId: now.id, newId, object: lifted });
+        } else if (repaired) {
+          apply({
+            type: "extractObject",
+            sourceId: now.id,
+            newId,
+            object: lifted,
+            repaired: { src: repaired.src, naturalWidth: object.repaired!.width, naturalHeight: object.repaired!.height },
+          });
+        }
+        select(newId);
+      }
+      setTool("select");
+      setAiJob(null);
+    } catch (error) {
+      if (error instanceof ImageAiCancelled) {
+        setAiJob(null);
+        return;
+      }
+      setAiJob((job) => job && { ...job, error: friendlyAiError(error) });
+    }
+  }
+
+  /* ------------------------------------------------- generative AI panel */
+
+  /** Whether any provider is configured for this user — the entry points hide otherwise. */
+  const [aiGenEnabled, setAiGenEnabled] = useState(false);
+  const [aiGen, setAiGen] = useState<{ task?: AiTask } | null>(null);
+  useEffect(() => {
+    let live = true;
+    void fetchAiModels().then((res) => live && setAiGenEnabled(res.enabled));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  function openAiGen(task?: AiTask) {
+    setAiMenuOpen(false);
+    setAiGen({ task });
+  }
+
+  const aiLayer = selectedLayer?.kind === "image" ? selectedLayer : null;
+  const aiLayerDecoded = aiLayer ? images.get(aiLayer.src) : undefined;
+  const aiLayerUrl = aiLayerDecoded && "src" in aiLayerDecoded ? aiLayerDecoded.src : null;
+  const aiHasSelection =
+    !!aiLayer && aiSelection?.layerId === aiLayer.id && aiSelection.src === aiLayer.src && !!aiSelection.candidates && aiSelection.status === "ready";
+
+  /** The Select-object selection traced at full resolution, for Replace/Erase. */
+  async function aiSelectionMask(): Promise<AiSelectionMask | null> {
+    const sel = aiSelection;
+    if (!aiLayer || !sel?.candidates || sel.layerId !== aiLayer.id || sel.src !== aiLayer.src) return null;
+    const object = await commitSelection(sel.src, sel.prompts, sel.chosen, false, () => {});
+    return object.rings.length ? { rings: object.rings, bbox: object.bbox } : null;
+  }
+
+  async function saveAiImage(blob: Blob, name: string, size: { width: number; height: number }) {
+    const saved = await onSaveImage(blob, name, size);
+    registerLocal(saved.src, saved.url);
+    addPicked(saved);
+    return saved;
+  }
+
+  /** A generated picture the server stored: known to the image cache and listed in Uploads. */
+  function adoptGenerated(image: { src: string; url: string; width: number; height: number }, name: string) {
+    registerLocal(image.src, image.url);
+    addPicked({ src: image.src, name, url: image.url, naturalWidth: image.width, naturalHeight: image.height });
+  }
+
+  function addGeneratedImage(image: GeneratedImage, placement: "cover" | "contain" | "sticker", name: string) {
+    adoptGenerated(image, name);
+    const page = docRef.current;
+    let box =
+      placement === "cover"
+        ? coverBox(page.width, page.height, image.width, image.height)
+        : containBox(page.width, page.height, image.width, image.height);
+    if (placement !== "cover") {
+      // A sticker lands at a placeable size; a picture fills most of the page.
+      const scale = placement === "sticker" ? 0.45 : 0.85;
+      const width = box.width * scale;
+      const height = box.height * scale;
+      box = { ...box, x: (page.width - width) / 2, y: (page.height - height) / 2, width, height };
+    }
+    const layer = createImageLayer({
+      src: image.src,
+      naturalWidth: image.width,
+      naturalHeight: image.height,
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
+      name,
+    });
+    apply({ type: "addLayer", layer });
+    select(layer.id);
+  }
+
+  /** Edit, Upscale, Remove BG, Replace, Erase: the same photo, new pixels — one undo step. */
+  function replaceWithGenerated(layer: ImageLayer, image: { src: string; url: string; width: number; height: number }) {
+    const now = docRef.current.layers.find((l) => l.id === layer.id);
+    if (now?.kind !== "image" || now.src !== layer.src) return;
+    registerLocal(image.src, image.url);
+    apply({ type: "replaceLayerImage", layerId: layer.id, src: image.src, naturalWidth: image.width, naturalHeight: image.height, processed: true });
+    // A selection belongs to the old pixels.
+    if (tool === "objectSelect") setTool("select");
+  }
+
+  function expandWithGenerated(layer: ImageLayer, image: StudioShellUpload & { naturalWidth: number; naturalHeight: number }, growth: Growth) {
+    const now = docRef.current.layers.find((l) => l.id === layer.id);
+    if (now?.kind !== "image" || now.src !== layer.src) return;
+    apply({
+      type: "expandLayerImage",
+      layerId: layer.id,
+      src: image.src,
+      naturalWidth: image.naturalWidth,
+      naturalHeight: image.naturalHeight,
+      box: expandedBox(now, growth),
+    });
+    if (tool === "objectSelect") setTool("select");
+  }
+
+  /** Separate layers: the photo becomes its clean background, each element its own layer in place. */
+  function separateGenerated(layer: ImageLayer, base: GeneratedImage, parts: GeneratedLayer[]) {
+    const now = docRef.current.layers.find((l) => l.id === layer.id);
+    if (now?.kind !== "image" || now.src !== layer.src) return;
+    adoptGenerated(base, `${layer.name} – background`);
+    const created: ImageLayer[] = [];
+    for (const part of [...parts].sort((a, b) => a.z - b.z)) {
+      if (!part.box) continue;
+      const [l, t, r, b] = part.box;
+      const tight = tightLayerFor(now, { x0: l / base.width, y0: t / base.height, x1: r / base.width, y1: b / base.height });
+      if (!tight) continue;
+      const name = part.name ? `${part.name}` : `${layer.name} – part ${created.length + 1}`;
+      adoptGenerated(part.image, name);
+      created.push({
+        ...createImageLayer({
+          src: part.image.src,
+          naturalWidth: part.image.width,
+          naturalHeight: part.image.height,
+          x: tight.x,
+          y: tight.y,
+          width: tight.width,
+          height: tight.height,
+          name,
+        }),
+        rotation: now.rotation,
+        flipX: now.flipX,
+        flipY: now.flipY,
+      });
+    }
+    apply({
+      type: "separateLayers",
+      sourceId: now.id,
+      base: { src: base.src, naturalWidth: base.width, naturalHeight: base.height },
+      layers: created,
+    });
+    if (tool === "objectSelect") setTool("select");
+    if (created.length) select(created[created.length - 1].id);
   }
 
   /**
@@ -910,6 +1223,8 @@ function ShellInner({
           onRemoveBackground: () => void handleImageAi("removeBackground", selectedLayer),
           onEnhance: () => void handleImageAi("enhance", selectedLayer),
           onEraseObject: () => setTool("objectEraser"),
+          onSelectObject: () => void startObjectSelect(selectedLayer),
+          onGenerate: aiGenEnabled ? () => openAiGen("edit") : undefined,
           enhance: planEnhance(selectedLayer, documentDpi(doc, printSize)),
           blocked:
             aiJob && !aiJob.error
@@ -997,6 +1312,7 @@ function ShellInner({
               onContextMenu={(x, y, layerId) => setCtxMenu({ x, y, layerId })}
               onDropUpload={handleDropUpload}
               onFillSlot={handleFillSlot}
+              onObjectTap={handleObjectTap}
             />
 
             {/* Contextual toolbar, docked to the top of the workspace so it
@@ -1202,6 +1518,22 @@ function ShellInner({
         />
       )}
 
+      {tool === "objectSelect" && selectedLayer?.kind === "image" && aiSelection?.layerId === selectedLayer.id && !aiJob && (
+        <ObjectSelectBar
+          selection={aiSelection}
+          blocked={imageAi?.blocked}
+          onMode={(mode) => setAiSelection((s) => s && { ...s, mode })}
+          onStep={stepCandidate}
+          onReset={() => runSegment(aiSelection, [])}
+          onLift={() => void commitObjectSelection("lift", selectedLayer)}
+          onCutOut={() => void commitObjectSelection("extract", selectedLayer)}
+          onErase={() => void commitObjectSelection("erase", selectedLayer)}
+          onAiReplace={aiGenEnabled ? () => openAiGen("replace") : undefined}
+          onAiErase={aiGenEnabled ? () => openAiGen("erase") : undefined}
+          onDone={() => setTool("select")}
+        />
+      )}
+
       {tool === "objectEraser" && selectedLayer?.kind === "image" && !aiJob && (
         <ObjectEraseBar
           brushSize={brush.size}
@@ -1220,10 +1552,33 @@ function ShellInner({
           onCancel={cancelImageAi}
           onClose={() => setAiJob(null)}
         />
+      ) : aiGen ? (
+        <AiGeneratePanel
+          key={aiGen.task ?? "default"}
+          layer={aiLayer}
+          layerUrl={aiLayerUrl}
+          hasSelection={aiHasSelection}
+          getSelection={aiSelectionMask}
+          uploads={availableUploads}
+          page={{ width: doc.width, height: doc.height }}
+          initialTask={aiGen.task}
+          onSelectObject={() => {
+            if (!aiLayer) return;
+            // The panel stays open: taps on the photo build the selection behind it.
+            void startObjectSelect(aiLayer);
+          }}
+          onSave={saveAiImage}
+          onAddImage={addGeneratedImage}
+          onReplace={replaceWithGenerated}
+          onExpand={expandWithGenerated}
+          onSeparate={separateGenerated}
+          onClose={() => setAiGen(null)}
+        />
       ) : (
         aiMenuOpen && (
           <ImageAiMenu
             controls={imageAi}
+            onGenerate={aiGenEnabled ? () => openAiGen(selectedLayer?.kind === "image" ? "edit" : "create") : undefined}
             onClose={() => setAiMenuOpen(false)}
           />
         )
@@ -1248,7 +1603,7 @@ function ShellInner({
 }
 
 interface AiJob {
-  kind: "removeBackground" | "enhance" | "eraseObject";
+  kind: "removeBackground" | "enhance" | "eraseObject" | "liftObject" | "cutOut" | "eraseSelection";
   /** `save` is ours: the result being stored, after the model has finished. */
   stage: "download" | "process" | "save";
   fraction?: number;
@@ -1261,19 +1616,24 @@ const AI_TITLES: Record<AiJob["kind"], string> = {
   removeBackground: "Removing background",
   enhance: "Enhancing for print",
   eraseObject: "Erasing",
+  liftObject: "Lifting the object",
+  cutOut: "Cutting out",
+  eraseSelection: "Erasing",
 };
+
+/** Messages our own code writes for customers; shown as they are. */
+const OWN_MESSAGES = /hasn’t finished loading|Couldn’t read this photo|analysed again|Nothing is selected|outside the visible|too large/i;
 
 /** The model's own errors are for developers; this is for the customer. */
 function friendlyAiError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
-  if (/sign in/i.test(message)) return message;
+  if (/sign in/i.test(message) || OWN_MESSAGES.test(message)) return message;
   if (/fetch|network|download|load/i.test(message)) {
     return "Couldn’t download the AI model. Check your connection and try again.";
   }
   if (/memory|allocat|OOM|abort/i.test(message)) {
     return "This device ran out of memory. Try a smaller photo, or a computer.";
   }
-  if (/too large/i.test(message)) return message;
   return "Something went wrong while processing this photo. Please try again.";
 }
 
@@ -1349,9 +1709,12 @@ function ImageAiCard({
 /** The AI circle's menu: the same two tools, for the selected photo. */
 function ImageAiMenu({
   controls,
+  onGenerate,
   onClose,
 }: {
   controls: ImageAiControls | undefined;
+  /** Generate with AI (paid models, run on the server). Absent when none is set up. */
+  onGenerate?: () => void;
   onClose: () => void;
 }) {
   const enhanceHint = !controls
@@ -1373,6 +1736,11 @@ function ImageAiMenu({
         <h2 className="text-[14px] font-semibold text-[var(--studio-ink)]">AI tools</h2>
         <IconButton icon="close" label="Close" size="sm" onClick={onClose} />
       </div>
+      {onGenerate && (
+        <StudioButton variant="solid" size="md" icon="auto_awesome" className="mb-2 mt-1 w-full" onClick={onGenerate}>
+          Generate with AI
+        </StudioButton>
+      )}
       {!controls ? (
         <p className="text-[12.5px] leading-relaxed text-[var(--studio-ink-muted)]">
           Select a photo to remove its background or enhance it for print. Both run on
@@ -1404,6 +1772,18 @@ function ImageAiMenu({
           <StudioButton
             variant="outline"
             size="sm"
+            icon="ads_click"
+            disabled={!!controls.blocked}
+            onClick={() => {
+              controls.onSelectObject();
+              onClose();
+            }}
+          >
+            Select an object
+          </StudioButton>
+          <StudioButton
+            variant="outline"
+            size="sm"
             icon="ink_eraser"
             disabled={!!controls.blocked}
             onClick={() => {
@@ -1414,6 +1794,160 @@ function ImageAiMenu({
             Erase an object
           </StudioButton>
           <p className="text-[11.5px] text-[var(--studio-ink-muted)]">{enhanceHint}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Select object, while it's active: what to do next, the tap mode, size steps
+ * and the three things a selection can become. After any of them the new layer
+ * is an ordinary layer — AI gets the customer into the editor, not a mode.
+ */
+function ObjectSelectBar({
+  selection,
+  blocked,
+  onMode,
+  onStep,
+  onReset,
+  onLift,
+  onCutOut,
+  onErase,
+  onAiReplace,
+  onAiErase,
+  onDone,
+}: {
+  selection: AiSelection;
+  blocked?: string;
+  onMode: (mode: AiSelection["mode"]) => void;
+  onStep: (direction: 1 | -1) => void;
+  onReset: () => void;
+  onLift: () => void;
+  onCutOut: () => void;
+  onErase: () => void;
+  /** Hand the selection to Generate with AI. Absent when no provider is set up. */
+  onAiReplace?: () => void;
+  onAiErase?: () => void;
+  onDone: () => void;
+}) {
+  const { status, candidates, prompts, mode } = selection;
+  const percent = selection.fraction === undefined ? null : Math.round(selection.fraction * 100);
+  const hint =
+    blocked ??
+    (status === "preparing"
+      ? `Getting the photo ready${percent === null ? "…" : ` — downloading the selection tool, first time only (${percent}%)`}`
+      : status === "error"
+        ? selection.message ?? "Something went wrong."
+        : prompts.length === 0
+          ? "Tap the object you want. Tap again to add more of it."
+          : "Tap to add more · Alt+click or long-press to take some away. Bigger and Smaller switch between part and whole.");
+  const canAct = !blocked && status === "ready" && !!candidates;
+
+  return (
+    <div
+      role="dialog"
+      aria-label="Select an object"
+      data-r="lg"
+      className="studio-shadow fixed left-1/2 top-16 z-[65] w-[360px] max-w-[calc(100vw-32px)] -translate-x-1/2 border border-[var(--studio-elevated-border)] bg-[var(--studio-elevated)] p-4"
+    >
+      <div className="mb-1 flex items-start justify-between gap-2">
+        <h2 className="text-[14px] font-semibold text-[var(--studio-ink)]">Select an object</h2>
+        <IconButton icon="close" label="Done" size="sm" onClick={onDone} />
+      </div>
+      <p className={cx("mb-3 text-[12.5px] leading-relaxed", status === "error" ? "text-[#ffb4ab]" : "text-[var(--studio-ink-muted)]")}>
+        {hint}
+      </p>
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <StudioButton
+          variant={mode === "add" ? "solid" : "outline"}
+          size="sm"
+          icon="add"
+          aria-pressed={mode === "add"}
+          onClick={() => onMode("add")}
+        >
+          Add
+        </StudioButton>
+        <StudioButton
+          variant={mode === "remove" ? "solid" : "outline"}
+          size="sm"
+          icon="remove"
+          aria-pressed={mode === "remove"}
+          disabled={prompts.length === 0}
+          onClick={() => onMode("remove")}
+        >
+          Remove
+        </StudioButton>
+        <span className="mx-1 h-5 w-px bg-[var(--studio-border)]" aria-hidden />
+        <StudioButton variant="ghost" size="sm" disabled={!candidates} onClick={() => onStep(-1)}>
+          Smaller
+        </StudioButton>
+        <StudioButton variant="ghost" size="sm" disabled={!candidates} onClick={() => onStep(1)}>
+          Bigger
+        </StudioButton>
+        <StudioButton variant="ghost" size="sm" disabled={prompts.length === 0} onClick={onReset}>
+          Reset
+        </StudioButton>
+      </div>
+      <div className="flex flex-wrap justify-end gap-2">
+        <StudioButton
+          variant="ghost"
+          size="sm"
+          disabled={!canAct}
+          title="A copy of the object as its own layer, on top of the photo — nothing is removed"
+          onClick={onLift}
+        >
+          Lift copy
+        </StudioButton>
+        <StudioButton
+          variant="outline"
+          size="sm"
+          icon="ink_eraser"
+          disabled={!canAct}
+          title="Remove the object and fill the space from its surroundings"
+          onClick={onErase}
+        >
+          Erase
+        </StudioButton>
+        <StudioButton
+          variant="solid"
+          size="sm"
+          icon="content_cut"
+          disabled={!canAct}
+          title="Make the object its own layer and fill the space behind it, so it can be moved"
+          onClick={onCutOut}
+        >
+          Cut out
+        </StudioButton>
+      </div>
+      {(onAiReplace || onAiErase) && (
+        <div className="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-[var(--studio-border)] pt-2">
+          <span className="mr-auto flex items-center gap-1 text-[11.5px] text-[var(--studio-ink-muted)]">
+            <Icon name="auto_awesome" className="text-[14px] text-[var(--studio-accent)]" />
+            Generative
+          </span>
+          {onAiErase && (
+            <StudioButton
+              variant="ghost"
+              size="sm"
+              disabled={!canAct}
+              title="Remove the object with a generative model — rebuilds larger or detailed areas better"
+              onClick={onAiErase}
+            >
+              AI erase
+            </StudioButton>
+          )}
+          {onAiReplace && (
+            <StudioButton
+              variant="outline"
+              size="sm"
+              disabled={!canAct}
+              title="Describe what should be there instead — only the object changes"
+              onClick={onAiReplace}
+            >
+              Replace with AI
+            </StudioButton>
+          )}
         </div>
       )}
     </div>

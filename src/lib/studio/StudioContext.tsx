@@ -45,6 +45,33 @@ import type { StudioAction } from "./reducer";
 import { DEFAULT_PEN_SETTINGS, type PenSettings } from "./drawing";
 import { fitViewport, type Viewport } from "./geometry";
 import { printGuides, type PrintGuideSet, type PrintSize } from "./print";
+import type { MaskCandidate, SegPrompt } from "./imageAi/protocol";
+
+/**
+ * Object selection in progress: editor state, never document state. Nothing
+ * reaches the document (or the undo history) until the customer lifts, cuts
+ * out or erases.
+ */
+export interface AiSelection {
+  layerId: string;
+  /** The photo analysed; a different `src` means different pixels. */
+  src: string;
+  status: "preparing" | "ready" | "segmenting" | "error";
+  /** Download or analysis progress, 0–1, while preparing. */
+  fraction?: number;
+  /** A problem worth showing, when `status` is "error". */
+  message?: string;
+  /** The photo's natural size, once analysed. */
+  natural?: { width: number; height: number };
+  /** Clicks so far, in source-normalised coordinates. */
+  prompts: SegPrompt[];
+  /** SAM's three answers for those clicks. */
+  candidates?: MaskCandidate[];
+  /** The one shown — best by SAM's score, until Bigger/Smaller picks another. */
+  chosen: number;
+  /** What a plain tap does. Alt+click and long-press always exclude. */
+  mode: "add" | "remove";
+}
 
 export type ToolId =
   | "effects"
@@ -59,6 +86,8 @@ export type ToolId =
   | "eraser"
   /** Paint over an object, then fill it from its surroundings (`inpaint.ts`). */
   | "objectEraser"
+  /** Tap an object in a photo to select it (SlimSAM), then lift, cut out or erase it. */
+  | "objectSelect"
   | "crop"
   | "frames"
   | "adjust"
@@ -167,6 +196,7 @@ export interface StudioContextValue {
    * erase is — so it clears when the tool or the selection changes.
    */
   objectStrokes: Stroke[];
+  aiSelection: AiSelection | null;
   saveStatus: SaveStatus;
   canUndo: boolean;
   canRedo: boolean;
@@ -220,6 +250,7 @@ export interface StudioContextValue {
   setViewport: Dispatch<React.SetStateAction<Viewport>>;
   setBrush: (patch: Partial<BrushSettings>) => void;
   setObjectStrokes: Dispatch<React.SetStateAction<Stroke[]>>;
+  setAiSelection: Dispatch<React.SetStateAction<AiSelection | null>>;
   setSaveStatus: (status: SaveStatus) => void;
 
   /**
@@ -282,6 +313,7 @@ export function StudioProvider({
     mode: "erase",
   });
   const [objectStrokes, setObjectStrokes] = useState<Stroke[]>([]);
+  const [aiSelection, setAiSelection] = useState<AiSelection | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   // Off by default: the workspace should show the artwork and nothing else. The
   // lip is still a fact about the print, so the bottom bar's toggle and the
@@ -339,8 +371,11 @@ export function StudioProvider({
 
   const select = useCallback((layerId: string | null) => {
     setSelectedId((current) => {
-      // Strokes belong to the photo they were painted on.
-      if (current !== layerId) setObjectStrokes([]);
+      // Strokes and selections belong to the photo they were made on.
+      if (current !== layerId) {
+        setObjectStrokes([]);
+        setAiSelection(null);
+      }
       return layerId;
     });
     setMultiIds([]);
@@ -353,7 +388,7 @@ export function StudioProvider({
     // put — their flyout simply shows its empty state.
     if (!layerId) {
       setToolState((t) =>
-        t === "crop" || t === "eraser" || t === "objectEraser" || t === "draw" ? "select" : t
+        t === "crop" || t === "eraser" || t === "objectEraser" || t === "objectSelect" || t === "draw" ? "select" : t
       );
     }
   }, []);
@@ -379,9 +414,10 @@ export function StudioProvider({
       setSelectedId(null);
       setMultiIds(ids);
       setObjectStrokes([]);
+      setAiSelection(null);
       setEditingId(null);
       // Crop and the brushes act on one layer; they have nothing to do here.
-      setToolState((t) => (t === "crop" || t === "eraser" || t === "objectEraser" || t === "draw" ? "select" : t));
+      setToolState((t) => (t === "crop" || t === "eraser" || t === "objectEraser" || t === "objectSelect" || t === "draw" ? "select" : t));
     },
     [select]
   );
@@ -389,6 +425,7 @@ export function StudioProvider({
   const setTool = useCallback((next: ToolId) => {
     setToolState(next);
     if (next !== "objectEraser") setObjectStrokes([]);
+    if (next !== "objectSelect") setAiSelection(null);
   }, []);
 
   const setBrush = useCallback((patch: Partial<BrushSettings>) => {
@@ -462,6 +499,7 @@ export function StudioProvider({
       viewport,
       brush,
       objectStrokes,
+      aiSelection,
       saveStatus,
       canUndo: canUndoOf(history),
       canRedo: canRedoOf(history),
@@ -487,6 +525,7 @@ export function StudioProvider({
       setViewport,
       setBrush,
       setObjectStrokes,
+      setAiSelection,
       setSaveStatus,
       fitTo,
       viewportPristineRef,
@@ -503,6 +542,7 @@ export function StudioProvider({
       viewport,
       brush,
       objectStrokes,
+      aiSelection,
       saveStatus,
       size,
       guides,

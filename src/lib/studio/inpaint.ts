@@ -43,6 +43,11 @@ export interface InpaintOptions {
    * time and memory on a phone.
    */
   maxRegionPixels?: number;
+  /**
+   * Grow the mask by this many px before filling (default 2): a brush stops
+   * just short of an object's halo, and a traced selection hugs it tighter still.
+   */
+  grow?: number;
 }
 
 /** Patches are (2 × 3 + 1)² = 7 × 7. */
@@ -68,7 +73,7 @@ export function inpaint(
   if (mask.length !== width * height) throw new InpaintError("Mask size doesn't match the image.");
   const out = new Uint8ClampedArray(image.data);
 
-  const hole = grow(mask, width, height, MASK_GROW);
+  const hole = grow(mask, width, height, options.grow ?? MASK_GROW);
   const box = bounds(hole, width, height);
   if (!box) return out;
 

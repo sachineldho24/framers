@@ -16,6 +16,7 @@ import {
 } from "./document.ts";
 import { applyActions, studioReducer } from "./reducer.ts";
 import { createStroke } from "./strokes.ts";
+import { commit, createHistory, undo } from "./history.ts";
 
 function seed(): StudioDocument {
   const doc = createDocument({ width: 1000, height: 800, title: "Test" });
@@ -667,4 +668,111 @@ test("a saved document keeps its uploaded fonts and the text set in them", () =>
   assert.deepEqual(doc?.fonts?.map((f) => f.id), ["custom-f1"]);
   const layer = doc?.layers[0];
   assert.equal(layer?.kind === "text" && layer.fontId, "custom-f1");
+});
+
+test("liftObject puts a tight, clipped copy right above the photo and leaves the photo alone", () => {
+  const base = seed();
+  const source = base.layers[0] as ImageLayer;
+  const withExtras = {
+    ...base,
+    layers: base.layers.map((l, i) =>
+      i === 0
+        ? {
+            ...(l as ImageLayer),
+            strokes: [createStroke("erase", 0.1, 0.5, { x: 0.5, y: 0.5 })],
+            outline: { width: 0.02, color: "#000000", style: "solid" as const },
+          }
+        : l
+    ),
+  };
+  const mask = { kind: "path" as const, radius: 0, path: { d: "M0 0L50 0L50 40Z", viewBox: [0, 0, 50, 40] as [number, number, number, number] } };
+  const object = { x: 180, y: 130, width: 50, height: 40, crop: { x: 0.2, y: 0.1, w: 0.125, h: 0.2 }, mask };
+  const out = studioReducer(withExtras, { type: "liftObject", sourceId: source.id, newId: "img_lifted", object });
+
+  assert.equal(out.layers.length, base.layers.length + 1);
+  assert.equal(out.layers[0], withExtras.layers[0], "the photo itself is untouched");
+  const lifted = out.layers[1] as ImageLayer;
+  assert.equal(lifted.id, "img_lifted");
+  assert.equal(lifted.src, source.src);
+  assert.deepEqual({ x: lifted.x, y: lifted.y, width: lifted.width, height: lifted.height }, { x: 180, y: 130, width: 50, height: 40 });
+  assert.deepEqual(lifted.crop, object.crop);
+  assert.deepEqual(lifted.mask, mask);
+  assert.deepEqual(lifted.strokes, [], "strokes placed in the old box would land in the wrong place");
+  assert.equal(lifted.outline, undefined);
+});
+
+test("extractObject also swaps in the filled photo — and one undo puts both back", () => {
+  const base = seed();
+  const source = base.layers[0] as ImageLayer;
+  const object = {
+    x: 150,
+    y: 120,
+    width: 60,
+    height: 30,
+    crop: { x: 0.1, y: 0.1, w: 0.15, h: 0.15 },
+    mask: { kind: "path" as const, radius: 0, path: { d: "M0 0L60 0L60 30Z", viewBox: [0, 0, 60, 30] as [number, number, number, number] } },
+  };
+  let history = createHistory(base);
+  history = commit(history, {
+    type: "extractObject",
+    sourceId: source.id,
+    newId: "img_obj",
+    object,
+    repaired: { src: "a-filled.jpg", naturalWidth: 400, naturalHeight: 200 },
+  });
+  const photo = history.present.layers[0] as ImageLayer;
+  assert.equal(photo.src, "a-filled.jpg");
+  assert.deepEqual(photo.crop, source.crop, "the photo keeps its crop");
+  assert.equal((history.present.layers[1] as ImageLayer).src, source.src, "the object keeps the original pixels");
+
+  history = undo(history);
+  assert.equal(history.present, base);
+});
+
+test("a locked photo can't have an object lifted out of it", () => {
+  const base = seed();
+  const locked = { ...base, layers: base.layers.map((l, i) => (i === 0 ? { ...l, locked: true } : l)) };
+  const object = { x: 0, y: 0, width: 10, height: 10, crop: { x: 0, y: 0, w: 0.1, h: 0.1 }, mask: { kind: "none" as const, radius: 0 } };
+  assert.equal(studioReducer(locked, { type: "liftObject", sourceId: locked.layers[0].id, newId: "x", object }), locked);
+});
+
+test("expandLayerImage swaps in the grown picture and box in one step, crop reset", () => {
+  const base = seed();
+  const source = base.layers[0] as ImageLayer;
+  const box = { x: source.x - 50, y: source.y - 20, width: source.width + 100, height: source.height + 40 };
+  let history = createHistory(base);
+  history = commit(history, { type: "expandLayerImage", layerId: source.id, src: "grown.png", naturalWidth: 600, naturalHeight: 300, box });
+  const grown = history.present.layers[0] as ImageLayer;
+  assert.equal(grown.src, "grown.png");
+  assert.deepEqual({ x: grown.x, y: grown.y, width: grown.width, height: grown.height }, box);
+  assert.deepEqual(grown.crop, { x: 0, y: 0, w: 1, h: 1 });
+  history = undo(history);
+  assert.equal(history.present, base);
+});
+
+test("separateLayers puts the elements above the cleaned photo, in order, as one step", () => {
+  const base = seed();
+  const source = base.layers[0] as ImageLayer;
+  const a = { ...source, id: "img_sep_a", src: "a.png", name: "Cup" };
+  const b = { ...source, id: "img_sep_b", src: "b.png", name: "Plant" };
+  let history = createHistory(base);
+  history = commit(history, {
+    type: "separateLayers",
+    sourceId: source.id,
+    base: { src: "clean.png", naturalWidth: source.naturalWidth, naturalHeight: source.naturalHeight },
+    layers: [a, b],
+  });
+  const layers = history.present.layers;
+  assert.equal(layers.length, base.layers.length + 2);
+  assert.equal((layers[0] as ImageLayer).src, "clean.png");
+  assert.deepEqual((layers[0] as ImageLayer).crop, source.crop);
+  assert.deepEqual([layers[1].id, layers[2].id], ["img_sep_a", "img_sep_b"]);
+  history = undo(history);
+  assert.equal(history.present, base);
+  // A locked photo refuses.
+  const locked = { ...base, layers: base.layers.map((l, i) => (i === 0 ? { ...l, locked: true } : l)) };
+  assert.equal(
+    studioReducer(locked, { type: "separateLayers", sourceId: source.id, base: { src: "x", naturalWidth: 1, naturalHeight: 1 }, layers: [a] }),
+    locked
+  );
 });

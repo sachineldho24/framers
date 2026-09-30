@@ -26,6 +26,7 @@ import {
   MAX_SHAPE_STROKE,
   NO_OUTLINE,
   NO_ADJUSTMENTS,
+  NO_MASK,
   textLayerName,
   type Adjustments,
   type CropRect,
@@ -215,7 +216,60 @@ export type StudioAction =
    * clips a copy placed where the path sits in the stack — how a line is made
    * to pass *behind* part of a photo. Either way the path is used up.
    */
-  | { type: "maskWithPath"; pathId: string; imageId: string; mode: "mask" | "cutout"; newId?: string };
+  | { type: "maskWithPath"; pathId: string; imageId: string; mode: "mask" | "cutout"; newId?: string }
+  /**
+   * An object selected in a photo becomes its own layer: a copy of the photo,
+   * boxed tightly around the object, cropped to it and clipped to its outline —
+   * in exactly the same place on the page. The photo underneath is untouched.
+   */
+  | { type: "liftObject"; sourceId: string; newId: string; object: LiftedObject }
+  /**
+   * The same, and the photo underneath gets the object filled in (`repaired`),
+   * so the lifted object can be moved away without leaving itself behind. One
+   * action, so one undo puts both back.
+   */
+  | {
+      type: "extractObject";
+      sourceId: string;
+      newId: string;
+      object: LiftedObject;
+      repaired: { src: string; naturalWidth: number; naturalHeight: number };
+    }
+  /**
+   * Expand: the photo's source grew past its edges. New pixels, and a bigger
+   * box placed so the original part doesn't move (`expandedBox`). The whole
+   * new picture shows, so the crop resets. One undo step.
+   */
+  | {
+      type: "expandLayerImage";
+      layerId: string;
+      src: string;
+      naturalWidth: number;
+      naturalHeight: number;
+      box: { x: number; y: number; width: number; height: number };
+    }
+  /**
+   * Separate layers: the photo becomes its clean background (`base`, the same
+   * shape, so its crop is kept) with each separated element as its own layer
+   * directly above it, bottom to top. One undo step.
+   */
+  | {
+      type: "separateLayers";
+      sourceId: string;
+      base: { src: string; naturalWidth: number; naturalHeight: number };
+      layers: ImageLayer[];
+    };
+
+/** Where a lifted object sits, what it shows, and its outline. */
+export interface LiftedObject {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  crop: CropRect;
+  /** Its outline, in the new box: `{ kind: "path", path: { d, viewBox: [0, 0, width, height] } }`. */
+  mask: Mask;
+}
 
 export interface ShapeStylePatch {
   color: string;
@@ -858,6 +912,71 @@ export function studioReducer(
         ...doc,
         layers: doc.layers.map((l) => (l.id === path.id ? copy : l)),
       };
+    }
+
+    case "expandLayerImage":
+      return mapImageLayer(doc, action.layerId, (l) => {
+        if (l.locked && l.role !== "placeholder") return null;
+        if (!(action.box.width > 0 && action.box.height > 0)) return null;
+        return {
+          ...l,
+          src: action.src,
+          naturalWidth: action.naturalWidth,
+          naturalHeight: action.naturalHeight,
+          ...action.box,
+          crop: { ...FULL_CROP },
+          // Painted strokes and a drawn outline were placed in the old box;
+          // shape masks (circle, rounded…) scale with the box and stay.
+          strokes: [],
+          mask: l.mask.kind === "path" ? { ...NO_MASK } : l.mask,
+        };
+      });
+
+    case "separateLayers": {
+      const index = layerIndex(doc, action.sourceId);
+      const source = doc.layers[index];
+      if (!source || source.kind !== "image") return doc;
+      if (source.locked && source.role !== "placeholder") return doc;
+      if (action.layers.some((l) => layerIndex(doc, l.id) >= 0)) return doc;
+      const layers = doc.layers.slice();
+      layers[index] = { ...source, src: action.base.src, naturalWidth: action.base.naturalWidth, naturalHeight: action.base.naturalHeight };
+      layers.splice(index + 1, 0, ...action.layers);
+      return { ...doc, layers };
+    }
+
+    case "liftObject":
+    case "extractObject": {
+      const index = layerIndex(doc, action.sourceId);
+      const source = doc.layers[index];
+      if (!source || source.kind !== "image") return doc;
+      // The same rule as replacing a picture: a locked photo refuses, a
+      // template's photo slot doesn't.
+      if (source.locked && source.role !== "placeholder") return doc;
+      if (layerIndex(doc, action.newId) >= 0) return doc;
+      const base = asFreshCopy(source) as ImageLayer;
+      const { outline: _outline, ...rest } = base;
+      void _outline;
+      const lifted: ImageLayer = {
+        ...rest,
+        id: action.newId,
+        name: `${source.name} – object`,
+        x: action.object.x,
+        y: action.object.y,
+        width: action.object.width,
+        height: action.object.height,
+        crop: { ...action.object.crop },
+        mask: action.object.mask,
+        // Eraser strokes are placed in the old box; in the new one they'd land
+        // in the wrong place.
+        strokes: [],
+      };
+      const layers = doc.layers.slice();
+      if (action.type === "extractObject") {
+        const { repaired } = action;
+        layers[index] = { ...source, src: repaired.src, naturalWidth: repaired.naturalWidth, naturalHeight: repaired.naturalHeight };
+      }
+      layers.splice(index + 1, 0, lifted);
+      return { ...doc, layers };
     }
 
     case "setDrawStyle":

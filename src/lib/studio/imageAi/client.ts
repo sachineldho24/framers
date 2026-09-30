@@ -3,8 +3,8 @@
 /**
  * The studio's handle on the image-AI worker.
  *
- * One job at a time: both models want the whole GPU (or every CPU core), and a
- * second photo queued behind the first would only make both slower. Cancelling
+ * One job at a time: the models want the whole GPU (or every CPU core), and
+ * running two at once would only make both slower — so jobs queue. Cancelling
  * ends the worker outright — a model mid-inference can't be interrupted any
  * other way — and the next job starts a fresh one, with the weights coming back
  * out of the browser's cache.
@@ -17,7 +17,17 @@
  * photos and not worth keeping for the rest of the session.
  */
 
-import type { ImageAiRequest, ImageAiResponse, ImageAiStage, ImageAiTask } from "./protocol";
+import type {
+  ImageAiOutput,
+  ImageAiRequest,
+  ImageAiResponse,
+  ImageAiStage,
+  ImageAiTask,
+  MaskCandidate,
+  SegPrompt,
+} from "./protocol";
+
+export type { MaskCandidate, SegPrompt } from "./protocol";
 
 /**
  * Where the background-removal model is downloaded from. Production points at
@@ -46,6 +56,8 @@ export interface ImageAiResult {
   height: number;
 }
 
+export type SelectedObject = Extract<ImageAiOutput, { kind: "object" }>;
+
 export class ImageAiCancelled extends Error {
   constructor() {
     super("Cancelled.");
@@ -62,6 +74,8 @@ let nextId = 1;
 let active: { id: number; reject: (error: Error) => void } | null = null;
 /** The GPU failed once this session, so everything runs on the CPU. */
 let cpuOnly = false;
+/** Jobs run one after another; each waits for the one before to settle. */
+let queue: Promise<unknown> = Promise.resolve();
 
 function getWorker(): Worker {
   if (idleTimer) clearTimeout(idleTimer);
@@ -80,27 +94,75 @@ function scheduleRelease() {
   idleTimer = setTimeout(release, IDLE_MS);
 }
 
+const noProgress = () => {};
+
+/** Queue a task; on a GPU failure, retry it once on the CPU in a fresh worker. */
+function run(task: ImageAiTask, onProgress: (progress: ImageAiProgress) => void): Promise<ImageAiOutput> {
+  const job = queue.then(async () => {
+    try {
+      return await runOnce(task, onProgress);
+    } catch (error) {
+      if (!(error instanceof GpuFailed) || cpuOnly) throw error;
+      cpuOnly = true;
+      release();
+      onProgress({ stage: "process", gpu: false });
+      return runOnce(task, onProgress);
+    }
+  });
+  queue = job.catch(() => undefined);
+  return job;
+}
+
+/** Background removal, Enhance, Erase object: a new picture. */
 export async function runImageAi(
   job: ImageAiJob,
   onProgress: (progress: ImageAiProgress) => void
 ): Promise<ImageAiResult> {
-  if (active) throw new Error("Another photo is still being processed.");
-  try {
-    return await runOnce(job, onProgress);
-  } catch (error) {
-    if (!(error instanceof GpuFailed) || cpuOnly) throw error;
-    cpuOnly = true;
-    release();
-    onProgress({ stage: "process", gpu: false });
-    return runOnce(job, onProgress);
-  }
+  const task: ImageAiTask = job.kind === "removeBackground" ? { ...job, modelUrl: BG_MODEL_URL } : job;
+  const result = await run(task, onProgress);
+  if (result.kind !== "image") throw new Error("Unexpected result from the image worker.");
+  return result;
 }
 
-function runOnce(job: ImageAiJob, onProgress: (progress: ImageAiProgress) => void): Promise<ImageAiResult> {
+/** Analyse a photo for object selection. Instant when this `src` is already analysed. */
+export async function prepareSelection(
+  src: string,
+  image: Blob,
+  onProgress: (progress: ImageAiProgress) => void
+): Promise<{ width: number; height: number }> {
+  const result = await run({ kind: "segPrepare", src, image }, onProgress);
+  if (result.kind !== "prepared") throw new Error("Unexpected result from the image worker.");
+  return result;
+}
+
+/** The candidate masks for the clicks so far. */
+export async function segmentSelection(
+  src: string,
+  prompts: SegPrompt[]
+): Promise<{ candidates: MaskCandidate[]; best: number }> {
+  const result = await run({ kind: "segSegment", src, prompts }, noProgress);
+  if (result.kind !== "candidates") throw new Error("Unexpected result from the image worker.");
+  return result;
+}
+
+/** The chosen object's outline — and, with `repair`, the photo with it filled in. */
+export async function commitSelection(
+  src: string,
+  prompts: SegPrompt[],
+  candidate: number,
+  repair: boolean,
+  onProgress: (progress: ImageAiProgress) => void
+): Promise<SelectedObject> {
+  const result = await run({ kind: "segCommit", src, prompts, candidate, repair }, onProgress);
+  if (result.kind !== "object") throw new Error("Unexpected result from the image worker.");
+  return result;
+}
+
+function runOnce(task: ImageAiTask, onProgress: (progress: ImageAiProgress) => void): Promise<ImageAiOutput> {
   const id = nextId++;
   const w = getWorker();
 
-  return new Promise<ImageAiResult>((resolve, reject) => {
+  return new Promise<ImageAiOutput>((resolve, reject) => {
     const finish = () => {
       w.removeEventListener("message", onMessage);
       w.removeEventListener("error", onError);
@@ -114,7 +176,7 @@ function runOnce(job: ImageAiJob, onProgress: (progress: ImageAiProgress) => voi
         onProgress({ stage: message.stage, fraction: message.fraction, gpu: message.gpu });
       } else if (message.type === "done") {
         finish();
-        resolve({ image: message.image, width: message.width, height: message.height });
+        resolve(message.result);
       } else {
         finish();
         reject(message.gpuFailed ? new GpuFailed(message.message) : new Error(message.message));
@@ -137,10 +199,7 @@ function runOnce(job: ImageAiJob, onProgress: (progress: ImageAiProgress) => voi
     };
     w.addEventListener("message", onMessage);
     w.addEventListener("error", onError);
-    const request: ImageAiRequest =
-      job.kind === "removeBackground"
-        ? { id, cpuOnly, ...job, modelUrl: BG_MODEL_URL }
-        : { id, cpuOnly, ...job };
+    const request: ImageAiRequest = { id, cpuOnly, ...task };
     w.postMessage(request);
   });
 }

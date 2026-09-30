@@ -12,7 +12,10 @@
  *   /models/upscale (see the README there), run tile by tile so a large photo
  *   never needs the whole ×4 image in memory.
  *
- * Both are plain convolutional networks, chosen because they run everywhere:
+ * - Object selection: SlimSAM (see its section) — tap an object, get its mask,
+ *   its outline, and optionally the photo with it filled in.
+ *
+ * All are small enough to run everywhere:
  * on the GPU through WebGPU where the browser has it, otherwise on the CPU
  * through WebAssembly — slower, same result. They run through ONNX Runtime in
  * a worker, so a slow device shows a progress bar rather than a frozen page.
@@ -20,8 +23,9 @@
 
 import type { CropRect, Stroke } from "../document";
 import { inpaint } from "../inpaint";
+import { outlineMask } from "../maskTrace";
 import { paintStrokes } from "../strokes";
-import type { ImageAiRequest, ImageAiResponse, ImageAiStage } from "./protocol";
+import type { ImageAiRequest, ImageAiResponse, ImageAiStage, MaskCandidate, SegPrompt } from "./protocol";
 
 type Ort = typeof import("onnxruntime-web/webgpu");
 type Session = import("onnxruntime-web").InferenceSession;
@@ -228,7 +232,7 @@ async function removeBackground(id: number, blob: Blob, modelUrl: string) {
   bitmap.close();
 
   const image = await encode(out, true);
-  post({ id, type: "done", image, width, height });
+  post({ id, type: "done", result: { kind: "image", image, width, height } });
 }
 
 /* ---------------------------------------------------------------- enhance */
@@ -364,7 +368,7 @@ async function enhance(id: number, blob: Blob, scale: number) {
   bitmap.close();
 
   const image = await encode(out, hasAlpha);
-  post({ id, type: "done", image, width: W, height: H });
+  post({ id, type: "done", result: { kind: "image", image, width: W, height: H } });
 }
 
 /* ------------------------------------------------------------ erase object */
@@ -421,7 +425,400 @@ async function eraseObject(
   }
   ctx.putImageData(new ImageData(filled, width, height), 0, 0);
   const image = await encode(canvas, hasAlpha);
-  post({ id, type: "done", image, width, height });
+  post({ id, type: "done", result: { kind: "image", image, width, height } });
+}
+
+/* --------------------------------------------------------- object selection */
+
+/**
+ * SlimSAM (Apache-2.0), a slimmed Segment Anything, fetched from the Hugging
+ * Face hub at a pinned revision. Two parts: an image encoder run once per photo
+ * (seconds), and a small prompt decoder run per click (a tenth of a second).
+ *
+ * Precision was chosen by testing: the quantized *decoder* picked a car's chrome
+ * strip where the fp16/fp32 ones picked the car, so it is never used; the
+ * quantized *encoder* chose the same objects as the full one, and is the CPU's.
+ */
+const SAM_BASE = "https://huggingface.co/Xenova/slimsam-77-uniform/resolve/5850ab45f587c112167512ffef949107115e26a0/onnx/";
+const SAM_SIZE = 1024;
+const SAM_GRID = 256;
+const SAM_MEAN = [0.485, 0.456, 0.406];
+const SAM_STD = [0.229, 0.224, 0.225];
+
+interface SamModels {
+  ort: Ort;
+  encoder: Session;
+  decoder: Session;
+  gpu: boolean;
+}
+
+let samModels: Promise<SamModels> | null = null;
+
+async function gpuHasFp16(): Promise<boolean> {
+  try {
+    const gpu = (navigator as unknown as {
+      gpu?: { requestAdapter(): Promise<{ features: ReadonlySet<string> } | null> };
+    }).gpu;
+    return !!(await gpu?.requestAdapter())?.features.has("shader-f16");
+  } catch {
+    return false;
+  }
+}
+
+async function loadSam(onFraction: (f: number) => void): Promise<SamModels> {
+  const gpu = await detectGpu();
+  const fp16 = gpu && (await gpuHasFp16());
+  const names = gpu
+    ? fp16
+      ? ["vision_encoder_fp16", "prompt_encoder_mask_decoder_fp16"]
+      : ["vision_encoder", "prompt_encoder_mask_decoder"]
+    : ["vision_encoder_quantized", "prompt_encoder_mask_decoder"];
+  // Two downloads, one progress bar: the encoder is roughly two-thirds of it.
+  const [encBytes, decBytes] = await Promise.all([
+    cachedModel(`${SAM_BASE}${names[0]}.onnx`, (f) => onFraction(f * 0.6)),
+    cachedModel(`${SAM_BASE}${names[1]}.onnx`, (f) => onFraction(0.6 + f * 0.4)),
+  ]);
+  const encoder = await createSession(encBytes);
+  const decoder = await createSession(decBytes);
+  return { ort: encoder.ort, encoder: encoder.session, decoder: decoder.session, gpu: encoder.gpu };
+}
+
+function getSam(report: (stage: ImageAiStage, fraction?: number) => void): Promise<SamModels> {
+  samModels ??= loadSam((f) => report("download", f)).catch((error) => {
+    samModels = null;
+    throw error;
+  });
+  return samModels;
+}
+
+/** A region of the photo, analysed by the encoder. */
+interface Embedding {
+  image: import("onnxruntime-web").Tensor;
+  positions: import("onnxruntime-web").Tensor;
+  /** Source px of the region this embedding covers. */
+  region: { x0: number; y0: number; x1: number; y1: number };
+  /** Encoder px per source px. */
+  scale: number;
+  /** The unpadded part of SAM's 256² output grid. */
+  gridW: number;
+  gridH: number;
+}
+
+/** The photo being selected in, analysed. One at a time; a new `src` replaces it. */
+let selection: {
+  src: string;
+  width: number;
+  height: number;
+  canvas: OffscreenCanvas;
+  whole: Embedding;
+  /** The last decode, so a commit can reuse the candidate the customer saw. */
+  last?: { key: string; logits: Float32Array };
+} | null = null;
+
+async function embedRegion(
+  models: SamModels,
+  canvas: OffscreenCanvas,
+  region: Embedding["region"]
+): Promise<Embedding> {
+  const rw0 = region.x1 - region.x0;
+  const rh0 = region.y1 - region.y0;
+  const scale = SAM_SIZE / Math.max(rw0, rh0);
+  const rw = Math.max(1, Math.round(rw0 * scale));
+  const rh = Math.max(1, Math.round(rh0 * scale));
+  const small = new OffscreenCanvas(rw, rh);
+  const ctx = small.getContext("2d", { willReadFrequently: true })!;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(canvas, region.x0, region.y0, rw0, rh0, 0, 0, rw, rh);
+  const px = ctx.getImageData(0, 0, rw, rh).data;
+  // Resized to 1024 on the long side, padded bottom/right with zeros (after
+  // normalisation), exactly as SAM's own processor does.
+  const plane = SAM_SIZE * SAM_SIZE;
+  const input = new Float32Array(3 * plane);
+  for (let y = 0; y < rh; y++) {
+    for (let x = 0; x < rw; x++) {
+      const s = (y * rw + x) * 4;
+      const d = y * SAM_SIZE + x;
+      for (let c = 0; c < 3; c++) input[c * plane + d] = (px[s + c] / 255 - SAM_MEAN[c]) / SAM_STD[c];
+    }
+  }
+  const out = await onGpu(models.gpu, () =>
+    models.encoder.run({ pixel_values: new models.ort.Tensor("float32", input, [1, 3, SAM_SIZE, SAM_SIZE]) })
+  );
+  return {
+    image: out.image_embeddings,
+    positions: out.image_positional_embeddings,
+    region,
+    scale,
+    gridW: Math.max(1, Math.round((rw / SAM_SIZE) * SAM_GRID)),
+    gridH: Math.max(1, Math.round((rh / SAM_SIZE) * SAM_GRID)),
+  };
+}
+
+/** Points in source px, labelled 1 (include) or 0 (exclude). */
+type PxPrompt = [number, number, 0 | 1];
+
+/** SAM's three candidates as raw logits, 3 × 256². */
+async function decode(models: SamModels, emb: Embedding, prompts: PxPrompt[]) {
+  const n = prompts.length;
+  const points = new Float32Array(n * 2);
+  const labels = new BigInt64Array(n);
+  prompts.forEach(([x, y, label], i) => {
+    points[i * 2] = (x - emb.region.x0) * emb.scale;
+    points[i * 2 + 1] = (y - emb.region.y0) * emb.scale;
+    labels[i] = BigInt(label);
+  });
+  const out = await onGpu(models.gpu, () =>
+    models.decoder.run({
+      input_points: new models.ort.Tensor("float32", points, [1, 1, n, 2]),
+      input_labels: new models.ort.Tensor("int64", labels, [1, 1, n]),
+      image_embeddings: emb.image,
+      image_positional_embeddings: emb.positions,
+    })
+  );
+  return {
+    logits: Float32Array.from(out.pred_masks.data as Float32Array),
+    scores: Array.from(out.iou_scores.data as Float32Array),
+  };
+}
+
+/**
+ * Candidate `k`'s logits, bilinearly resampled over the embedding's region and
+ * thresholded: a full-resolution mask of the region (region width × height).
+ */
+function upsample(emb: Embedding, logits: Float32Array, k: number): Uint8Array {
+  const { region, gridW, gridH } = emb;
+  const w = region.x1 - region.x0;
+  const h = region.y1 - region.y0;
+  const grid = logits.subarray(k * SAM_GRID * SAM_GRID, (k + 1) * SAM_GRID * SAM_GRID);
+  const out = new Uint8Array(w * h);
+  const max = SAM_GRID - 1;
+  for (let y = 0; y < h; y++) {
+    const fy = Math.min(max, Math.max(0, ((y + 0.5) / h) * gridH - 0.5));
+    const y0 = Math.floor(fy);
+    const y1 = Math.min(max, y0 + 1);
+    const ty = fy - y0;
+    for (let x = 0; x < w; x++) {
+      const fx = Math.min(max, Math.max(0, ((x + 0.5) / w) * gridW - 0.5));
+      const x0 = Math.floor(fx);
+      const x1 = Math.min(max, x0 + 1);
+      const tx = fx - x0;
+      const v =
+        (grid[y0 * SAM_GRID + x0] * (1 - tx) + grid[y0 * SAM_GRID + x1] * tx) * (1 - ty) +
+        (grid[y1 * SAM_GRID + x0] * (1 - tx) + grid[y1 * SAM_GRID + x1] * tx) * ty;
+      if (v > 0) out[y * w + x] = 1;
+    }
+  }
+  return out;
+}
+
+const pxPrompts = (prompts: SegPrompt[], width: number, height: number): PxPrompt[] =>
+  prompts.map((p) => [p.x * width, p.y * height, p.include ? 1 : 0]);
+
+async function segPrepare(id: number, src: string, blob: Blob) {
+  const report = reporter(id, await detectGpu());
+  report("download");
+  const models = await getSam(report);
+  if (selection?.src === src) {
+    post({ id, type: "done", result: { kind: "prepared", width: selection.width, height: selection.height } });
+    return;
+  }
+  reporter(id, models.gpu)("process");
+  const bitmap = await createImageBitmap(blob);
+  const { width, height } = bitmap;
+  const canvas = new OffscreenCanvas(width, height);
+  canvas.getContext("2d")!.drawImage(bitmap, 0, 0);
+  bitmap.close();
+  const whole = await embedRegion(models, canvas, { x0: 0, y0: 0, x1: width, y1: height });
+  selection = { src, width, height, canvas, whole };
+  post({ id, type: "done", result: { kind: "prepared", width, height } });
+}
+
+function requireSelection(src: string) {
+  // A worker released while idle loses this; the studio prepares again.
+  if (selection?.src !== src) throw new Error("The photo needs to be analysed again. Please try once more.");
+  return selection;
+}
+
+async function segSegment(id: number, src: string, prompts: SegPrompt[]) {
+  const sel = requireSelection(src);
+  const models = await getSam(() => {});
+  const { logits, scores } = await decode(models, sel.whole, pxPrompts(prompts, sel.width, sel.height));
+  sel.last = { key: JSON.stringify(prompts), logits };
+  const { gridW, gridH } = sel.whole;
+  const candidates: MaskCandidate[] = [0, 1, 2].map((k) => {
+    const grid = logits.subarray(k * SAM_GRID * SAM_GRID, (k + 1) * SAM_GRID * SAM_GRID);
+    const mask = new Uint8Array(gridW * gridH);
+    let area = 0;
+    for (let y = 0; y < gridH; y++) {
+      for (let x = 0; x < gridW; x++) {
+        if (grid[y * SAM_GRID + x] > 0) {
+          mask[y * gridW + x] = 1;
+          area++;
+        }
+      }
+    }
+    return { mask, width: gridW, height: gridH, score: scores[k], area };
+  });
+  let best = 0;
+  for (let k = 1; k < 3; k++) if (scores[k] > scores[best]) best = k;
+  post(
+    { id, type: "done", result: { kind: "candidates", candidates, best } },
+    candidates.map((c) => c.mask.buffer as ArrayBuffer)
+  );
+}
+
+function maskBounds(mask: Uint8Array, w: number, h: number) {
+  let x0 = w;
+  let y0 = h;
+  let x1 = -1;
+  let y1 = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (!mask[y * w + x]) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  return x1 < 0 ? null : { x0, y0, x1: x1 + 1, y1: y1 + 1 };
+}
+
+/**
+ * Extra prompts for the zoomed pass, derived from the first-pass mask: its
+ * deepest point in each quadrant (include) and background just beyond each side
+ * of its box (exclude). With only the original click, the zoomed pass often
+ * settled on a different part of the object.
+ */
+function derivedPrompts(mask: Uint8Array, w: number, h: number, b: { x0: number; y0: number; x1: number; y1: number }): PxPrompt[] {
+  const out: PxPrompt[] = [];
+  const bw = b.x1 - b.x0;
+  const bh = b.y1 - b.y0;
+  const step = Math.max(2, Math.round(Math.min(bw, bh) / 60));
+  const depth = (x: number, y: number) => {
+    let r = 0;
+    for (;;) {
+      r += step;
+      if (x - r < 0 || y - r < 0 || x + r >= w || y + r >= h) return r;
+      if (!mask[y * w + x - r] || !mask[y * w + x + r] || !mask[(y - r) * w + x] || !mask[(y + r) * w + x]) return r;
+    }
+  };
+  const cx = (b.x0 + b.x1) / 2;
+  const cy = (b.y0 + b.y1) / 2;
+  const deepest: ([number, number, number] | null)[] = [null, null, null, null];
+  for (let y = b.y0; y < b.y1; y += step) {
+    for (let x = b.x0; x < b.x1; x += step) {
+      if (!mask[y * w + x]) continue;
+      const q = (x < cx ? 0 : 1) + (y < cy ? 0 : 2);
+      const d = depth(x, y);
+      if (!deepest[q] || d > deepest[q]![2]) deepest[q] = [x, y, d];
+    }
+  }
+  for (const q of deepest) if (q && q[2] > step * 2) out.push([q[0] + 0.5, q[1] + 0.5, 1]);
+  const pad = Math.round(Math.max(bw, bh) * 0.06);
+  for (const [x, y] of [
+    [cx, b.y0 - pad],
+    [cx, b.y1 + pad],
+    [b.x0 - pad, cy],
+    [b.x1 + pad, cy],
+  ]) {
+    const xi = Math.round(x);
+    const yi = Math.round(y);
+    if (xi >= 0 && yi >= 0 && xi < w && yi < h && !mask[yi * w + xi]) out.push([xi + 0.5, yi + 0.5, 0]);
+  }
+  return out;
+}
+
+async function segCommit(id: number, src: string, prompts: SegPrompt[], candidate: number, repair: boolean) {
+  const sel = requireSelection(src);
+  const models = await getSam(() => {});
+  const progress = reporter(id, models.gpu);
+  progress("process", 0);
+  const { width, height } = sel;
+  const px = pxPrompts(prompts, width, height);
+
+  // The candidate the customer saw, at full resolution.
+  const key = JSON.stringify(prompts);
+  const logits = sel.last?.key === key ? sel.last.logits : (await decode(models, sel.whole, px)).logits;
+  const first = upsample(sel.whole, logits, candidate);
+  const box = maskBounds(first, width, height);
+  if (!box) throw new Error("Nothing is selected. Tap the object you want.");
+
+  // Zoomed second pass: the object's box (+15%) re-analysed on its own gives a
+  // grid several times finer — crisper edges for print — and the extra prompts
+  // plus the IoU check keep it on the same object.
+  const margin = Math.round(Math.max(box.x1 - box.x0, box.y1 - box.y0) * 0.15);
+  const region = {
+    x0: Math.max(0, box.x0 - margin),
+    y0: Math.max(0, box.y0 - margin),
+    x1: Math.min(width, box.x1 + margin),
+    y1: Math.min(height, box.y1 + margin),
+  };
+  const rw = region.x1 - region.x0;
+  const rh = region.y1 - region.y0;
+  const firstInRegion = new Uint8Array(rw * rh);
+  for (let y = 0; y < rh; y++) {
+    firstInRegion.set(first.subarray((region.y0 + y) * width + region.x0, (region.y0 + y) * width + region.x1), y * rw);
+  }
+  let objectMask: Uint8Array = firstInRegion;
+  // Worth it unless the object already fills most of the photo.
+  if (rw * rh < width * height * 0.8) {
+    const zoom = await embedRegion(models, sel.canvas, region);
+    progress("process", 0.35);
+    const extra = derivedPrompts(first, width, height, box);
+    const { logits: zl } = await decode(models, zoom, [...px, ...extra]);
+    let bestIou = -1;
+    for (let k = 0; k < 3; k++) {
+      const m = upsample(zoom, zl, k);
+      let inter = 0;
+      let union = 0;
+      for (let i = 0; i < m.length; i++) {
+        if (m[i] && firstInRegion[i]) inter++;
+        if (m[i] || firstInRegion[i]) union++;
+      }
+      const iou = union ? inter / union : 0;
+      if (iou > bestIou) {
+        bestIou = iou;
+        objectMask = m;
+      }
+    }
+    // A zoomed pass that wandered off to something else is worse than none.
+    if (bestIou < 0.6) objectMask = firstInRegion;
+  }
+  progress("process", 0.45);
+
+  const local = outlineMask(objectMask, rw, rh, { minArea: Math.max(4, rw * rh * 0.0002) });
+  const rings = local.map((ring) => ring.map(([x, y]) => [x + region.x0, y + region.y0] as [number, number]));
+  const bounds = maskBounds(objectMask, rw, rh);
+  if (!bounds || rings.length === 0) throw new Error("Nothing is selected. Tap the object you want.");
+  const bbox = {
+    x0: bounds.x0 + region.x0,
+    y0: bounds.y0 + region.y0,
+    x1: bounds.x1 + region.x0,
+    y1: bounds.y1 + region.y0,
+  };
+
+  let repaired: { image: Blob; width: number; height: number } | undefined;
+  if (repair) {
+    // Fill a little wider than the object: its soft edge and any halo go too.
+    const full = new Uint8Array(width * height);
+    for (let y = 0; y < rh; y++) full.set(objectMask.subarray(y * rw, (y + 1) * rw), (region.y0 + y) * width + region.x0);
+    const grow = Math.max(3, Math.round(Math.hypot(bbox.x1 - bbox.x0, bbox.y1 - bbox.y0) * 0.015));
+    const ctx = sel.canvas.getContext("2d", { willReadFrequently: true })!;
+    const pixels = ctx.getImageData(0, 0, width, height);
+    const filled = inpaint(pixels, full, { grow, onProgress: (f) => progress("process", 0.45 + f * 0.55) });
+    const out = new OffscreenCanvas(width, height);
+    out.getContext("2d")!.putImageData(new ImageData(filled, width, height), 0, 0);
+    let hasAlpha = false;
+    for (let i = 3; i < filled.length; i += 4) {
+      if (filled[i] < 255) {
+        hasAlpha = true;
+        break;
+      }
+    }
+    repaired = { image: await encode(out, hasAlpha), width, height };
+  }
+  post({ id, type: "done", result: { kind: "object", rings, bbox, repaired } });
 }
 
 /* ----------------------------------------------------------------- output */
@@ -445,7 +842,10 @@ self.onmessage = async (event: MessageEvent<ImageAiRequest>) => {
     if (request.kind === "removeBackground") await removeBackground(request.id, request.image, request.modelUrl);
     else if (request.kind === "eraseObject") {
       await eraseObject(request.id, request.image, request.strokes, request.crop, request.flipX, request.flipY);
-    } else await enhance(request.id, request.image, request.scale);
+    } else if (request.kind === "enhance") await enhance(request.id, request.image, request.scale);
+    else if (request.kind === "segPrepare") await segPrepare(request.id, request.src, request.image);
+    else if (request.kind === "segSegment") await segSegment(request.id, request.src, request.prompts);
+    else await segCommit(request.id, request.src, request.prompts, request.candidate, request.repair);
   } catch (error) {
     post({
       id: request.id,

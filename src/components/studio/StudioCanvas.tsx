@@ -65,6 +65,8 @@ import { UPLOAD_DRAG_MIME } from "./panels/UploadsPanel";
 import { PrintGuides } from "./PrintGuides";
 import { GroupSelectionOverlay, MarqueeOverlay } from "./GroupSelectionOverlay";
 import { ObjectMaskOverlay } from "./ObjectMaskOverlay";
+import { SelectionMaskOverlay } from "./SelectionMaskOverlay";
+import { boxToSource } from "@/lib/studio/objectGeometry";
 import { SelectionOverlay } from "./SelectionOverlay";
 import { appendPoint, drawLayerFromPoints, penWidth, strokeHit, type PenKind } from "@/lib/studio/drawing";
 import { createId } from "@/lib/studio/document";
@@ -151,6 +153,15 @@ type Gesture =
       stroke: Stroke;
       box: Box;
     }
+  /** A tap on the photo while selecting an object; judged when the finger lifts. */
+  | {
+      kind: "object-tap";
+      layerId: string;
+      box: Box;
+      startX: number;
+      startY: number;
+      startTime: number;
+    }
   /** Painting what Erase object will remove: tool state, not an edit. */
   | {
       kind: "object-paint";
@@ -184,6 +195,7 @@ export function StudioCanvas({
   onContextMenu,
   onDropUpload,
   onFillSlot,
+  onObjectTap,
 }: {
   images: ImageMap;
   /** Right-click on the canvas; coordinates are viewport-relative. */
@@ -196,6 +208,11 @@ export function StudioCanvas({
   onDropUpload?: (src: string, point: { x: number; y: number }, targetId: string | null) => void;
   /** The "Add your photo" button on an empty photo slot. */
   onFillSlot?: (layerId: string) => void;
+  /**
+   * A tap on the selected photo while selecting an object, in source-normalised
+   * coordinates. `exclude` is set by Alt+click or a long press.
+   */
+  onObjectTap?: (point: { x: number; y: number }, exclude: boolean) => void;
 }) {
   const {
     doc,
@@ -212,6 +229,7 @@ export function StudioCanvas({
     brush,
     objectStrokes,
     setObjectStrokes,
+    aiSelection,
     apply,
     endGesture,
     select,
@@ -582,6 +600,18 @@ export function StudioCanvas({
           { type: "addStroke", layerId: current.id, stroke },
           { transient: true, label: `paint:${stroke.id}` }
         );
+        return;
+      }
+
+      if (activeTool === "objectSelect" && isImageLayer(current)) {
+        gestureRef.current = {
+          kind: "object-tap",
+          layerId: current.id,
+          box: layerBox(current),
+          startX: e.clientX,
+          startY: e.clientY,
+          startTime: performance.now(),
+        };
         return;
       }
 
@@ -1096,6 +1126,20 @@ export function StudioCanvas({
       gestureRef.current = { kind: "none" };
       showSnapLines([]);
 
+      if (gesture.kind === "object-tap") {
+        // A tap, not a drag: a finger that wandered was scrolling or unsure.
+        if (Math.hypot(e.clientX - gesture.startX, e.clientY - gesture.startY) > 8) return;
+        const layer = docRef.current.layers.find((l) => l.id === gesture.layerId);
+        if (layer?.kind !== "image") return;
+        const local = docToLocal(gesture.box, toDoc(e));
+        const u = local.x / gesture.box.width;
+        const v = local.y / gesture.box.height;
+        if (u < 0 || v < 0 || u > 1 || v > 1) return;
+        const longPress = performance.now() - gesture.startTime > 450;
+        onObjectTap?.(boxToSource(layer, { x: u, y: v }), e.altKey || longPress);
+        return;
+      }
+
       if (gesture.kind === "marquee") {
         setMarquee(null);
         const rect = rectFromPoints(gesture.startDoc, toDoc(e));
@@ -1116,7 +1160,7 @@ export function StudioCanvas({
       }
       endGesture();
     },
-    [docRef, endGesture, selectMany, showSnapLines, toDoc]
+    [docRef, endGesture, onObjectTap, selectMany, showSnapLines, toDoc]
   );
 
   // Ctrl/⌘+wheel zooms about the cursor; plain wheel pans. Non-passive so the
@@ -1174,7 +1218,12 @@ export function StudioCanvas({
   }, []);
 
   const cursor =
-    tool === "eraser" || tool === "objectEraser" || tool === "draw" || tool === "pen" || tool === "pen-eraser"
+    tool === "eraser" ||
+    tool === "objectEraser" ||
+    tool === "objectSelect" ||
+    tool === "draw" ||
+    tool === "pen" ||
+    tool === "pen-eraser"
       ? "crosshair"
       : // Crop's own handles carry resize cursors; the window itself is dragged,
         // so "move" is the honest default for the rest of the surface.
@@ -1260,6 +1309,16 @@ export function StudioCanvas({
 
       {onFillSlot && tool === "select" && (
         <SlotPrompts layers={unfilledSlots(doc)} viewport={viewport} onFill={onFillSlot} />
+      )}
+
+      {tool === "objectSelect" && selectedLayer && isImageLayer(selectedLayer) && aiSelection?.layerId === selectedLayer.id && (
+        <SelectionMaskOverlay
+          layer={selectedLayer}
+          viewport={viewport}
+          candidate={aiSelection.candidates?.[aiSelection.chosen]}
+          prompts={aiSelection.prompts}
+          busy={aiSelection.status === "segmenting"}
+        />
       )}
 
       {tool === "objectEraser" && selectedLayer && isImageLayer(selectedLayer) && objectStrokes.length > 0 && (

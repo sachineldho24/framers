@@ -295,6 +295,10 @@ export interface ImageAiControls {
   onEnhance: () => void;
   /** Open the Erase object brush. */
   onEraseObject: () => void;
+  /** Open Select object: tap an object to lift, cut out or erase it. */
+  onSelectObject: () => void;
+  /** Open Generate with AI for this photo (edit, replace, expand…). Absent when no provider is set up. */
+  onGenerate?: () => void;
   enhance: EnhancePlan;
   /** Why neither can run right now (a job already running, a locked photo). */
   blocked?: string;
@@ -1235,12 +1239,30 @@ function ImageAiButtons({ controls }: { controls: ImageAiControls }) {
         Enhance
       </LabelButton>
       <LabelButton
+        onClick={controls.onSelectObject}
+        disabled={!!blocked}
+        title={blocked ?? "Tap an object in the photo to lift it out, cut it out or erase it"}
+      >
+        Select object
+      </LabelButton>
+      <LabelButton
         onClick={controls.onEraseObject}
         disabled={!!blocked}
         title={blocked ?? "Paint over something to remove it — filled from its surroundings"}
       >
         Erase object
       </LabelButton>
+      {controls.onGenerate && (
+        <LabelButton
+          onClick={controls.onGenerate}
+          disabled={!!blocked}
+          title={blocked ?? "Edit, replace, expand, upscale or separate this photo with generative AI"}
+          trailingIcon="auto_awesome"
+          trailingClassName="text-[var(--studio-accent)]"
+        >
+          AI edit
+        </LabelButton>
+      )}
     </>
   );
 }
